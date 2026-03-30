@@ -47,6 +47,12 @@ public class QueryResultImpl implements QueryResult {
     private int getColumnIndex(String columnName) {
         Integer index = columnNameIndex.get(columnName);
         if (index == null) {
+            index = columnNameIndex.get(columnName.toUpperCase());
+        }
+        if (index == null) {
+            index = columnNameIndex.get(columnName.toLowerCase());
+        }
+        if (index == null) {
             throw new IllegalArgumentException("Unknown column name: " + columnName);
         }
         return index;

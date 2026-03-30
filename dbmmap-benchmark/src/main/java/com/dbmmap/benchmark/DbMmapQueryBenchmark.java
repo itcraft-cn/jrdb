@@ -1,15 +1,14 @@
 package com.dbmmap.benchmark;
 
 import com.dbmmap.core.config.DbMmapConfig;
+import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
 import com.dbmmap.core.query.QueryResult;
-import com.dbmmap.core.session.Session;
-import com.dbmmap.core.session.SessionFactory;
-import com.dbmmap.core.sql.BoundSql;
-import com.dbmmap.core.sql.SqlDsl;
+import com.dbmmap.core.session.SessionImpl;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
 
@@ -21,38 +20,36 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class DbMmapQueryBenchmark extends BenchmarkBase {
 
-    private SessionFactory sessionFactory;
-    private Session session;
+    private SessionImpl session;
+    private MemoryPool memoryPool;
 
     @Setup(Level.Trial)
     public void setup() throws SQLException {
         initDatabase();
 
+        MemoryPoolConfig poolConfig = MemoryPoolConfig.builder()
+            .preAllocMemSize(64 * 1024 * 1024)
+            .queryCacheSize(4 * 1024 * 1024)
+            .build();
+        
         DbMmapConfig config = DbMmapConfig.builder()
-            .memoryPoolConfig(MemoryPoolConfig.builder()
-                .preAllocMemSize(64 * 1024 * 1024)
-                .queryCacheSize(4 * 1024 * 1024)
-                .build())
+            .memoryPoolConfig(poolConfig)
             .build();
 
-        sessionFactory = new SessionFactory(config);
-        session = sessionFactory.openSession();
+        memoryPool = new MemoryPool(poolConfig);
+        DataSource ds = connectionPool;
+        session = new SessionImpl(memoryPool, config, ds);
     }
 
     @TearDown(Level.Trial)
     public void tearDown() {
         if (session != null) session.close();
-        if (sessionFactory != null) sessionFactory.close();
+        if (memoryPool != null) memoryPool.destroy();
     }
 
     @Benchmark
     public void singleQuery(Blackhole bh) {
-        BoundSql sql = SqlDsl.select("id", "name", "age", "email", "status")
-            .from("users")
-            .where("id = ?", 1L)
-            .build();
-
-        try (QueryResult result = session.query(sql.getSql())) {
+        try (QueryResult result = session.query("SELECT id, name, age, email, status FROM users WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
                 bh.consume(result.getLong("id"));
                 bh.consume(result.getString("name"));
@@ -63,11 +60,7 @@ public class DbMmapQueryBenchmark extends BenchmarkBase {
 
     @Benchmark
     public void queryAll(Blackhole bh) {
-        BoundSql sql = SqlDsl.select("id", "name", "age", "email", "status")
-            .from("users")
-            .build();
-
-        try (QueryResult result = session.query(sql.getSql())) {
+        try (QueryResult result = session.query("SELECT id, name, age, email, status FROM users")) {
             if (result != null) {
                 while (result.next()) {
                     bh.consume(result.getLong("id"));

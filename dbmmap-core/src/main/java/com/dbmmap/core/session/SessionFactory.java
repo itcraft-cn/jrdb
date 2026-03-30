@@ -4,17 +4,25 @@ import com.dbmmap.core.config.DbMmapConfig;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
 
+import javax.sql.DataSource;
+
 public class SessionFactory {
     
     private final DbMmapConfig config;
     private final MemoryPool memoryPool;
+    private final DataSource dataSource;
     private volatile boolean closed;
     
     public SessionFactory(DbMmapConfig config) {
+        this(config, null);
+    }
+    
+    public SessionFactory(DbMmapConfig config, DataSource dataSource) {
         if (config == null) {
             throw new NullPointerException("config cannot be null");
         }
         this.config = config;
+        this.dataSource = dataSource;
         MemoryPoolConfig poolConfig = config.getMemoryPoolConfig();
         this.memoryPool = new MemoryPool(poolConfig);
         this.closed = false;
@@ -24,7 +32,10 @@ public class SessionFactory {
         if (closed) {
             throw new IllegalStateException("SessionFactory is closed");
         }
-        return new SessionImpl(memoryPool, config);
+        if (dataSource == null) {
+            throw new IllegalStateException("DataSource not configured");
+        }
+        return new SessionImpl(memoryPool, config, dataSource);
     }
     
     public synchronized void close() {
@@ -37,5 +48,9 @@ public class SessionFactory {
     
     public boolean isClosed() {
         return closed;
+    }
+    
+    public MemoryPool getMemoryPool() {
+        return memoryPool;
     }
 }
