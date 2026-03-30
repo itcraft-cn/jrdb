@@ -1,10 +1,13 @@
 package com.dbmmap.springboot.autoconfigure;
 
 import com.dbmmap.core.config.DbMmapConfig;
+import com.dbmmap.core.mapping.MapperRegistry;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
 import com.dbmmap.core.session.Session;
 import com.dbmmap.core.session.SessionImpl;
+import com.dbmmap.core.type.TypeHandlerRegistry;
+import com.dbmmap.springboot.DbMmapTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -23,6 +26,18 @@ import javax.sql.DataSource;
 @EnableConfigurationProperties(DbMmapProperties.class)
 @AutoConfigureAfter(DataSourceAutoConfiguration.class)
 public class DbMmapAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public TypeHandlerRegistry typeHandlerRegistry() {
+        return new TypeHandlerRegistry();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MapperRegistry mapperRegistry(TypeHandlerRegistry typeHandlerRegistry) {
+        return new MapperRegistry(typeHandlerRegistry);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -53,5 +68,13 @@ public class DbMmapAutoConfiguration {
             throw new IllegalStateException("DataSource is required for dbmmap");
         }
         return new SessionImpl(memoryPool, config, dataSource);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public DbMmapTemplate dbMmapTemplate(Session session, MapperRegistry mapperRegistry, 
+                                         ObjectProvider<DataSource> dataSourceProvider) {
+        DataSource dataSource = dataSourceProvider.getIfAvailable();
+        return new DbMmapTemplate(session, mapperRegistry, dataSource);
     }
 }
