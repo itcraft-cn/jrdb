@@ -22,6 +22,7 @@
 
     <modules>
         <module>dbmmap-core</module>
+        <module>dbmmap-benchmark</module>
     </modules>
 
     <dependencyManagement>
