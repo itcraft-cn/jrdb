@@ -1,16 +1,63 @@
 package com.dbmmap.core.type;
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.dbmmap.core.type.handlers.BooleanTypeHandler;
+import com.dbmmap.core.type.handlers.DateTypeHandler;
+import com.dbmmap.core.type.handlers.BigDecimalTypeHandler;
+import com.dbmmap.core.type.handlers.IntegerTypeHandler;
+import com.dbmmap.core.type.handlers.LongTypeHandler;
+import com.dbmmap.core.type.handlers.StringTypeHandler;
+
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registry for TypeHandler instances.
  * Supports registration and lookup by Java type or SQL type.
+ * Built-in handlers are registered by default.
  */
 public class TypeHandlerRegistry {
 
     private final Map<Class<?>, TypeHandler<?>> javaTypeHandlerMap = new ConcurrentHashMap<>();
     private final Map<Integer, TypeHandler<?>> sqlTypeHandlerMap = new ConcurrentHashMap<>();
+
+    /**
+     * Constructs a TypeHandlerRegistry with built-in handlers registered.
+     */
+    public TypeHandlerRegistry() {
+        registerBuiltInHandlers();
+    }
+
+    private void registerBuiltInHandlers() {
+        register(Integer.class, new IntegerTypeHandler());
+        register(Types.INTEGER, new IntegerTypeHandler());
+        register(int.class, new IntegerTypeHandler());
+
+        register(Long.class, new LongTypeHandler());
+        register(Types.BIGINT, new LongTypeHandler());
+        register(long.class, new LongTypeHandler());
+
+        register(String.class, new StringTypeHandler());
+        register(Types.VARCHAR, new StringTypeHandler());
+        register(Types.CHAR, new StringTypeHandler());
+        register(Types.LONGVARCHAR, new StringTypeHandler());
+
+        register(Boolean.class, new BooleanTypeHandler());
+        register(Types.BOOLEAN, new BooleanTypeHandler());
+        register(Types.BIT, new BooleanTypeHandler());
+        register(boolean.class, new BooleanTypeHandler());
+
+        register(Date.class, new DateTypeHandler());
+        register(Types.TIMESTAMP, new DateTypeHandler());
+        register(Types.DATE, new DateTypeHandler());
+        register(Types.TIME, new DateTypeHandler());
+
+        register(BigDecimal.class, new BigDecimalTypeHandler());
+        register(Types.DECIMAL, new BigDecimalTypeHandler());
+        register(Types.NUMERIC, new BigDecimalTypeHandler());
+    }
 
     /**
      * Registers a TypeHandler for a Java type.

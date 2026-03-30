@@ -5,6 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.math.BigDecimal;
+import java.util.Date;
+
 @DisplayName("TypeHandlerRegistry Tests")
 class TypeHandlerRegistryTest {
 
@@ -39,7 +42,7 @@ class TypeHandlerRegistryTest {
     @Test
     @DisplayName("Should return null for unregistered type")
     void shouldReturnNullForUnregisteredType() {
-        TypeHandler<?> retrieved = registry.getTypeHandler(String.class);
+        TypeHandler<?> retrieved = registry.getTypeHandler(Object.class);
         assertNull(retrieved);
     }
 
@@ -50,7 +53,49 @@ class TypeHandlerRegistryTest {
         registry.register(String.class, handler);
         
         assertTrue(registry.hasTypeHandler(String.class));
-        assertFalse(registry.hasTypeHandler(Integer.class));
+        assertFalse(registry.hasTypeHandler(Object.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in Integer handler")
+    void shouldHaveBuiltInIntegerHandler() {
+        assertNotNull(registry.getTypeHandler(Integer.class));
+        assertTrue(registry.hasTypeHandler(Integer.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in Long handler")
+    void shouldHaveBuiltInLongHandler() {
+        assertNotNull(registry.getTypeHandler(Long.class));
+        assertTrue(registry.hasTypeHandler(Long.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in String handler")
+    void shouldHaveBuiltInStringHandler() {
+        assertNotNull(registry.getTypeHandler(String.class));
+        assertTrue(registry.hasTypeHandler(String.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in Boolean handler")
+    void shouldHaveBuiltInBooleanHandler() {
+        assertNotNull(registry.getTypeHandler(Boolean.class));
+        assertTrue(registry.hasTypeHandler(Boolean.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in Date handler")
+    void shouldHaveBuiltInDateHandler() {
+        assertNotNull(registry.getTypeHandler(Date.class));
+        assertTrue(registry.hasTypeHandler(Date.class));
+    }
+
+    @Test
+    @DisplayName("Should have built-in BigDecimal handler")
+    void shouldHaveBuiltInBigDecimalHandler() {
+        assertNotNull(registry.getTypeHandler(BigDecimal.class));
+        assertTrue(registry.hasTypeHandler(BigDecimal.class));
     }
 
     private static class TestStringHandler implements TypeHandler<String> {
