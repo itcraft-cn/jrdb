@@ -1,0 +1,158 @@
+@startuml core_data_flow
+title dbmmap 核心数据流图
+
+start
+
+' 初始化流程
+partition "初始化阶段" {
+    :创建 DbMmapConfig;
+    :创建 MemoryPoolConfig;
+    :创建 MemoryPool;
+    note right
+        使用 Unsafe 分配堆外内存
+        通过 SlotAllocator 管理 slot
+    end note
+    :创建 SessionFactory;
+    :创建 DataSource;
+}
+
+' 查询流程
+partition "查询流程" {
+    :SessionFactory.openSession();
+    :SessionImpl 创建;
+    
+    if (缓存级别 == L2?) then (yes)
+        :检查 QueryResultCache;
+        if (缓存命中?) then (yes)
+            :返回 CachedQueryResultAdapter;
+            stop
+        endif
+    endif
+    
+    :获取 Connection;
+    :获取/创建 PreparedStatement;
+    :设置参数;
+    :执行 executeQuery();
+    
+    :ResultSetMetaData 解析;
+    :创建 ColumnMeta 列表;
+    note right
+        根据 SQL 类型确定列大小
+        INTEGER: 4 bytes
+        BIGINT: 8 bytes
+        VARCHAR: 64 bytes
+    end note
+    
+    :MemoryPool.allocate();
+    :创建 MemoryBlock;
+    note right
+        分配堆外内存块
+        基于 slotId 计算地址
+    end note
+    
+    :创建 RowStore;
+    
+    while (ResultSet.next() && rowCount < maxRows) is (有数据)
+        :计算行偏移量 rowOffset;
+        :逐列读取数据;
+        note right
+            根据 SQL 类型调用对应方法:
+            INTEGER -> RowStore.setIntFast()
+            BIGINT -> RowStore.setLongFast()
+            VARCHAR -> RowStore.setStringFast()
+        end note
+    endwhile (遍历完成)
+    
+    :创建 QueryResultImpl;
+    
+    if (缓存级别 == L2?) then (yes)
+        :复制结果到 CachedQueryResult;
+        :存入 QueryResultCache;
+        :释放 MemoryBlock;
+        :返回 CachedQueryResultAdapter;
+    else (no)
+        :返回 QueryResultImpl;
+    endif
+}
+
+' 数据读取流程
+partition "数据读取流程" {
+    :QueryResult.next();
+    :currentRow++;
+    
+    :QueryResult.getLong(columnName);
+    :columnNameIndex 查找列索引;
+    
+    :RowStore.getLong(currentRow, columnIndex);
+    :计算偏移量;
+    note right
+        offset = currentRow * rowSize + columnOffset
+    end note
+    
+    :MemoryBlock.readLong(offset);
+    :Unsafe.getLong(address + offset);
+    :返回值;
+}
+
+' 更新流程
+partition "更新流程" {
+    :Session.update(sql, params);
+    :获取 Connection;
+    :创建 PreparedStatement;
+    :设置参数;
+    :executeUpdate();
+    :返回影响行数;
+    
+    if (L2缓存开启?) then (yes)
+        :invalidateResultCache();
+    endif
+}
+
+' 内存释放流程
+partition "内存释放流程" {
+    :QueryResult.close();
+    :QueryResultImpl.release();
+    :MemoryPool.release(block);
+    :SlotAllocator.release(slotId);
+    note right
+        位图标记 slot 未使用
+        更新 nextFreeSlot
+    end note
+}
+
+' 实体映射流程
+partition "实体映射流程" {
+    :MapperRegistry.getMapper(entityClass);
+    
+    if (mapper已缓存?) then (no)
+        :autoConfigure 创建 MappingConfig;
+        note right
+            反射扫描字段
+            自动推断表名
+            驼峰转下划线
+        end note
+        
+        :MapperClassGenerator.generate();
+        note right
+            ASM 字节码生成
+            生成 mapFromResultSet 方法
+            生成 mapToRow 方法
+        end note
+        
+        :MapperClassLoader.defineClass();
+        :创建 mapper 实例;
+        :缓存 mapper;
+    endif
+    
+    :返回 EntityMapper;
+    
+    :EntityMapper.mapFromResultSet(rs);
+    :ASM 生成的代码执行;
+    :调用 ResultSet.getXxx(columnName);
+    :调用 entity.setXxx(value);
+    :返回实体对象;
+}
+
+stop
+
+@enduml

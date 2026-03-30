@@ -1,0 +1,378 @@
+@startuml dbmmap_classes_graph
+title dbmmap 项目主干类图
+
+' 内存管理模块
+package memory <<Rectangle>> {
+    class MemoryPool {
+        - baseAddress: long
+        - slotSize: int
+        - slotCount: int
+        - slotAllocator: SlotAllocator
+        - unsafe: Unsafe
+        - destroyed: boolean
+        + allocate(): MemoryBlock
+        + release(block: MemoryBlock): void
+        + destroy(): void
+        + getUsedSlotCount(): int
+    }
+    class MemoryBlock {
+        - address: long
+        - size: int
+        - slotId: int
+        - unsafe: Unsafe
+        + readByte(offset: int): byte
+        + writeByte(offset: int, value: byte): void
+        + readInt(offset: int): int
+        + writeInt(offset: int, value: int): void
+        + readLong(offset: int): long
+        + writeLong(offset: int, value: long): void
+        + readBytes(offset: int, dest: byte[]): void
+        + writeBytes(offset: int, src: byte[]): void
+    }
+    class SlotAllocator {
+        - slots: long[]
+        - slotCount: int
+        - usedCount: int
+        - nextFreeSlot: int
+        + allocate(): int
+        + release(slot: int): void
+    }
+    class MemoryPoolConfig {
+        - preAllocMemSize: long
+        - queryCacheSize: long
+        + getSlotCount(): int
+    }
+    class UnsafeProvider {
+        - UNSAFE: Unsafe {static}
+        + getUnsafe(): Unsafe {static}
+    }
+    MemoryPool *-- SlotAllocator
+    MemoryPool --> UnsafeProvider
+    MemoryPool --> MemoryPoolConfig
+    MemoryBlock --> UnsafeProvider
+    MemoryPool ..> MemoryBlock : creates
+}
+
+' 会话管理模块
+package session <<Rectangle>> {
+    interface Session {
+        + query(sql: String): QueryResult
+        + query(sql: String, params: Object...): QueryResult
+        + update(sql: String): int
+        + update(sql: String, params: Object...): int
+        + batchUpdate(sqls: String...): int[]
+        + getMemoryPool(): MemoryPool
+        + close(): void
+    }
+    class SessionImpl {
+        - memoryPool: MemoryPool
+        - config: DbMmapConfig
+        - dataSource: DataSource
+        - connection: Connection
+        - statementCache: Map
+        - metaCache: Map
+        - resultCache: QueryResultCache
+        - cacheLevel: CacheLevel
+    }
+    class SessionFactory {
+        - config: DbMmapConfig
+        - memoryPool: MemoryPool
+        - dataSource: DataSource
+        + openSession(): Session
+        + close(): void
+    }
+    Session <|.. SessionImpl
+    SessionFactory --> SessionImpl : creates
+    SessionFactory --> MemoryPool
+    SessionFactory --> DbMmapConfig
+    SessionImpl --> MemoryPool
+    SessionImpl --> DbMmapConfig
+    SessionImpl --> QueryResultCache
+}
+
+' 查询结果模块
+package query <<Rectangle>> {
+    interface QueryResult {
+        + getRowCount(): int
+        + getColumnCount(): int
+        + getColumnName(columnIndex: int): String
+        + getInt(columnName: String): int
+        + getLong(columnName: String): long
+        + getString(columnName: String): String
+        + getDouble(columnName: String): double
+        + next(): boolean
+        + reset(): void
+        + close(): void
+    }
+    class QueryResultImpl {
+        - store: RowStore
+        - rowCount: int
+        - block: MemoryBlock
+        - pool: MemoryPool
+        - columnNameIndex: Map
+        - currentRow: int
+    }
+    QueryResult <|.. QueryResultImpl
+    QueryResultImpl --> RowStore
+    QueryResultImpl --> MemoryBlock
+    QueryResultImpl --> MemoryPool
+}
+
+' 存储模块
+package storage <<Rectangle>> {
+    class RowStore {
+        - block: MemoryBlock
+        - columns: List<ColumnMeta>
+        - rowSize: int
+        - columnOffsets: int[]
+        + setInt(rowIndex: int, value: int, columnIndex: int): void
+        + getInt(rowIndex: int, columnIndex: int): int
+        + setLong(rowIndex: int, value: long, columnIndex: int): void
+        + getLong(rowIndex: int, columnIndex: int): long
+        + setString(rowIndex: int, value: String, columnIndex: int): void
+        + getString(rowIndex: int, columnIndex: int): String
+    }
+    class ColumnStore {
+        - block: MemoryBlock
+        - columns: List<ColumnMeta>
+        - rowCount: int
+        - columnOffsets: int[]
+        - rowFormatMode: boolean
+        + getIntColumn(columnIndex: int): int[]
+        + setIntColumn(columnIndex: int, values: int[]): void
+        + sumIntColumn(columnIndex: int): long
+        + avgIntColumn(columnIndex: int): double
+    }
+    class HybridView {
+        - block: MemoryBlock
+        - columns: List<ColumnMeta>
+        - rowCount: int
+        - columnMode: boolean
+        + toColumnView(): ColumnStore
+        + toRowView(): RowStore
+    }
+    class ColumnMeta {
+        - name: String
+        - sqlType: int
+        - size: int
+    }
+    RowStore --> MemoryBlock
+    RowStore --> ColumnMeta
+    ColumnStore --> MemoryBlock
+    ColumnStore --> ColumnMeta
+    HybridView --> MemoryBlock
+    HybridView --> ColumnMeta
+    HybridView ..> RowStore : creates
+    HybridView ..> ColumnStore : creates
+}
+
+' 映射模块
+package mapping <<Rectangle>> {
+    interface EntityMapper<T> {
+        + mapFromResultSet(rs: ResultSet): T
+        + mapToRow(entity: T): Object[]
+    }
+    class MapperRegistry {
+        - typeHandlerRegistry: TypeHandlerRegistry
+        - classLoader: MapperClassLoader
+        - generator: MapperClassGenerator
+        - mapperCache: Map
+        - configCache: Map
+        + getMapper(entityClass: Class<T>): EntityMapper<T>
+        + register(config: MappingConfig): EntityMapper<T>
+    }
+    class MapperClassGenerator {
+        + generate(config: MappingConfig): byte[]
+        + getGeneratedClassName(config: MappingConfig): String
+    }
+    class MapperClassLoader {
+        + defineClass(name: String, bytecode: byte[]): Class
+    }
+    class MappingConfig {
+        - entityClass: Class
+        - tableName: String
+        - typeHandlerRegistry: TypeHandlerRegistry
+        - nameStrategy: NameStrategy
+        - fields: List<MappingField>
+        + field(fieldName: String, javaType: Class): MappingConfig
+        + idField(fieldName: String, javaType: Class): MappingConfig
+    }
+    class MappingField {
+        - fieldName: String
+        - columnName: String
+        - javaType: Class
+        - typeHandler: TypeHandler
+        - id: boolean
+    }
+    interface NameStrategy {
+        + fieldNameToColumnName(fieldName: String): String
+    }
+    class DefaultNameStrategy {
+        + fieldNameToColumnName(fieldName: String): String
+    }
+    MapperRegistry --> TypeHandlerRegistry
+    MapperRegistry --> MapperClassGenerator
+    MapperRegistry --> MapperClassLoader
+    MapperClassGenerator --> MappingConfig
+    MapperClassGenerator ..> EntityMapper : generates
+    MappingConfig --> MappingField
+    MappingConfig --> NameStrategy
+    NameStrategy <|.. DefaultNameStrategy
+}
+
+' SQL模块
+package sql <<Rectangle>> {
+    class SqlDsl {
+        + select(columns: String...): SelectBuilder {static}
+        + selectAll(): SelectBuilder {static}
+        + insertInto(table: String): InsertBuilder {static}
+        + update(table: String): UpdateBuilder {static}
+        + deleteFrom(table: String): DeleteBuilder {static}
+    }
+    class BoundSql {
+        - sql: String
+        - params: Object[]
+        + getSql(): String
+        + getParams(): Object[]
+    }
+    class SqlBuilder {
+        - sql: StringBuilder
+        - params: List
+        + append(fragment: String, params: Object...): SqlBuilder
+        + build(): String
+    }
+    class SqlTemplate {
+        + process(template: String, params: Map): BoundSql {static}
+    }
+    class SelectBuilder {
+        - columns: String[]
+        - table: String
+        - whereClauses: List
+        - whereParams: List
+        + from(table: String): SelectBuilder
+        + where(condition: String, params: Object...): SelectBuilder
+        + build(): BoundSql
+    }
+    class InsertBuilder
+    class UpdateBuilder
+    class DeleteBuilder
+    SqlDsl --> SelectBuilder
+    SqlDsl --> InsertBuilder
+    SqlDsl --> UpdateBuilder
+    SqlDsl --> DeleteBuilder
+    SelectBuilder --> BoundSql
+    SqlTemplate --> BoundSql
+}
+
+' 缓存模块
+package cache <<Rectangle>> {
+    class QueryResultCache {
+        - cache: Cache
+        + get(sql: String, params: Object[]): CachedQueryResult
+        + put(sql: String, params: Object[], result: CachedQueryResult): void
+        + invalidateAll(): void
+    }
+    class CachedQueryResult {
+        - columnNames: List
+        - rows: List
+        + getRow(index: int): Map
+    }
+    class CachedQueryResultAdapter {
+        - cached: CachedQueryResult
+        - currentRow: int
+    }
+    QueryResultCache --> CachedQueryResult
+    CachedQueryResultAdapter --> CachedQueryResult
+    QueryResult <|.. CachedQueryResultAdapter
+}
+
+' 配置模块
+package config <<Rectangle>> {
+    class DbMmapConfig {
+        - memoryPoolConfig: MemoryPoolConfig
+        - overflowStrategy: OverflowStrategy
+        - cacheLevel: CacheLevel
+        - statementCacheSize: int
+        - resultCacheSize: int
+        + getMemoryPoolConfig(): MemoryPoolConfig
+        + getCacheLevel(): CacheLevel
+    }
+    enum CacheLevel {
+        NONE
+        L1
+        L2
+    }
+    enum OverflowStrategy {
+        ERROR
+        DROP_OLDEST
+        DROP_NEWEST
+    }
+    DbMmapConfig --> MemoryPoolConfig
+    DbMmapConfig --> CacheLevel
+    DbMmapConfig --> OverflowStrategy
+}
+
+' 事务模块
+package transaction <<Rectangle>> {
+    interface Transaction {
+        + getConnection(): Connection
+        + commit(): void
+        + rollback(): void
+        + close(): void
+    }
+    class TransactionImpl {
+        - dataSource: DataSource
+        - connection: Connection
+        - closed: boolean
+        - committed: boolean
+    }
+    class TransactionManager {
+        - dataSource: DataSource
+        + beginTransaction(): Transaction
+        + executeInTransaction(function: Function): T
+    }
+    interface TransactionCallback {
+        + execute(tx: Transaction): void
+    }
+    Transaction <|.. TransactionImpl
+    TransactionManager --> TransactionImpl : creates
+    TransactionImpl --> DataSource
+}
+
+' 类型处理模块
+package type <<Rectangle>> {
+    interface TypeHandler<T> {
+        + getResult(rs: ResultSet, columnName: String): T
+        + getResult(rs: ResultSet, columnIndex: int): T
+        + setParameter(ps: PreparedStatement, i: int, parameter: T): void
+    }
+    class TypeHandlerRegistry {
+        - javaTypeHandlerMap: Map
+        - sqlTypeHandlerMap: Map
+        + getTypeHandler(javaType: Class): TypeHandler
+        + register(javaType: Class, handler: TypeHandler): void
+    }
+    class IntegerTypeHandler
+    class LongTypeHandler
+    class StringTypeHandler
+    class BooleanTypeHandler
+    class DateTypeHandler
+    class BigDecimalTypeHandler
+    TypeHandler <|.. IntegerTypeHandler
+    TypeHandler <|.. LongTypeHandler
+    TypeHandler <|.. StringTypeHandler
+    TypeHandler <|.. BooleanTypeHandler
+    TypeHandler <|.. DateTypeHandler
+    TypeHandler <|.. BigDecimalTypeHandler
+    TypeHandlerRegistry --> TypeHandler
+}
+
+' 模块间依赖关系
+SessionImpl --> QueryResultImpl : creates
+SessionImpl --> RowStore : uses
+SessionImpl --> QueryResultCache : uses
+MapperRegistry --> EntityMapper : manages
+RowStore --> MemoryBlock : uses
+SessionFactory --> Session : creates
+
+@enduml
