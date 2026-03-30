@@ -190,10 +190,24 @@ public class SessionImpl implements Session {
     
     @Override
     public int update(String sql) {
+        return update(sql, new Object[0]);
+    }
+    
+    @Override
+    public int update(String sql, Object... params) {
         if (closed) {
             throw new IllegalStateException("Session is closed");
         }
-        return 0;
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+            setParameters(ps, params);
+            int result = ps.executeUpdate();
+            ps.close();
+            return result;
+        } catch (SQLException e) {
+            throw new RuntimeException("Update execution failed: " + sql, e);
+        }
     }
     
     @Override
