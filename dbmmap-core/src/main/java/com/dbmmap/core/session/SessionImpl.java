@@ -11,7 +11,7 @@ import com.dbmmap.core.storage.RowStore;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,6 +24,8 @@ public class SessionImpl implements Session {
     private Connection connection;
     private final Map<String, PreparedStatement> statementCache;
     private final Map<String, QueryMeta> metaCache;
+    private final boolean useStatementCache;
+    private final boolean useMetaCache;
     private volatile boolean closed;
     
     private static class QueryMeta {
@@ -51,9 +53,31 @@ public class SessionImpl implements Session {
         this.memoryPool = memoryPool;
         this.config = config;
         this.dataSource = dataSource;
-        this.statementCache = new HashMap<>();
-        this.metaCache = new HashMap<>();
+        this.useStatementCache = config.isStatementCacheEnabled();
+        this.useMetaCache = config.isQueryMetaCacheEnabled();
+        
+        if (useStatementCache) {
+            this.statementCache = createLruCache(config.getStatementCacheSize());
+        } else {
+            this.statementCache = null;
+        }
+        
+        if (useMetaCache) {
+            this.metaCache = createLruCache(config.getStatementCacheSize());
+        } else {
+            this.metaCache = null;
+        }
+        
         this.closed = false;
+    }
+    
+    private <K, V> Map<K, V> createLruCache(int maxSize) {
+        return new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+                return size() > maxSize;
+            }
+        };
     }
     
     @Override
@@ -93,6 +117,10 @@ public class SessionImpl implements Session {
             
             rs.close();
             
+            if (!useStatementCache) {
+                ps.close();
+            }
+            
             return new QueryResultImpl(store, rowCount, block, memoryPool);
             
         } catch (SQLException e) {
@@ -101,6 +129,10 @@ public class SessionImpl implements Session {
     }
     
     private PreparedStatement getOrCreateStatement(String sql, Connection conn) throws SQLException {
+        if (!useStatementCache) {
+            return conn.prepareStatement(sql);
+        }
+        
         PreparedStatement ps = statementCache.get(sql);
         if (ps == null || ps.isClosed()) {
             ps = conn.prepareStatement(sql);
@@ -112,21 +144,29 @@ public class SessionImpl implements Session {
     }
     
     private QueryMeta getOrCreateMeta(String sql, ResultSet rs) throws SQLException {
+        if (!useMetaCache) {
+            return createQueryMeta(rs);
+        }
+        
         QueryMeta meta = metaCache.get(sql);
         if (meta == null) {
-            ResultSetMetaData metaData = rs.getMetaData();
-            int columnCount = metaData.getColumnCount();
-            List<ColumnMeta> columns = new ArrayList<>(columnCount);
-            for (int i = 1; i <= columnCount; i++) {
-                String name = metaData.getColumnLabel(i);
-                int sqlType = metaData.getColumnType(i);
-                int size = getColumnSize(sqlType);
-                columns.add(new ColumnMeta(name, sqlType, size));
-            }
-            meta = new QueryMeta(columns, memoryPool.getSlotSize());
+            meta = createQueryMeta(rs);
             metaCache.put(sql, meta);
         }
         return meta;
+    }
+    
+    private QueryMeta createQueryMeta(ResultSet rs) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        List<ColumnMeta> columns = new ArrayList<>(columnCount);
+        for (int i = 1; i <= columnCount; i++) {
+            String name = metaData.getColumnLabel(i);
+            int sqlType = metaData.getColumnType(i);
+            int size = getColumnSize(sqlType);
+            columns.add(new ColumnMeta(name, sqlType, size));
+        }
+        return new QueryMeta(columns, memoryPool.getSlotSize());
     }
     
     private Connection getConnection() throws SQLException {
@@ -260,6 +300,18 @@ public class SessionImpl implements Session {
         return results;
     }
     
+    public void clearCache() {
+        if (statementCache != null) {
+            for (PreparedStatement ps : statementCache.values()) {
+                try { ps.close(); } catch (SQLException e) { }
+            }
+            statementCache.clear();
+        }
+        if (metaCache != null) {
+            metaCache.clear();
+        }
+    }
+    
     @Override
     public MemoryPool getMemoryPool() {
         return memoryPool;
@@ -275,11 +327,7 @@ public class SessionImpl implements Session {
         if (closed) {
             return;
         }
-        for (PreparedStatement ps : statementCache.values()) {
-            try { ps.close(); } catch (SQLException e) { }
-        }
-        statementCache.clear();
-        metaCache.clear();
+        clearCache();
         if (connection != null) {
             try { connection.close(); } catch (SQLException e) { }
         }
