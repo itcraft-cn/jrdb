@@ -23,6 +23,7 @@
     <modules>
         <module>dbmmap-core</module>
         <module>dbmmap-benchmark</module>
+        <module>dbmmap-spring-boot-starter</module>
     </modules>
 
     <dependencyManagement>
