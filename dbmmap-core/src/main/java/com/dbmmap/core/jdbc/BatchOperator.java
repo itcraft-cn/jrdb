@@ -1,4 +1,4 @@
-package demo.jdbc.batch;
+package com.dbmmap.core.jdbc;
 
 import java.util.List;
 

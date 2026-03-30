@@ -1,6 +1,6 @@
-package demo.jdbc.batch;
+package com.dbmmap.core.jdbc;
 
-import static demo.commons.CheckThrowUtil.ifMatchThrow;
+import static com.dbmmap.core.util.CheckThrowUtil.ifMatchThrow;
 
 /**
  * @author Helly Guo
