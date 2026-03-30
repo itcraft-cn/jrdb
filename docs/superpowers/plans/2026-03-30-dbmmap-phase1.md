@@ -2041,7 +2041,330 @@ git commit -m "feat(core): add Session and SessionFactory for resource managemen
 
 ---
 
-## Task 11: 运行全部测试
+## Task 11: 集成现有JDBC批处理文件
+
+**Files:**
+- Move: `BatchOperator.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/BatchOperator.java`
+- Move: `JdbcSqlBox.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcSqlBox.java`
+- Move: `JdbcBatchOperator.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcBatchOperator.java`
+- Move: `JdbcHelper.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcHelper.java`
+- Create: `dbmmap-core/src/main/java/com/dbmmap/core/util/CheckThrowUtil.java`
+- Create: `dbmmap-core/src/test/java/com/dbmmap/core/jdbc/JdbcHelperTest.java`
+
+- [ ] **Step 1: 创建jdbc目录**
+
+Run: `mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/jdbc dbmmap-core/src/main/java/com/dbmmap/core/util dbmmap-core/src/test/java/com/dbmmap/core/jdbc`
+
+- [ ] **Step 2: 实现CheckThrowUtil（替代demo.commons依赖）**
+
+```java
+package com.dbmmap.core.util;
+
+public final class CheckThrowUtil {
+    
+    public static void ifMatchThrow(boolean condition, String message, Object... args) {
+        if (condition) {
+            throw new IllegalArgumentException(String.format(message, args));
+        }
+    }
+    
+    private CheckThrowUtil() {}
+}
+```
+
+- [ ] **Step 3: 移动并修改BatchOperator.java**
+
+修改包名和import：
+
+```java
+package com.dbmmap.core.jdbc;
+
+import java.util.List;
+
+public interface BatchOperator {
+    <T> void batchInsert(String id, List<T> list);
+
+    <T> int batchUpdate(String id, List<T> list);
+}
+```
+
+- [ ] **Step 4: 移动并修改JdbcSqlBox.java**
+
+修改包名和import：
+
+```java
+package com.dbmmap.core.jdbc;
+
+import static com.dbmmap.core.util.CheckThrowUtil.ifMatchThrow;
+
+public interface JdbcSqlBox<T> {
+    String sqlTemplate();
+
+    int paramSize();
+
+    Object[] convParam(T bean);
+
+    default Object[] fetchParam(T bean, int paramSize) {
+        Object[] args = convParam(bean);
+        ifMatchThrow(args.length != paramSize, "paramSize is %d, args size is %d, not match", paramSize, args.length);
+        return args;
+    }
+}
+```
+
+- [ ] **Step 5: 移动并修改JdbcBatchOperator.java**
+
+修改包名和import：
+
+```java
+package com.dbmmap.core.jdbc;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class JdbcBatchOperator implements BatchOperator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcBatchOperator.class);
+
+    private static final int COMMIT_SIZE = 1000;
+
+    private static final Map<String, JdbcSqlBox<?>> SQL_BOX_MAP = new HashMap<>();
+
+    private DataSource dataSource;
+
+    public static <T> void register(String id, JdbcSqlBox<T> sqlBox) {
+        SQL_BOX_MAP.put(id, sqlBox);
+    }
+
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    private <T> List<Integer> execModify(String id, List<T> list) {
+        Connection conn = JdbcHelper.openLink(dataSource);
+        JdbcSqlBox<T> box = (JdbcSqlBox<T>) SQL_BOX_MAP.get(id);
+        List<Integer> effects = JdbcHelper.batchModify(conn, box.sqlTemplate(), conv(list, box), COMMIT_SIZE);
+        JdbcHelper.closeLink(conn);
+        return effects;
+    }
+
+    @Override
+    public <T> void batchInsert(String id, List<T> list) {
+        execModify(id, list);
+    }
+
+    @Override
+    public <T> int batchUpdate(String id, List<T> list) {
+        return execModify(id, list).stream()
+                                   .mapToInt(v -> v)
+                                   .sum();
+    }
+
+    private <T> List<Object[]> conv(List<T> list, JdbcSqlBox<T> box) {
+        int paramSize = box.paramSize();
+        return list.stream()
+                   .map(bean -> box.fetchParam(bean, paramSize))
+                   .collect(Collectors.toList());
+    }
+}
+```
+
+- [ ] **Step 6: 移动并修改JdbcHelper.java**
+
+修改包名：
+
+```java
+package com.dbmmap.core.jdbc;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+final class JdbcHelper {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcHelper.class);
+
+    static Connection openLink(DataSource dataSource) {
+        try {
+            return dataSource.getConnection();
+        } catch (SQLException e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    static void closeLink(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                LOGGER.warn(e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static void fillArgs(PreparedStatement stat, Object[] args) throws SQLException {
+        for (int i = 0; i < args.length; i++) {
+            stat.setObject(i + 1, args[i]);
+        }
+    }
+
+    private static void execAndCommit(Connection conn, PreparedStatement stat, List<Integer> batchResult) throws SQLException {
+        Arrays.stream(stat.executeBatch())
+              .forEach(batchResult::add);
+        conn.commit();
+    }
+
+    public static List<Integer> batchModify(Connection conn, String sql, List<Object[]> argsList, int commitSize) {
+        try {
+            List<Integer> batchResult = new ArrayList<>(argsList.size());
+            conn.setAutoCommit(false);
+            PreparedStatement stat = conn.prepareStatement(sql);
+            int count = 0;
+            for (Object[] args : argsList) {
+                fillArgs(stat, args);
+                stat.addBatch();
+                count++;
+                if (count % commitSize == 0) {
+                    execAndCommit(conn, stat, batchResult);
+                }
+            }
+            execAndCommit(conn, stat, batchResult);
+            return batchResult;
+        } catch (SQLException e) {
+            rollback(conn);
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void rollback(Connection conn) {
+        try {
+            conn.rollback();
+        } catch (SQLException e) {
+            LOGGER.warn(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private JdbcHelper() {}
+}
+```
+
+- [ ] **Step 7: 添加slf4j依赖到dbmmap-core/pom.xml**
+
+在dependencies中添加：
+
+```xml
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>1.7.36</version>
+</dependency>
+<dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>1.7.36</version>
+    <scope>test</scope>
+</dependency>
+```
+
+- [ ] **Step 8: 编写JdbcHelper单元测试**
+
+```java
+package com.dbmmap.core.jdbc;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class JdbcHelperTest {
+
+    @Test
+    void shouldOpenConnection() throws SQLException {
+        DataSource ds = mock(DataSource.class);
+        Connection conn = mock(Connection.class);
+        when(ds.getConnection()).thenReturn(conn);
+        
+        Connection result = JdbcHelper.openLink(ds);
+        assertNotNull(result);
+        verify(ds).getConnection();
+    }
+
+    @Test
+    void shouldCloseConnection() throws SQLException {
+        Connection conn = mock(Connection.class);
+        JdbcHelper.closeLink(conn);
+        verify(conn).close();
+    }
+
+    @Test
+    void shouldCloseNullConnection() {
+        JdbcHelper.closeLink(null);
+    }
+
+    @Test
+    void shouldBatchModify() throws SQLException {
+        Connection conn = mock(Connection.class);
+        PreparedStatement stat = mock(PreparedStatement.class);
+        when(conn.prepareStatement(anyString())).thenReturn(stat);
+        when(stat.executeBatch()).thenReturn(new int[]{1, 2, 3});
+        
+        List<Object[]> argsList = Arrays.asList(
+            new Object[]{"a", 1},
+            new Object[]{"b", 2},
+            new Object[]{"c", 3}
+        );
+        
+        List<Integer> result = JdbcHelper.batchModify(conn, "INSERT INTO t VALUES(?,?)", argsList, 10);
+        assertEquals(3, result.size());
+    }
+}
+```
+
+- [ ] **Step 9: 运行测试验证**
+
+Run: `cd dbmmap-core && mvn test -Dtest=JdbcHelperTest`
+Expected: PASS - 4 tests
+
+- [ ] **Step 10: 删除根目录旧文件**
+
+Run: `rm BatchOperator.java JdbcSqlBox.java JdbcBatchOperator.java JdbcHelper.java`
+
+- [ ] **Step 11: 提交**
+
+```bash
+git add dbmmap-core/src/main/java/com/dbmmap/core/jdbc/ dbmmap-core/src/main/java/com/dbmmap/core/util/ dbmmap-core/src/test/java/com/dbmmap/core/jdbc/ dbmmap-core/pom.xml
+git commit -m "feat(core): integrate JDBC batch operator utilities"
+```
+
+---
+
+## Task 12: 运行全部测试
 
 **Files:**
 - 无新文件
@@ -2058,7 +2381,7 @@ Expected: Build success
 
 ---
 
-## Task 12: 完成Phase 1
+## Task 13: 完成Phase 1
 
 **Files:**
 - 无新文件

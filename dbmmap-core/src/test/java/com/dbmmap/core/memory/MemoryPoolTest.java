@@ -101,4 +101,12 @@ class MemoryPoolTest {
         block.readBytes(0, read);
         assertArrayEquals(data, read);
     }
+
+    @Test
+    void shouldCheckIndexBounds() {
+        MemoryBlock block = pool.allocate();
+        assertThrows(IndexOutOfBoundsException.class, () -> block.readByte(256));
+        assertThrows(IndexOutOfBoundsException.class, () -> block.writeInt(254, 1));
+        assertThrows(IndexOutOfBoundsException.class, () -> block.readByte(-1));
+    }
 }
