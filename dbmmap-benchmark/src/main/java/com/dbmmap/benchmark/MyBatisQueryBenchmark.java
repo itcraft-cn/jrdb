@@ -31,7 +31,7 @@ public class MyBatisQueryBenchmark extends BenchmarkBase {
 
         Configuration config = new Configuration();
         config.setEnvironment(new Environment("benchmark",
-            new JdbcTransactionFactory(), connectionPool));
+            new JdbcTransactionFactory(), dataSource));
 
         config.addMapper(UserMapper.class);
 
