@@ -2,6 +2,7 @@ package com.dbmmap.benchmark;
 
 import com.dbmmap.benchmark.entity.User;
 import com.dbmmap.benchmark.entity.UserEntity;
+import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
@@ -76,14 +77,31 @@ public class FrameworkComparisonBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class DbMmapCachedState {
+    public static class DbMmapNoneState {
         SessionImpl session;
 
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
             DbMmapConfig config = DbMmapConfig.builder()
-                .statementCacheEnabled(true)
-                .queryMetaCacheEnabled(true)
+                .cacheLevel(CacheLevel.NONE)
+                .build();
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+        }
+
+        @TearDown(Level.Trial)
+        public void tearDown() {
+            if (session != null) session.close();
+        }
+    }
+
+    @State(Scope.Thread)
+    public static class DbMmapL1State {
+        SessionImpl session;
+
+        @Setup(Level.Trial)
+        public void setup(SharedState shared) {
+            DbMmapConfig config = DbMmapConfig.builder()
+                .cacheLevel(CacheLevel.L1)
                 .statementCacheSize(256)
                 .build();
             session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
@@ -96,14 +114,16 @@ public class FrameworkComparisonBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class DbMmapNoCacheState {
+    public static class DbMmapL2State {
         SessionImpl session;
 
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
             DbMmapConfig config = DbMmapConfig.builder()
-                .statementCacheEnabled(false)
-                .queryMetaCacheEnabled(false)
+                .cacheLevel(CacheLevel.L2)
+                .statementCacheSize(256)
+                .resultCacheSize(1000)
+                .resultCacheExpireSeconds(300)
                 .build();
             session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
         }
@@ -217,7 +237,7 @@ public class FrameworkComparisonBenchmark {
     }
 
     @Benchmark
-    public void dbmmap_cached_singleQuery(DbMmapCachedState state, Blackhole bh) {
+    public void dbmmap_none_singleQuery(DbMmapNoneState state, Blackhole bh) {
         try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
                 bh.consume(result.getLong("ID"));
@@ -228,7 +248,18 @@ public class FrameworkComparisonBenchmark {
     }
 
     @Benchmark
-    public void dbmmap_noCache_singleQuery(DbMmapNoCacheState state, Blackhole bh) {
+    public void dbmmap_L1_singleQuery(DbMmapL1State state, Blackhole bh) {
+        try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users WHERE id = ?", 1L)) {
+            if (result != null && result.next()) {
+                bh.consume(result.getLong("ID"));
+                bh.consume(result.getString("NAME"));
+                bh.consume(result.getInt("AGE"));
+            }
+        }
+    }
+
+    @Benchmark
+    public void dbmmap_L2_singleQuery(DbMmapL2State state, Blackhole bh) {
         try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
                 bh.consume(result.getLong("ID"));
@@ -260,7 +291,7 @@ public class FrameworkComparisonBenchmark {
     }
 
     @Benchmark
-    public void dbmmap_cached_queryList(DbMmapCachedState state, Blackhole bh) {
+    public void dbmmap_none_queryList(DbMmapNoneState state, Blackhole bh) {
         try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users LIMIT 100")) {
             if (result != null) {
                 while (result.next()) {
@@ -271,7 +302,18 @@ public class FrameworkComparisonBenchmark {
     }
 
     @Benchmark
-    public void dbmmap_noCache_queryList(DbMmapNoCacheState state, Blackhole bh) {
+    public void dbmmap_L1_queryList(DbMmapL1State state, Blackhole bh) {
+        try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users LIMIT 100")) {
+            if (result != null) {
+                while (result.next()) {
+                    bh.consume(result.getLong("ID"));
+                }
+            }
+        }
+    }
+
+    @Benchmark
+    public void dbmmap_L2_queryList(DbMmapL2State state, Blackhole bh) {
         try (QueryResult result = state.session.query("SELECT id, name, age, email, status FROM users LIMIT 100")) {
             if (result != null) {
                 while (result.next()) {

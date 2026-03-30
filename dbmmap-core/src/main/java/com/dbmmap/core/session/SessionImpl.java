@@ -1,5 +1,9 @@
 package com.dbmmap.core.session;
 
+import com.dbmmap.core.cache.CachedQueryResult;
+import com.dbmmap.core.cache.CachedQueryResultAdapter;
+import com.dbmmap.core.cache.QueryResultCache;
+import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
 import com.dbmmap.core.memory.MemoryBlock;
 import com.dbmmap.core.memory.MemoryPool;
@@ -24,8 +28,8 @@ public class SessionImpl implements Session {
     private Connection connection;
     private final Map<String, PreparedStatement> statementCache;
     private final Map<String, QueryMeta> metaCache;
-    private final boolean useStatementCache;
-    private final boolean useMetaCache;
+    private final QueryResultCache resultCache;
+    private final CacheLevel cacheLevel;
     private volatile boolean closed;
     
     private static class QueryMeta {
@@ -53,19 +57,23 @@ public class SessionImpl implements Session {
         this.memoryPool = memoryPool;
         this.config = config;
         this.dataSource = dataSource;
-        this.useStatementCache = config.isStatementCacheEnabled();
-        this.useMetaCache = config.isQueryMetaCacheEnabled();
+        this.cacheLevel = config.getCacheLevel();
         
-        if (useStatementCache) {
+        if (cacheLevel != CacheLevel.NONE) {
             this.statementCache = createLruCache(config.getStatementCacheSize());
-        } else {
-            this.statementCache = null;
-        }
-        
-        if (useMetaCache) {
             this.metaCache = createLruCache(config.getStatementCacheSize());
         } else {
+            this.statementCache = null;
             this.metaCache = null;
+        }
+        
+        if (cacheLevel == CacheLevel.L2) {
+            this.resultCache = new QueryResultCache(
+                config.getResultCacheSize(), 
+                config.getResultCacheExpireSeconds()
+            );
+        } else {
+            this.resultCache = null;
         }
         
         this.closed = false;
@@ -90,6 +98,26 @@ public class SessionImpl implements Session {
             throw new IllegalStateException("Session is closed");
         }
         
+        if (cacheLevel == CacheLevel.L2) {
+            CachedQueryResult cached = resultCache.get(sql, params);
+            if (cached != null) {
+                return new CachedQueryResultAdapter(cached);
+            }
+        }
+        
+        QueryResult result = executeQuery(sql, params);
+        
+        if (cacheLevel == CacheLevel.L2 && result != null) {
+            CachedQueryResult cached = copyResult(result);
+            resultCache.put(sql, params, cached);
+            result.close();
+            return new CachedQueryResultAdapter(cached);
+        }
+        
+        return result;
+    }
+    
+    private QueryResult executeQuery(String sql, Object... params) {
         try {
             Connection conn = getConnection();
             PreparedStatement ps = getOrCreateStatement(sql, conn);
@@ -117,7 +145,7 @@ public class SessionImpl implements Session {
             
             rs.close();
             
-            if (!useStatementCache) {
+            if (cacheLevel == CacheLevel.NONE) {
                 ps.close();
             }
             
@@ -128,8 +156,40 @@ public class SessionImpl implements Session {
         }
     }
     
+    private CachedQueryResult copyResult(QueryResult result) {
+        CachedQueryResult.Builder builder = new CachedQueryResult.Builder();
+        
+        int colCount = result.getColumnCount();
+        for (int i = 0; i < colCount; i++) {
+            builder.addColumnName(result.getColumnName(i));
+        }
+        
+        while (result.next()) {
+            builder.newRow();
+            for (int i = 0; i < colCount; i++) {
+                String colName = result.getColumnName(i);
+                builder.put(colName, getColumnValue(result, i));
+            }
+        }
+        
+        return builder.build();
+    }
+    
+    private Object getColumnValue(QueryResult result, int columnIndex) {
+        String colName = result.getColumnName(columnIndex);
+        try {
+            return result.getLong(colName);
+        } catch (Exception e1) {
+            try {
+                return result.getDouble(colName);
+            } catch (Exception e2) {
+                return result.getString(colName);
+            }
+        }
+    }
+    
     private PreparedStatement getOrCreateStatement(String sql, Connection conn) throws SQLException {
-        if (!useStatementCache) {
+        if (cacheLevel == CacheLevel.NONE) {
             return conn.prepareStatement(sql);
         }
         
@@ -144,7 +204,7 @@ public class SessionImpl implements Session {
     }
     
     private QueryMeta getOrCreateMeta(String sql, ResultSet rs) throws SQLException {
-        if (!useMetaCache) {
+        if (cacheLevel == CacheLevel.NONE) {
             return createQueryMeta(rs);
         }
         
@@ -309,6 +369,15 @@ public class SessionImpl implements Session {
         }
         if (metaCache != null) {
             metaCache.clear();
+        }
+        if (resultCache != null) {
+            resultCache.invalidateAll();
+        }
+    }
+    
+    public void invalidateResultCache() {
+        if (resultCache != null) {
+            resultCache.invalidateAll();
         }
     }
     

@@ -1,5 +1,6 @@
 package com.dbmmap.benchmark;
 
+import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
@@ -19,14 +20,13 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
 @Warmup(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
-@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 5, time = 20, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class CacheBenchmark {
 
-    private SessionImpl sessionWithCache;
-    private SessionImpl sessionNoCache;
-    private SessionImpl sessionNoMetaCache;
-    private SessionImpl sessionNoStatementCache;
+    private SessionImpl sessionNone;
+    private SessionImpl sessionL1;
+    private SessionImpl sessionL2;
     private MemoryPool memoryPool;
     private DataSource dataSource;
 
@@ -36,39 +36,32 @@ public class CacheBenchmark {
         initDatabase();
         memoryPool = createMemoryPool();
 
-        DbMmapConfig configWithCache = DbMmapConfig.builder()
-            .statementCacheEnabled(true)
-            .queryMetaCacheEnabled(true)
+        DbMmapConfig configNone = DbMmapConfig.builder()
+            .cacheLevel(CacheLevel.NONE)
+            .build();
+
+        DbMmapConfig configL1 = DbMmapConfig.builder()
+            .cacheLevel(CacheLevel.L1)
             .statementCacheSize(256)
             .build();
 
-        DbMmapConfig configNoCache = DbMmapConfig.builder()
-            .statementCacheEnabled(false)
-            .queryMetaCacheEnabled(false)
+        DbMmapConfig configL2 = DbMmapConfig.builder()
+            .cacheLevel(CacheLevel.L2)
+            .statementCacheSize(256)
+            .resultCacheSize(1000)
+            .resultCacheExpireSeconds(300)
             .build();
 
-        DbMmapConfig configNoMetaCache = DbMmapConfig.builder()
-            .statementCacheEnabled(true)
-            .queryMetaCacheEnabled(false)
-            .build();
-
-        DbMmapConfig configNoStatementCache = DbMmapConfig.builder()
-            .statementCacheEnabled(false)
-            .queryMetaCacheEnabled(true)
-            .build();
-
-        sessionWithCache = new SessionImpl(memoryPool, configWithCache, dataSource);
-        sessionNoCache = new SessionImpl(memoryPool, configNoCache, dataSource);
-        sessionNoMetaCache = new SessionImpl(memoryPool, configNoMetaCache, dataSource);
-        sessionNoStatementCache = new SessionImpl(memoryPool, configNoStatementCache, dataSource);
+        sessionNone = new SessionImpl(memoryPool, configNone, dataSource);
+        sessionL1 = new SessionImpl(memoryPool, configL1, dataSource);
+        sessionL2 = new SessionImpl(memoryPool, configL2, dataSource);
     }
 
     @TearDown(Level.Trial)
     public void tearDown() {
-        if (sessionWithCache != null) sessionWithCache.close();
-        if (sessionNoCache != null) sessionNoCache.close();
-        if (sessionNoMetaCache != null) sessionNoMetaCache.close();
-        if (sessionNoStatementCache != null) sessionNoStatementCache.close();
+        if (sessionNone != null) sessionNone.close();
+        if (sessionL1 != null) sessionL1.close();
+        if (sessionL2 != null) sessionL2.close();
         if (memoryPool != null) memoryPool.destroy();
     }
 
@@ -100,45 +93,34 @@ public class CacheBenchmark {
     }
 
     @Benchmark
-    public void withFullCache(Blackhole bh) {
-        try (QueryResult result = sessionWithCache.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
+    public void cacheNone(Blackhole bh) {
+        try (QueryResult result = sessionNone.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
-                bh.consume(result.getLong("id"));
-                bh.consume(result.getString("name"));
-                bh.consume(result.getInt("val"));
+                bh.consume(result.getLong("ID"));
+                bh.consume(result.getString("NAME"));
+                bh.consume(result.getInt("VAL"));
             }
         }
     }
 
     @Benchmark
-    public void noCache(Blackhole bh) {
-        try (QueryResult result = sessionNoCache.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
+    public void cacheL1(Blackhole bh) {
+        try (QueryResult result = sessionL1.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
-                bh.consume(result.getLong("id"));
-                bh.consume(result.getString("name"));
-                bh.consume(result.getInt("val"));
+                bh.consume(result.getLong("ID"));
+                bh.consume(result.getString("NAME"));
+                bh.consume(result.getInt("VAL"));
             }
         }
     }
 
     @Benchmark
-    public void noMetaCache(Blackhole bh) {
-        try (QueryResult result = sessionNoMetaCache.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
+    public void cacheL2(Blackhole bh) {
+        try (QueryResult result = sessionL2.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
             if (result != null && result.next()) {
-                bh.consume(result.getLong("id"));
-                bh.consume(result.getString("name"));
-                bh.consume(result.getInt("val"));
-            }
-        }
-    }
-
-    @Benchmark
-    public void noStatementCache(Blackhole bh) {
-        try (QueryResult result = sessionNoStatementCache.query("SELECT id, name, val FROM test_data WHERE id = ?", 1L)) {
-            if (result != null && result.next()) {
-                bh.consume(result.getLong("id"));
-                bh.consume(result.getString("name"));
-                bh.consume(result.getInt("val"));
+                bh.consume(result.getLong("ID"));
+                bh.consume(result.getString("NAME"));
+                bh.consume(result.getInt("VAL"));
             }
         }
     }
