@@ -35,6 +35,7 @@ public class EntityMappingCorrectnessTest {
         System.out.println("=== 正确性验证 ===\n");
         
         testDbMmapRaw(dataSource);
+        testDbMmapAsm(dataSource);
         testJdbcManual(dataSource);
         testMyBatis(dataSource);
         testHibernate();
