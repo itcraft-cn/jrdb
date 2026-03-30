@@ -129,6 +129,30 @@ public class MemoryBlock {
         unsafe.copyMemory(src, Unsafe.ARRAY_BYTE_BASE_OFFSET, null, address + offset, src.length);
     }
     
+    public void writeIntFast(int offset, int value) {
+        unsafe.putInt(address + offset, value);
+    }
+    
+    public void writeLongFast(int offset, long value) {
+        unsafe.putLong(address + offset, value);
+    }
+    
+    public int readIntFast(int offset) {
+        return unsafe.getInt(address + offset);
+    }
+    
+    public long readLongFast(int offset) {
+        return unsafe.getLong(address + offset);
+    }
+    
+    public void writeBytesFast(int offset, byte[] src) {
+        unsafe.copyMemory(src, Unsafe.ARRAY_BYTE_BASE_OFFSET, null, address + offset, src.length);
+    }
+    
+    public void readBytesFast(int offset, byte[] dest) {
+        unsafe.copyMemory(null, address + offset, dest, Unsafe.ARRAY_BYTE_BASE_OFFSET, dest.length);
+    }
+    
     private void checkOffset(int offset, int length) {
         if (offset < 0 || offset + length > size) {
             throw new IndexOutOfBoundsException(

@@ -104,34 +104,44 @@ public class RowStore {
     }
     
     public void setIntFast(int rowOffset, int colOffset, int value) {
-        block.writeInt(rowOffset + colOffset, value);
+        block.writeIntFast(rowOffset + colOffset, value);
     }
     
     public void setLongFast(int rowOffset, int colOffset, long value) {
-        block.writeLong(rowOffset + colOffset, value);
+        block.writeLongFast(rowOffset + colOffset, value);
     }
     
     public void setDoubleFast(int rowOffset, int colOffset, double value) {
-        block.writeLong(rowOffset + colOffset, Double.doubleToLongBits(value));
+        block.writeLongFast(rowOffset + colOffset, Double.doubleToLongBits(value));
     }
     
     public void setStringFast(int rowOffset, int colOffset, String value, int maxSize) {
         if (value == null) {
-            block.writeInt(rowOffset + colOffset, 0);
+            block.writeIntFast(rowOffset + colOffset, 0);
             return;
         }
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         int len = Math.min(bytes.length, maxSize - 4);
-        block.writeInt(rowOffset + colOffset, len);
-        block.writeBytes(rowOffset + colOffset + 4, bytes);
+        block.writeIntFast(rowOffset + colOffset, len);
+        block.writeBytesFast(rowOffset + colOffset + 4, bytes);
     }
     
     public int getIntFast(int rowOffset, int colOffset) {
-        return block.readInt(rowOffset + colOffset);
+        return block.readIntFast(rowOffset + colOffset);
     }
     
     public long getLongFast(int rowOffset, int colOffset) {
-        return block.readLong(rowOffset + colOffset);
+        return block.readLongFast(rowOffset + colOffset);
+    }
+    
+    public String getStringFast(int rowOffset, int colOffset) {
+        int len = block.readIntFast(rowOffset + colOffset);
+        if (len == 0) {
+            return null;
+        }
+        byte[] bytes = new byte[len];
+        block.readBytesFast(rowOffset + colOffset + 4, bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
     
     private void validateBounds(int rowIndex, int columnIndex) {
