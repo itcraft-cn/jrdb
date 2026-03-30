@@ -18,6 +18,9 @@ public class QueryResultImpl implements QueryResult {
     private boolean closed;
     
     public QueryResultImpl(RowStore store, int rowCount, MemoryBlock block, MemoryPool pool) {
+        if (store == null) {
+            throw new NullPointerException("store cannot be null");
+        }
         this.store = store;
         this.rowCount = rowCount;
         this.block = block;
@@ -41,24 +44,32 @@ public class QueryResultImpl implements QueryResult {
         return store.getColumnMeta(columnIndex).getName();
     }
     
+    private int getColumnIndex(String columnName) {
+        Integer index = columnNameIndex.get(columnName);
+        if (index == null) {
+            throw new IllegalArgumentException("Unknown column name: " + columnName);
+        }
+        return index;
+    }
+    
     @Override
     public int getInt(String columnName) {
-        return getInt(columnNameIndex.get(columnName));
+        return getInt(getColumnIndex(columnName));
     }
     
     @Override
     public String getString(String columnName) {
-        return getString(columnNameIndex.get(columnName));
+        return getString(getColumnIndex(columnName));
     }
     
     @Override
     public long getLong(String columnName) {
-        return getLong(columnNameIndex.get(columnName));
+        return getLong(getColumnIndex(columnName));
     }
     
     @Override
     public double getDouble(String columnName) {
-        return getDouble(columnNameIndex.get(columnName));
+        return getDouble(getColumnIndex(columnName));
     }
     
     @Override

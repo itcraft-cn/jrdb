@@ -11,6 +11,9 @@ public class SessionFactory {
     private volatile boolean closed;
     
     public SessionFactory(DbMmapConfig config) {
+        if (config == null) {
+            throw new NullPointerException("config cannot be null");
+        }
         this.config = config;
         MemoryPoolConfig poolConfig = config.getMemoryPoolConfig();
         this.memoryPool = new MemoryPool(poolConfig);
@@ -24,7 +27,7 @@ public class SessionFactory {
         return new SessionImpl(memoryPool, config);
     }
     
-    public void close() {
+    public synchronized void close() {
         if (closed) {
             return;
         }

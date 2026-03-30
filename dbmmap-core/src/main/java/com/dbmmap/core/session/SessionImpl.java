@@ -14,6 +14,12 @@ public class SessionImpl implements Session {
     private volatile boolean closed;
     
     public SessionImpl(MemoryPool memoryPool, DbMmapConfig config) {
+        if (memoryPool == null) {
+            throw new NullPointerException("memoryPool cannot be null");
+        }
+        if (config == null) {
+            throw new NullPointerException("config cannot be null");
+        }
         this.memoryPool = memoryPool;
         this.config = config;
         this.closed = false;

@@ -13,6 +13,12 @@ public class RowStore {
     private final int[] columnOffsets;
     
     public RowStore(MemoryBlock block, List<ColumnMeta> columns) {
+        if (block == null) {
+            throw new NullPointerException("MemoryBlock cannot be null");
+        }
+        if (columns == null) {
+            throw new NullPointerException("columns cannot be null");
+        }
         this.block = block;
         this.columns = columns;
         this.columnOffsets = new int[columns.size()];
@@ -25,38 +31,49 @@ public class RowStore {
     }
     
     public void setInt(int rowIndex, int value, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         block.writeInt(offset, value);
     }
     
     public int getInt(int rowIndex, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         return block.readInt(offset);
     }
     
     public void setLong(int rowIndex, long value, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         block.writeLong(offset, value);
     }
     
     public long getLong(int rowIndex, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         return block.readLong(offset);
     }
     
     public void setDouble(int rowIndex, double value, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         block.writeLong(offset, Double.doubleToLongBits(value));
     }
     
     public double getDouble(int rowIndex, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         return Double.longBitsToDouble(block.readLong(offset));
     }
     
     public void setString(int rowIndex, String value, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         int maxSize = columns.get(columnIndex).getSize();
+        if (value == null) {
+            block.writeInt(offset, 0);
+            return;
+        }
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         int len = Math.min(bytes.length, maxSize - 4);
         block.writeInt(offset, len);
@@ -64,11 +81,24 @@ public class RowStore {
     }
     
     public String getString(int rowIndex, int columnIndex) {
+        validateBounds(rowIndex, columnIndex);
         int offset = getOffset(rowIndex, columnIndex);
         int len = block.readInt(offset);
+        if (len == 0) {
+            return null;
+        }
         byte[] bytes = new byte[len];
         block.readBytes(offset + 4, bytes);
         return new String(bytes, StandardCharsets.UTF_8);
+    }
+    
+    private void validateBounds(int rowIndex, int columnIndex) {
+        if (rowIndex < 0 || rowIndex >= getMaxRows()) {
+            throw new IndexOutOfBoundsException("rowIndex out of bounds: " + rowIndex + ", maxRows: " + getMaxRows());
+        }
+        if (columnIndex < 0 || columnIndex >= columns.size()) {
+            throw new IndexOutOfBoundsException("columnIndex out of bounds: " + columnIndex + ", columnCount: " + columns.size());
+        }
     }
     
     private int getOffset(int rowIndex, int columnIndex) {
@@ -80,6 +110,9 @@ public class RowStore {
     public int getColumnCount() { return columns.size(); }
     
     public ColumnMeta getColumnMeta(int columnIndex) {
+        if (columnIndex < 0 || columnIndex >= columns.size()) {
+            throw new IndexOutOfBoundsException("columnIndex out of bounds: " + columnIndex + ", columnCount: " + columns.size());
+        }
         return columns.get(columnIndex);
     }
     
