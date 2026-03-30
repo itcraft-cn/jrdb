@@ -27,7 +27,8 @@ public class QueryResultImpl implements QueryResult {
         this.pool = pool;
         this.columnNameIndex = new HashMap<>();
         for (int i = 0; i < store.getColumnCount(); i++) {
-            columnNameIndex.put(store.getColumnMeta(i).getName(), i);
+            String name = store.getColumnMeta(i).getName();
+            columnNameIndex.put(name.toUpperCase(), i);
         }
         this.currentRow = -1;
         this.closed = false;
@@ -45,13 +46,7 @@ public class QueryResultImpl implements QueryResult {
     }
     
     private int getColumnIndex(String columnName) {
-        Integer index = columnNameIndex.get(columnName);
-        if (index == null) {
-            index = columnNameIndex.get(columnName.toUpperCase());
-        }
-        if (index == null) {
-            index = columnNameIndex.get(columnName.toLowerCase());
-        }
+        Integer index = columnNameIndex.get(columnName.toUpperCase());
         if (index == null) {
             throw new IllegalArgumentException("Unknown column name: " + columnName);
         }

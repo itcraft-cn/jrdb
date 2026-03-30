@@ -81,8 +81,7 @@ public class RowStore {
     }
     
     public String getString(int rowIndex, int columnIndex) {
-        validateBounds(rowIndex, columnIndex);
-        int offset = getOffset(rowIndex, columnIndex);
+        int offset = rowIndex * rowSize + columnOffsets[columnIndex];
         int len = block.readInt(offset);
         if (len == 0) {
             return null;
@@ -90,6 +89,49 @@ public class RowStore {
         byte[] bytes = new byte[len];
         block.readBytes(offset + 4, bytes);
         return new String(bytes, StandardCharsets.UTF_8);
+    }
+    
+    public final int getRowOffset(int rowIndex) {
+        return rowIndex * rowSize;
+    }
+    
+    public final int getColumnOffset(int columnIndex) {
+        return columnOffsets[columnIndex];
+    }
+    
+    public final int getRowSizeValue() {
+        return rowSize;
+    }
+    
+    public void setIntFast(int rowOffset, int colOffset, int value) {
+        block.writeInt(rowOffset + colOffset, value);
+    }
+    
+    public void setLongFast(int rowOffset, int colOffset, long value) {
+        block.writeLong(rowOffset + colOffset, value);
+    }
+    
+    public void setDoubleFast(int rowOffset, int colOffset, double value) {
+        block.writeLong(rowOffset + colOffset, Double.doubleToLongBits(value));
+    }
+    
+    public void setStringFast(int rowOffset, int colOffset, String value, int maxSize) {
+        if (value == null) {
+            block.writeInt(rowOffset + colOffset, 0);
+            return;
+        }
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        int len = Math.min(bytes.length, maxSize - 4);
+        block.writeInt(rowOffset + colOffset, len);
+        block.writeBytes(rowOffset + colOffset + 4, bytes);
+    }
+    
+    public int getIntFast(int rowOffset, int colOffset) {
+        return block.readInt(rowOffset + colOffset);
+    }
+    
+    public long getLongFast(int rowOffset, int colOffset) {
+        return block.readLong(rowOffset + colOffset);
     }
     
     private void validateBounds(int rowIndex, int columnIndex) {
