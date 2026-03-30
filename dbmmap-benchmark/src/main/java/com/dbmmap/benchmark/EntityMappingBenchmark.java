@@ -108,10 +108,23 @@ public class EntityMappingBenchmark {
     @State(Scope.Thread)
     public static class DbMmapAsmState {
         EntityMapper<User> mapper;
+        Connection connection;
+        PreparedStatement singleQueryPs;
+        PreparedStatement queryListPs;
 
         @Setup(Level.Trial)
-        public void setup(SharedState shared) {
+        public void setup(SharedState shared) throws SQLException {
             mapper = shared.mapperRegistry.getMapper(User.class);
+            connection = shared.dataSource.getConnection();
+            singleQueryPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?");
+            queryListPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
+        }
+
+        @TearDown(Level.Trial)
+        public void tearDown() throws SQLException {
+            if (singleQueryPs != null) singleQueryPs.close();
+            if (queryListPs != null) queryListPs.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -165,10 +178,23 @@ public class EntityMappingBenchmark {
     @State(Scope.Thread)
     public static class JdbcState {
         DataSource dataSource;
+        Connection connection;
+        PreparedStatement singleQueryPs;
+        PreparedStatement queryListPs;
 
         @Setup(Level.Trial)
-        public void setup(SharedState shared) {
+        public void setup(SharedState shared) throws SQLException {
             this.dataSource = shared.dataSource;
+            this.connection = shared.dataSource.getConnection();
+            this.singleQueryPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?");
+            this.queryListPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
+        }
+
+        @TearDown(Level.Trial)
+        public void tearDown() throws SQLException {
+            if (singleQueryPs != null) singleQueryPs.close();
+            if (queryListPs != null) queryListPs.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -196,16 +222,13 @@ public class EntityMappingBenchmark {
     }
 
     @Benchmark
-    public User dbmmap_asm_singleQuery(SharedState shared, DbMmapAsmState state) throws SQLException {
-        try (Connection conn = shared.dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?")) {
-            ps.setLong(1, 1L);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return state.mapper.mapFromResultSet(rs);
-                }
-                return null;
+    public User dbmmap_asm_singleQuery(DbMmapAsmState state) throws SQLException {
+        state.singleQueryPs.setLong(1, 1L);
+        try (ResultSet rs = state.singleQueryPs.executeQuery()) {
+            if (rs.next()) {
+                return state.mapper.mapFromResultSet(rs);
             }
+            return null;
         }
     }
 
@@ -222,21 +245,18 @@ public class EntityMappingBenchmark {
 
     @Benchmark
     public User jdbc_manual_singleQuery(JdbcState state) throws SQLException {
-        try (Connection conn = state.dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?")) {
-            ps.setLong(1, 1L);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    User user = new User();
-                    user.setId(rs.getLong("id"));
-                    user.setName(rs.getString("name"));
-                    user.setAge(rs.getInt("age"));
-                    user.setEmail(rs.getString("email"));
-                    user.setStatus(rs.getString("status"));
-                    return user;
-                }
-                return null;
+        state.singleQueryPs.setLong(1, 1L);
+        try (ResultSet rs = state.singleQueryPs.executeQuery()) {
+            if (rs.next()) {
+                User user = new User();
+                user.setId(rs.getLong("id"));
+                user.setName(rs.getString("name"));
+                user.setAge(rs.getInt("age"));
+                user.setEmail(rs.getString("email"));
+                user.setStatus(rs.getString("status"));
+                return user;
             }
+            return null;
         }
     }
 
@@ -258,11 +278,9 @@ public class EntityMappingBenchmark {
     }
 
     @Benchmark
-    public List<User> dbmmap_asm_queryList(SharedState shared, DbMmapAsmState state) throws SQLException {
+    public List<User> dbmmap_asm_queryList(DbMmapAsmState state) throws SQLException {
         List<User> users = new ArrayList<>(100);
-        try (Connection conn = shared.dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
-             ResultSet rs = ps.executeQuery()) {
+        try (ResultSet rs = state.queryListPs.executeQuery()) {
             while (rs.next()) {
                 users.add(state.mapper.mapFromResultSet(rs));
             }
@@ -288,9 +306,7 @@ public class EntityMappingBenchmark {
     @Benchmark
     public List<User> jdbc_manual_queryList(JdbcState state) throws SQLException {
         List<User> users = new ArrayList<>(100);
-        try (Connection conn = state.dataSource.getConnection();
-             PreparedStatement ps = conn.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
-             ResultSet rs = ps.executeQuery()) {
+        try (ResultSet rs = state.queryListPs.executeQuery()) {
             while (rs.next()) {
                 User user = new User();
                 user.setId(rs.getLong("id"));
