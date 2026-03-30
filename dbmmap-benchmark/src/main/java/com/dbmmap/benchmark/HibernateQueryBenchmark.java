@@ -10,11 +10,11 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 3, time = 1)
-@Measurement(iterations = 5, time = 1)
+@Warmup(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class HibernateQueryBenchmark extends BenchmarkBase {
 
@@ -31,7 +31,8 @@ public class HibernateQueryBenchmark extends BenchmarkBase {
         config.setProperty("hibernate.connection.username", "sa");
         config.setProperty("hibernate.connection.password", "");
         config.setProperty("hibernate.dialect", "org.hibernate.dialect.H2Dialect");
-        config.setProperty("hibernate.hbm2ddl.auto", "none");
+        config.setProperty("hibernate.cache.use_second_level_cache", "false");
+        config.setProperty("hibernate.cache.use_query_cache", "false");
         config.setProperty("hibernate.show_sql", "false");
         config.addAnnotatedClass(UserEntity.class);
 
@@ -47,6 +48,7 @@ public class HibernateQueryBenchmark extends BenchmarkBase {
 
     @Benchmark
     public UserEntity singleQuery() {
+        session.clear();
         return session.get(UserEntity.class, 1L);
     }
 

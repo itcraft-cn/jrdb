@@ -14,11 +14,11 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 3, time = 1)
-@Measurement(iterations = 5, time = 1)
+@Warmup(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 public class MyBatisQueryBenchmark extends BenchmarkBase {
 
@@ -32,6 +32,8 @@ public class MyBatisQueryBenchmark extends BenchmarkBase {
         Configuration config = new Configuration();
         config.setEnvironment(new Environment("benchmark",
             new JdbcTransactionFactory(), dataSource));
+        config.setCacheEnabled(false);
+        config.setLocalCacheScope(org.apache.ibatis.session.LocalCacheScope.STATEMENT);
 
         config.addMapper(UserMapper.class);
 
