@@ -62,19 +62,18 @@ public class JrdbAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public Session session(MemoryPool memoryPool, JrdbConfig config, ObjectProvider<DataSource> dataSourceProvider) {
+    public Session session(MemoryPool memoryPool, JrdbConfig config, MapperRegistry mapperRegistry,
+                           ObjectProvider<DataSource> dataSourceProvider) {
         DataSource dataSource = dataSourceProvider.getIfAvailable();
         if (dataSource == null) {
             throw new IllegalStateException("DataSource is required for jrdb");
         }
-        return new SessionImpl(memoryPool, config, dataSource);
+        return new SessionImpl(memoryPool, config, dataSource, mapperRegistry);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public JrdbTemplate dbMmapTemplate(Session session, MapperRegistry mapperRegistry, 
-                                         ObjectProvider<DataSource> dataSourceProvider) {
-        DataSource dataSource = dataSourceProvider.getIfAvailable();
-        return new JrdbTemplate(session, mapperRegistry, dataSource);
+    public JrdbTemplate jrdbTemplate(Session session, MapperRegistry mapperRegistry) {
+        return new JrdbTemplate(session, mapperRegistry);
     }
 }
