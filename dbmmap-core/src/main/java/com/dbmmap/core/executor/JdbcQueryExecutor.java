@@ -55,7 +55,7 @@ public class JdbcQueryExecutor implements QueryExecutor {
         try (PreparedStatement stmt = conn.prepareStatement(boundSql.getSql());
              ResultSet rs = stmt.executeQuery()) {
             setParameters(stmt, boundSql.getParams());
-            
+
             List<ColumnMeta> columns = buildColumnMeta(rs.getMetaData());
             List<Object[]> rows = readRows(rs, columns, maxRows);
 
@@ -122,7 +122,6 @@ public class JdbcQueryExecutor implements QueryExecutor {
             case Types.INTEGER:
                 return 4;
             case Types.BIGINT:
-                return 8;
             case Types.DOUBLE:
             case Types.FLOAT:
                 return 8;
@@ -165,10 +164,9 @@ public class JdbcQueryExecutor implements QueryExecutor {
                         break;
                     case Types.VARCHAR:
                     case Types.CHAR:
-                        row[i] = rs.getString(sqlIndex);
-                        break;
                     default:
                         row[i] = rs.getString(sqlIndex);
+                        break;
                 }
             }
             rows.add(row);

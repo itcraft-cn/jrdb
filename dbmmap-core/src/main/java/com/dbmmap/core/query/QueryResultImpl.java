@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class QueryResultImpl implements QueryResult {
-    
+
     private final RowStore store;
     private final int rowCount;
     private final MemoryBlock block;
@@ -16,7 +16,7 @@ public class QueryResultImpl implements QueryResult {
     private final Map<String, Integer> columnNameIndex;
     private int currentRow;
     private boolean closed;
-    
+
     public QueryResultImpl(RowStore store, int rowCount, MemoryBlock block, MemoryPool pool) {
         if (store == null) {
             throw new NullPointerException("store cannot be null");
@@ -26,25 +26,30 @@ public class QueryResultImpl implements QueryResult {
         this.block = block;
         this.pool = pool;
         this.columnNameIndex = new HashMap<>();
-        for (int i = 0; i < store.getColumnCount(); i++) {
+        int columnCount = store.getColumnCount();
+        for (int i = 0; i < columnCount; i++) {
             String name = store.getColumnMeta(i).getName();
             columnNameIndex.put(name.toUpperCase(), i);
         }
         this.currentRow = -1;
         this.closed = false;
     }
-    
+
     @Override
-    public int getRowCount() { return rowCount; }
-    
+    public int getRowCount() {
+        return rowCount;
+    }
+
     @Override
-    public int getColumnCount() { return store.getColumnCount(); }
-    
+    public int getColumnCount() {
+        return store.getColumnCount();
+    }
+
     @Override
     public String getColumnName(int columnIndex) {
         return store.getColumnMeta(columnIndex).getName();
     }
-    
+
     private int getColumnIndex(String columnName) {
         Integer index = columnNameIndex.get(columnName.toUpperCase());
         if (index == null) {
@@ -52,65 +57,65 @@ public class QueryResultImpl implements QueryResult {
         }
         return index;
     }
-    
+
     @Override
     public int getInt(String columnName) {
         return getInt(getColumnIndex(columnName));
     }
-    
+
     @Override
     public String getString(String columnName) {
         return getString(getColumnIndex(columnName));
     }
-    
+
     @Override
     public long getLong(String columnName) {
         return getLong(getColumnIndex(columnName));
     }
-    
+
     @Override
     public double getDouble(String columnName) {
         return getDouble(getColumnIndex(columnName));
     }
-    
+
     @Override
     public int getInt(int columnIndex) {
         return store.getInt(currentRow, columnIndex);
     }
-    
+
     @Override
     public String getString(int columnIndex) {
         return store.getString(currentRow, columnIndex);
     }
-    
+
     @Override
     public long getLong(int columnIndex) {
         return store.getLong(currentRow, columnIndex);
     }
-    
+
     @Override
     public double getDouble(int columnIndex) {
         return store.getDouble(currentRow, columnIndex);
     }
-    
+
     @Override
     public boolean next() {
         currentRow++;
         return currentRow < rowCount;
     }
-    
+
     @Override
     public void reset() {
         currentRow = -1;
     }
-    
+
     @Override
     public void release() {
         if (pool != null && block != null) {
             pool.release(block);
         }
     }
-    
+
     @Override
     public void close() {
         if (closed) {

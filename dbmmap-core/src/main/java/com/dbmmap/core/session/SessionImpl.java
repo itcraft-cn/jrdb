@@ -15,7 +15,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,9 +29,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class SessionImpl implements Session {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionImpl.class);
-    
+
     private static final int INT_COLUMN_SIZE = 4;
     private static final int LONG_COLUMN_SIZE = 8;
     private static final int DOUBLE_COLUMN_SIZE = 8;
@@ -34,29 +39,18 @@ public class SessionImpl implements Session {
     private static final int SMALLINT_COLUMN_SIZE = 2;
     private static final int STRING_COLUMN_SIZE = 64;
     private static final int DECIMAL_COLUMN_SIZE = 32;
-    
+
     private final MemoryPool memoryPool;
     private final DbMmapConfig config;
     private final DataSource dataSource;
-    private Connection connection;
     private final Map<String, PreparedStatement> statementCache;
     private final Map<String, QueryMeta> metaCache;
     private final QueryResultCache resultCache;
     private final CacheLevel cacheLevel;
+    private final QueryAction queryAction;
+    private Connection connection;
     private volatile boolean closed;
-    
-    private static class QueryMeta {
-        final List<ColumnMeta> columns;
-        final int rowSize;
-        final int maxRows;
-        
-        QueryMeta(List<ColumnMeta> columns, int slotSize) {
-            this.columns = columns;
-            this.rowSize = columns.stream().mapToInt(ColumnMeta::getSize).sum();
-            this.maxRows = slotSize / Math.max(rowSize, 1);
-        }
-    }
-    
+
     public SessionImpl(MemoryPool memoryPool, DbMmapConfig config, DataSource dataSource) {
         if (memoryPool == null) {
             throw new NullPointerException("memoryPool cannot be null");
@@ -71,27 +65,29 @@ public class SessionImpl implements Session {
         this.config = config;
         this.dataSource = dataSource;
         this.cacheLevel = config.getCacheLevel();
-        
-        if (cacheLevel != CacheLevel.NONE) {
-            this.statementCache = createLruCache(config.getStatementCacheSize());
-            this.metaCache = createLruCache(config.getStatementCacheSize());
-        } else {
+
+        if (cacheLevel == CacheLevel.NONE) {
             this.statementCache = null;
             this.metaCache = null;
+        } else {
+            this.statementCache = createLruCache(config.getStatementCacheSize());
+            this.metaCache = createLruCache(config.getStatementCacheSize());
         }
-        
+
         if (cacheLevel == CacheLevel.L2) {
             this.resultCache = new QueryResultCache(
-                config.getResultCacheSize(), 
-                config.getResultCacheExpireSeconds()
+                    config.getResultCacheSize(),
+                    config.getResultCacheExpireSeconds()
             );
+            this.queryAction = this::cachedQuery;
         } else {
             this.resultCache = null;
+            this.queryAction = this::directQuery;
         }
-        
+
         this.closed = false;
     }
-    
+
     private <K, V> Map<K, V> createLruCache(int maxSize) {
         return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
             @Override
@@ -100,83 +96,87 @@ public class SessionImpl implements Session {
             }
         });
     }
-    
+
     @Override
     public QueryResult query(String sql) {
         return query(sql, new Object[0]);
     }
-    
+
+    @Override
     public QueryResult query(String sql, Object... params) {
         if (closed) {
             throw new IllegalStateException("Session is closed");
         }
-        
-        if (cacheLevel == CacheLevel.L2) {
-            CachedQueryResult cached = resultCache.get(sql, params);
-            if (cached != null) {
-                return new CachedQueryResultAdapter(cached);
-            }
+        return queryAction.query(sql, params);
+    }
+
+    public QueryResult cachedQuery(String sql, Object... params) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
         }
-        
-        QueryResult result = executeQuery(sql, params);
-        
-        if (cacheLevel == CacheLevel.L2 && result != null) {
-            CachedQueryResult cached = copyResult(result);
-            resultCache.put(sql, params, cached);
-            result.close();
+        CachedQueryResult cached = resultCache.get(sql, params);
+        if (cached != null) {
             return new CachedQueryResultAdapter(cached);
         }
-        
-        return result;
+        QueryResult result = executeQuery(sql, params);
+        cached = copyResult(result);
+        resultCache.put(sql, params, cached);
+        result.close();
+        return new CachedQueryResultAdapter(cached);
     }
-    
+
+    public QueryResult directQuery(String sql, Object... params) {
+        return executeQuery(sql, params);
+    }
+
     private QueryResult executeQuery(String sql, Object... params) {
         try {
             Connection conn = getConnection();
             PreparedStatement ps = getOrCreateStatement(sql, conn);
             setParameters(ps, params);
-            
+
             ResultSet rs = ps.executeQuery();
             QueryMeta meta = getOrCreateMeta(sql, rs);
-            
+
             MemoryBlock block = memoryPool.allocate();
             RowStore store = new RowStore(block, meta.columns);
-            
+
             int rowCount = 0;
             final int maxRows = meta.maxRows;
             final int colCount = meta.columns.size();
             final int rowSize = store.getRowSizeValue();
-            
+
             while (rs.next() && rowCount < maxRows) {
                 int rowOffset = rowCount * rowSize;
                 for (int i = 0; i < colCount; i++) {
                     ColumnMeta cm = meta.columns.get(i);
-                    setColumnValueUltraFast(store, rs, rowOffset, store.getColumnOffset(i), i + 1, cm.getSqlType(), cm.getSize());
+                    setColumnValueUltraFast(store, rs, rowOffset, store.getColumnOffset(i), i + 1, cm.getSqlType(),
+                                            cm.getSize());
                 }
                 rowCount++;
             }
-            
+
             rs.close();
-            
+
             if (cacheLevel == CacheLevel.NONE) {
                 ps.close();
             }
-            
+
             return new QueryResultImpl(store, rowCount, block, memoryPool);
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Query execution failed: " + sql, e);
         }
     }
-    
+
     private CachedQueryResult copyResult(QueryResult result) {
         CachedQueryResult.Builder builder = new CachedQueryResult.Builder();
-        
+
         int colCount = result.getColumnCount();
         for (int i = 0; i < colCount; i++) {
             builder.addColumnName(result.getColumnName(i));
         }
-        
+
         while (result.next()) {
             builder.newRow();
             for (int i = 0; i < colCount; i++) {
@@ -184,10 +184,10 @@ public class SessionImpl implements Session {
                 builder.put(colName, getColumnValue(result, i));
             }
         }
-        
+
         return builder.build();
     }
-    
+
     private Object getColumnValue(QueryResult result, int columnIndex) {
         String colName = result.getColumnName(columnIndex);
         try {
@@ -200,12 +200,12 @@ public class SessionImpl implements Session {
             }
         }
     }
-    
+
     private PreparedStatement getOrCreateStatement(String sql, Connection conn) throws SQLException {
         if (cacheLevel == CacheLevel.NONE) {
             return conn.prepareStatement(sql);
         }
-        
+
         PreparedStatement ps = statementCache.get(sql);
         if (ps == null || ps.isClosed()) {
             ps = conn.prepareStatement(sql);
@@ -215,12 +215,12 @@ public class SessionImpl implements Session {
         }
         return ps;
     }
-    
+
     private QueryMeta getOrCreateMeta(String sql, ResultSet rs) throws SQLException {
         if (cacheLevel == CacheLevel.NONE) {
             return createQueryMeta(rs);
         }
-        
+
         QueryMeta meta = metaCache.get(sql);
         if (meta == null) {
             meta = createQueryMeta(rs);
@@ -228,7 +228,7 @@ public class SessionImpl implements Session {
         }
         return meta;
     }
-    
+
     private QueryMeta createQueryMeta(ResultSet rs) throws SQLException {
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
@@ -241,21 +241,21 @@ public class SessionImpl implements Session {
         }
         return new QueryMeta(columns, memoryPool.getSlotSize());
     }
-    
+
     private Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = dataSource.getConnection();
         }
         return connection;
     }
-    
+
     private void setParameters(PreparedStatement ps, Object[] params) throws SQLException {
         final int len = params.length;
         for (int i = 0; i < len; i++) {
             ps.setObject(i + 1, params[i]);
         }
     }
-    
+
     private int getColumnSize(int sqlType) {
         switch (sqlType) {
             case Types.INTEGER:
@@ -278,13 +278,13 @@ public class SessionImpl implements Session {
                 return STRING_COLUMN_SIZE;
             case Types.DECIMAL:
             case Types.NUMERIC:
-                return DECIMAL_COLUMN_SIZE;
             default:
                 return DECIMAL_COLUMN_SIZE;
         }
     }
-    
-    private void setColumnValueUltraFast(RowStore store, ResultSet rs, int rowOffset, int colOffset, int rsColIndex, int sqlType, int maxSize) 
+
+    private void setColumnValueUltraFast(RowStore store, ResultSet rs, int rowOffset, int colOffset, int rsColIndex,
+                                         int sqlType, int maxSize)
             throws SQLException {
         switch (sqlType) {
             case Types.INTEGER:
@@ -298,9 +298,6 @@ public class SessionImpl implements Session {
             case Types.VARCHAR:
             case Types.CHAR:
             case Types.LONGVARCHAR:
-            case Types.CLOB:
-                store.setStringFast(rowOffset, colOffset, rs.getString(rsColIndex), maxSize);
-                break;
             case Types.DOUBLE:
             case Types.FLOAT:
                 store.setDoubleFast(rowOffset, colOffset, rs.getDouble(rsColIndex));
@@ -318,11 +315,13 @@ public class SessionImpl implements Session {
                 java.math.BigDecimal bd = rs.getBigDecimal(rsColIndex);
                 store.setDoubleFast(rowOffset, colOffset, bd != null ? bd.doubleValue() : 0.0);
                 break;
+            case Types.CLOB:
             default:
                 store.setStringFast(rowOffset, colOffset, rs.getString(rsColIndex), maxSize);
+                break;
         }
     }
-    
+
     @Override
     public <T> T query(String sql, Function<QueryResult, T> handler) {
         if (closed) {
@@ -338,12 +337,12 @@ public class SessionImpl implements Session {
             result.close();
         }
     }
-    
+
     @Override
     public int update(String sql) {
         return update(sql, new Object[0]);
     }
-    
+
     @Override
     public int update(String sql, Object... params) {
         if (closed) {
@@ -360,7 +359,7 @@ public class SessionImpl implements Session {
             throw new RuntimeException("Update execution failed: " + sql, e);
         }
     }
-    
+
     @Override
     public int[] batchUpdate(String... sqls) {
         if (closed) {
@@ -372,11 +371,13 @@ public class SessionImpl implements Session {
         }
         return results;
     }
-    
+
     public void clearCache() {
         if (statementCache != null) {
             for (PreparedStatement ps : statementCache.values()) {
-                try { ps.close(); } catch (SQLException e) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
                     LOGGER.warn("Failed to close PreparedStatement: {}", e.getMessage());
                 }
             }
@@ -389,23 +390,23 @@ public class SessionImpl implements Session {
             resultCache.invalidateAll();
         }
     }
-    
+
     public void invalidateResultCache() {
         if (resultCache != null) {
             resultCache.invalidateAll();
         }
     }
-    
+
     @Override
     public MemoryPool getMemoryPool() {
         return memoryPool;
     }
-    
+
     @Override
     public boolean isClosed() {
         return closed;
     }
-    
+
     @Override
     public void close() {
         if (closed) {
@@ -413,10 +414,29 @@ public class SessionImpl implements Session {
         }
         clearCache();
         if (connection != null) {
-            try { connection.close(); } catch (SQLException e) {
+            try {
+                connection.close();
+            } catch (SQLException e) {
                 LOGGER.warn("Failed to close connection: {}", e.getMessage());
             }
         }
         closed = true;
+    }
+
+    @FunctionalInterface
+    private interface QueryAction {
+        QueryResult query(String sql, Object... params);
+    }
+
+    private static class QueryMeta {
+        final List<ColumnMeta> columns;
+        final int rowSize;
+        final int maxRows;
+
+        QueryMeta(List<ColumnMeta> columns, int slotSize) {
+            this.columns = columns;
+            this.rowSize = columns.stream().mapToInt(ColumnMeta::getSize).sum();
+            this.maxRows = slotSize / Math.max(rowSize, 1);
+        }
     }
 }

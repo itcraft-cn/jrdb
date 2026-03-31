@@ -5,7 +5,6 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 public class MapperClassGenerator {
@@ -19,12 +18,12 @@ public class MapperClassGenerator {
 
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 
-        cw.visit(Opcodes.V1_8, 
-                Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
-                className,
-                null,
-                "java/lang/Object",
-                new String[]{ENTITY_MAPPER_INTERFACE});
+        cw.visit(Opcodes.V1_8,
+                 Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER,
+                 className,
+                 null,
+                 "java/lang/Object",
+                 new String[]{ENTITY_MAPPER_INTERFACE});
 
         generateConstructor(cw, className);
         generateMapFromResultSet(cw, className, config, entityClassName);
@@ -57,9 +56,9 @@ public class MapperClassGenerator {
     private void generateMapFromResultSet(ClassWriter cw, String className,
                                           MappingConfig config, String entityClassName) {
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "mapFromResultSet",
-                "(Ljava/sql/ResultSet;)Ljava/lang/Object;",
-                "(Ljava/sql/ResultSet;)T;",
-                new String[]{"java/sql/SQLException"});
+                                          "(Ljava/sql/ResultSet;)Ljava/lang/Object;",
+                                          "(Ljava/sql/ResultSet;)T;",
+                                          new String[]{"java/sql/SQLException"});
 
         mv.visitCode();
 
@@ -69,8 +68,7 @@ public class MapperClassGenerator {
         mv.visitVarInsn(Opcodes.ASTORE, 2);
 
         List<MappingField> fields = config.getFields();
-        for (int i = 0; i < fields.size(); i++) {
-            MappingField field = fields.get(i);
+        for (MappingField field : fields) {
             generateFieldMapping(mv, field, entityClassName);
         }
 
@@ -90,63 +88,63 @@ public class MapperClassGenerator {
 
         if (fieldType == int.class || fieldType == Integer.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getInt", "I",
-                    "java/lang/Integer", "Ljava/lang/Integer;", fieldType == Integer.class);
+                                         "java/lang/Integer", "Ljava/lang/Integer;", fieldType == Integer.class);
         } else if (fieldType == long.class || fieldType == Long.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getLong", "J",
-                    "java/lang/Long", "Ljava/lang/Long;", fieldType == Long.class);
+                                         "java/lang/Long", "Ljava/lang/Long;", fieldType == Long.class);
         } else if (fieldType == double.class || fieldType == Double.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getDouble", "D",
-                    "java/lang/Double", "Ljava/lang/Double;", fieldType == Double.class);
+                                         "java/lang/Double", "Ljava/lang/Double;", fieldType == Double.class);
         } else if (fieldType == float.class || fieldType == Float.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getFloat", "F",
-                    "java/lang/Float", "Ljava/lang/Float;", fieldType == Float.class);
+                                         "java/lang/Float", "Ljava/lang/Float;", fieldType == Float.class);
         } else if (fieldType == boolean.class || fieldType == Boolean.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getBoolean", "Z",
-                    "java/lang/Boolean", "Ljava/lang/Boolean;", fieldType == Boolean.class);
+                                         "java/lang/Boolean", "Ljava/lang/Boolean;", fieldType == Boolean.class);
         } else if (fieldType == short.class || fieldType == Short.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getShort", "S",
-                    "java/lang/Short", "Ljava/lang/Short;", fieldType == Short.class);
+                                         "java/lang/Short", "Ljava/lang/Short;", fieldType == Short.class);
         } else if (fieldType == byte.class || fieldType == Byte.class) {
             generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getByte", "B",
-                    "java/lang/Byte", "Ljava/lang/Byte;", fieldType == Byte.class);
+                                         "java/lang/Byte", "Ljava/lang/Byte;", fieldType == Byte.class);
         } else if (fieldType == String.class) {
             mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                    "getString", "(Ljava/lang/String;)Ljava/lang/String;", true);
+                               "getString", "(Ljava/lang/String;)Ljava/lang/String;", true);
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                    setterName, "(Ljava/lang/String;)V", false);
+                               setterName, "(Ljava/lang/String;)V", false);
         } else {
             generateObjectTypeMapping(mv, field, entityClassName, setterName);
         }
     }
 
     private void generatePrimitiveTypeMapping(MethodVisitor mv, String entityClassName, String setterName,
-                                               String resultSetMethod, String primitiveDesc,
-                                               String wrapperClass, String wrapperDesc, boolean isWrapper) {
+                                              String resultSetMethod, String primitiveDesc,
+                                              String wrapperClass, String wrapperDesc, boolean isWrapper) {
         mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                resultSetMethod, "(Ljava/lang/String;)" + primitiveDesc, true);
+                           resultSetMethod, "(Ljava/lang/String;)" + primitiveDesc, true);
         if (isWrapper) {
             mv.visitMethodInsn(Opcodes.INVOKESTATIC, wrapperClass, "valueOf",
-                    "(" + primitiveDesc + ")" + wrapperDesc, false);
+                               "(" + primitiveDesc + ")" + wrapperDesc, false);
         }
         String setterDesc = "(" + (isWrapper ? wrapperDesc : primitiveDesc) + ")V";
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName, setterName, setterDesc, false);
     }
 
-    private void generateObjectTypeMapping(MethodVisitor mv, MappingField field, 
+    private void generateObjectTypeMapping(MethodVisitor mv, MappingField field,
                                            String entityClassName, String setterName) {
         mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                "getObject", "(Ljava/lang/String;)Ljava/lang/Object;", true);
+                           "getObject", "(Ljava/lang/String;)Ljava/lang/Object;", true);
         mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(field.getJavaType()));
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                setterName, "(" + Type.getDescriptor(field.getJavaType()) + ")V", false);
+                           setterName, "(" + Type.getDescriptor(field.getJavaType()) + ")V", false);
     }
 
     private void generateMapToRow(ClassWriter cw, String className,
                                   MappingConfig config, String entityClassName) {
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "mapToRow",
-                "(Ljava/lang/Object;)[Ljava/lang/Object;",
-                "(TT;)[Ljava/lang/Object;",
-                null);
+                                          "(Ljava/lang/Object;)[Ljava/lang/Object;",
+                                          "(TT;)[Ljava/lang/Object;",
+                                          null);
 
         mv.visitCode();
 
@@ -167,13 +165,13 @@ public class MapperClassGenerator {
             String getterName = getGetterName(field.getFieldName());
             String getterDesc = "()" + Type.getDescriptor(field.getJavaType());
             mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                    getterName, getterDesc, false);
+                               getterName, getterDesc, false);
 
             if (field.getJavaType().isPrimitive()) {
                 mv.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Type.getInternalName(getWrapperClass(field.getJavaType())),
-                        "valueOf", "(" + Type.getDescriptor(field.getJavaType()) + ")" 
-                        + Type.getDescriptor(getWrapperClass(field.getJavaType())), false);
+                                   Type.getInternalName(getWrapperClass(field.getJavaType())),
+                                   "valueOf", "(" + Type.getDescriptor(field.getJavaType()) + ")"
+                                           + Type.getDescriptor(getWrapperClass(field.getJavaType())), false);
             }
 
             mv.visitInsn(Opcodes.AASTORE);
@@ -193,14 +191,30 @@ public class MapperClassGenerator {
     }
 
     private Class<?> getWrapperClass(Class<?> primitiveType) {
-        if (primitiveType == int.class) return Integer.class;
-        if (primitiveType == long.class) return Long.class;
-        if (primitiveType == boolean.class) return Boolean.class;
-        if (primitiveType == byte.class) return Byte.class;
-        if (primitiveType == short.class) return Short.class;
-        if (primitiveType == char.class) return Character.class;
-        if (primitiveType == float.class) return Float.class;
-        if (primitiveType == double.class) return Double.class;
+        if (primitiveType == int.class) {
+            return Integer.class;
+        }
+        if (primitiveType == long.class) {
+            return Long.class;
+        }
+        if (primitiveType == boolean.class) {
+            return Boolean.class;
+        }
+        if (primitiveType == byte.class) {
+            return Byte.class;
+        }
+        if (primitiveType == short.class) {
+            return Short.class;
+        }
+        if (primitiveType == char.class) {
+            return Character.class;
+        }
+        if (primitiveType == float.class) {
+            return Float.class;
+        }
+        if (primitiveType == double.class) {
+            return Double.class;
+        }
         return primitiveType;
     }
 }

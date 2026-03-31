@@ -8,7 +8,7 @@ import java.util.List;
  * Column-oriented storage that organizes data by columns rather than rows.
  * Format: [col1_all_rows][col2_all_rows]...
  * Optimized for analytical queries and aggregations.
- * 
+ * <p>
  * Supports both column-oriented and row-oriented memory layouts:
  * - Column format: [col0: all rows][col1: all rows]...
  * - Row format: [row0: all cols][row1: all cols]...
@@ -25,8 +25,8 @@ public class ColumnStore {
     /**
      * Creates a new ColumnStore instance (column format mode).
      *
-     * @param block the memory block to store data
-     * @param columns the column metadata list
+     * @param block    the memory block to store data
+     * @param columns  the column metadata list
      * @param rowCount the number of rows to store
      * @throws NullPointerException if block or columns is null
      */
@@ -37,9 +37,9 @@ public class ColumnStore {
     /**
      * Creates a new ColumnStore instance with specified format mode.
      *
-     * @param block the memory block to store data
-     * @param columns the column metadata list
-     * @param rowCount the number of rows to store
+     * @param block         the memory block to store data
+     * @param columns       the column metadata list
+     * @param rowCount      the number of rows to store
      * @param rowFormatMode if true, reads from row-formatted memory
      * @throws NullPointerException if block or columns is null
      */
@@ -74,16 +74,16 @@ public class ColumnStore {
      * @return array of column offsets
      */
     public int[] calculateColumnOffsets() {
-        int[] offsets = new int[columns.size()];
+        int size = columns.size();
+        int[] offsets = new int[size];
+        int offset = 0;
         if (rowFormatMode) {
-            int offset = 0;
-            for (int i = 0; i < columns.size(); i++) {
+            for (int i = 0; i < size; i++) {
                 offsets[i] = offset;
                 offset += columns.get(i).getSize();
             }
         } else {
-            int offset = 0;
-            for (int i = 0; i < columns.size(); i++) {
+            for (int i = 0; i < size; i++) {
                 offsets[i] = offset;
                 offset += rowCount * columns.get(i).getSize();
             }
@@ -103,7 +103,7 @@ public class ColumnStore {
         int[] values = new int[rowCount];
         int colOffset = columnOffsets[columnIndex];
         int colSize = columns.get(columnIndex).getSize();
-        
+
         if (rowFormatMode) {
             for (int i = 0; i < rowCount; i++) {
                 values[i] = block.readInt(i * rowSize + colOffset);
@@ -121,9 +121,9 @@ public class ColumnStore {
      * In row format mode, writes to row-formatted memory.
      *
      * @param columnIndex the column index
-     * @param values the values to set
+     * @param values      the values to set
      * @throws IndexOutOfBoundsException if columnIndex is invalid
-     * @throws IllegalArgumentException if values length doesn't match rowCount
+     * @throws IllegalArgumentException  if values length doesn't match rowCount
      */
     public void setIntColumn(int columnIndex, int[] values) {
         validateColumnIndex(columnIndex);
@@ -135,7 +135,7 @@ public class ColumnStore {
         }
         int colOffset = columnOffsets[columnIndex];
         int colSize = columns.get(columnIndex).getSize();
-        
+
         if (rowFormatMode) {
             for (int i = 0; i < rowCount; i++) {
                 block.writeInt(i * rowSize + colOffset, values[i]);
@@ -184,8 +184,9 @@ public class ColumnStore {
      */
     public int maxIntColumn(int columnIndex) {
         int[] values = getIntColumn(columnIndex);
+        int length = values.length;
         int max = values[0];
-        for (int i = 1; i < values.length; i++) {
+        for (int i = 1; i < length; i++) {
             if (values[i] > max) {
                 max = values[i];
             }
@@ -202,8 +203,9 @@ public class ColumnStore {
      */
     public int minIntColumn(int columnIndex) {
         int[] values = getIntColumn(columnIndex);
+        int length = values.length;
         int min = values[0];
-        for (int i = 1; i < values.length; i++) {
+        for (int i = 1; i < length; i++) {
             if (values[i] < min) {
                 min = values[i];
             }
@@ -214,13 +216,17 @@ public class ColumnStore {
     private void validateColumnIndex(int columnIndex) {
         if (columnIndex < 0 || columnIndex >= columns.size()) {
             throw new IndexOutOfBoundsException(
-                "columnIndex out of bounds: " + columnIndex + ", columnCount: " + columns.size());
+                    "columnIndex out of bounds: " + columnIndex + ", columnCount: " + columns.size());
         }
     }
 
-    public int getRowCount() { return rowCount; }
+    public int getRowCount() {
+        return rowCount;
+    }
 
-    public int getColumnCount() { return columns.size(); }
+    public int getColumnCount() {
+        return columns.size();
+    }
 
     public ColumnMeta getColumnMeta(int columnIndex) {
         validateColumnIndex(columnIndex);
