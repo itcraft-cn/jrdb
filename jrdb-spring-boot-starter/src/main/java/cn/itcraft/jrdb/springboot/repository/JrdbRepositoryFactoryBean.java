@@ -7,16 +7,11 @@ import cn.itcraft.jrdb.core.session.Session;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import javax.sql.DataSource;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
 import java.util.List;
 
 public class JrdbRepositoryFactoryBean<T> implements FactoryBean<T> {
@@ -24,7 +19,6 @@ public class JrdbRepositoryFactoryBean<T> implements FactoryBean<T> {
     private Class<T> interfaceClass;
     private Session session;
     private MapperRegistry mapperRegistry;
-    private DataSource dataSource;
 
     public void setInterface(String interfaceName) throws ClassNotFoundException {
         this.interfaceClass = (Class<T>) Class.forName(interfaceName);
@@ -40,18 +34,13 @@ public class JrdbRepositoryFactoryBean<T> implements FactoryBean<T> {
         this.mapperRegistry = mapperRegistry;
     }
 
-    @Autowired
-    public void setDataSource(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     public T getObject() {
         return (T) Proxy.newProxyInstance(
             interfaceClass.getClassLoader(),
             new Class<?>[] { interfaceClass },
-            new RepositoryInvocationHandler(session, mapperRegistry, dataSource)
+            new RepositoryInvocationHandler(session, mapperRegistry)
         );
     }
 
@@ -68,12 +57,10 @@ public class JrdbRepositoryFactoryBean<T> implements FactoryBean<T> {
     private static class RepositoryInvocationHandler implements InvocationHandler {
         private final Session session;
         private final MapperRegistry mapperRegistry;
-        private final DataSource dataSource;
 
-        RepositoryInvocationHandler(Session session, MapperRegistry mapperRegistry, DataSource dataSource) {
+        RepositoryInvocationHandler(Session session, MapperRegistry mapperRegistry) {
             this.session = session;
             this.mapperRegistry = mapperRegistry;
-            this.dataSource = dataSource;
         }
 
         @Override
@@ -139,31 +126,13 @@ public class JrdbRepositoryFactoryBean<T> implements FactoryBean<T> {
         }
 
         private Object executeEntityQuery(String sql, Object[] params, Type genericReturnType, Class<?> entityClass) {
-            EntityMapper<?> mapper = mapperRegistry.getMapper(entityClass);
             boolean isList = genericReturnType instanceof ParameterizedType 
                 && ((ParameterizedType) genericReturnType).getRawType() == List.class;
 
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement ps = conn.prepareStatement(sql)) {
-                for (int i = 0; i < params.length; i++) {
-                    ps.setObject(i + 1, params[i]);
-                }
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (isList) {
-                        List<Object> list = new ArrayList<>();
-                        while (rs.next()) {
-                            list.add(mapper.mapFromResultSet(rs));
-                        }
-                        return list;
-                    } else {
-                        if (rs.next()) {
-                            return mapper.mapFromResultSet(rs);
-                        }
-                        return null;
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Query failed: " + sql, e);
+            if (isList) {
+                return session.queryForList(sql, entityClass, params);
+            } else {
+                return session.queryForObject(sql, entityClass, params);
             }
         }
     }

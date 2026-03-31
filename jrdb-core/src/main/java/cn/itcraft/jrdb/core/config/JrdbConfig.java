@@ -46,10 +46,10 @@ public class JrdbConfig {
      * 结果集缓存过期时间，单位为秒。
      */
     private final int resultCacheExpireSeconds;
-    
+
     /**
      * 私有构造方法，通过Builder构建配置实例。
-     * 
+     *
      * @param builder 构建器实例
      */
     private JrdbConfig(Builder builder) {

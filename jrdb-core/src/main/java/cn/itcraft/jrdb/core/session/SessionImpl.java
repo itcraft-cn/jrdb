@@ -4,6 +4,9 @@ import cn.itcraft.jrdb.core.cache.CachedQueryResult;
 import cn.itcraft.jrdb.core.cache.CachedQueryResultAdapter;
 import cn.itcraft.jrdb.core.cache.QueryResultCache;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.executor.ErrorOverflowHandler;
+import cn.itcraft.jrdb.core.executor.OverflowHandler;
+import cn.itcraft.jrdb.core.executor.TruncateOverflowHandler;
 import cn.itcraft.jrdb.core.handler.RowHandler;
 import cn.itcraft.jrdb.core.handler.RowMeta;
 import cn.itcraft.jrdb.core.mapping.EntityMapper;
@@ -143,6 +146,11 @@ public class SessionImpl implements Session {
     private final MapperRegistry mapperRegistry;
 
     /**
+     * 溢出处理器，根据配置决定超限时的行为。
+     */
+    private final OverflowHandler overflowHandler;
+
+    /**
      * 线程本地行缓冲区，用于流式行处理时存储单行数据。
      */
     private final ThreadLocal<byte[]> rowBuffer;
@@ -211,8 +219,20 @@ public class SessionImpl implements Session {
             this.queryAction = this::directQuery;
         }
 
+        this.overflowHandler = createOverflowHandler(config);
+
         this.rowBuffer = ThreadLocal.withInitial(() -> new byte[DEFAULT_ROW_BUFFER_SIZE]);
         this.closed = false;
+    }
+
+    private OverflowHandler createOverflowHandler(JrdbConfig config) {
+        switch (config.getOverflowStrategy()) {
+            case TRUNCATE:
+                return new TruncateOverflowHandler();
+            case ERROR:
+            default:
+                return new ErrorOverflowHandler();
+        }
     }
 
     /**
@@ -306,9 +326,19 @@ public class SessionImpl implements Session {
             setParameters(ps, params);
 
             ResultSet rs = ps.executeQuery();
-            while (rs.next()) {
+            QueryMeta meta = createQueryMeta(rs);
+            int maxRows = meta.maxRows;
+            int rowCount = 0;
+
+            while (rs.next() && overflowHandler.shouldContinue(rowCount, maxRows)) {
                 results.add(mapper.mapFromResultSet(rs));
+                rowCount++;
             }
+
+            if (rowCount >= maxRows) {
+                overflowHandler.onOverflow(maxRows);
+            }
+
             rs.close();
 
             if (!config.isL1CacheEnabled()) {
@@ -408,7 +438,7 @@ public class SessionImpl implements Session {
             final int colCount = meta.columns.size();
             final int rowSize = store.getRowSizeValue();
 
-            while (rs.next() && rowCount < maxRows) {
+            while (rs.next() && overflowHandler.shouldContinue(rowCount, maxRows)) {
                 int rowOffset = rowCount * rowSize;
                 for (int i = 0; i < colCount; i++) {
                     ColumnMeta cm = meta.columns.get(i);
@@ -416,6 +446,10 @@ public class SessionImpl implements Session {
                                             cm.getSize());
                 }
                 rowCount++;
+            }
+
+            if (rowCount >= maxRows) {
+                overflowHandler.onOverflow(maxRows);
             }
 
             rs.close();
@@ -775,11 +809,18 @@ public class SessionImpl implements Session {
             RowMeta rowMeta = new RowMeta(queryMeta.columns);
             int rowSize = rowMeta.getRowSize();
             int colCount = queryMeta.columns.size();
+            int maxRows = queryMeta.maxRows;
+            int rowCount = 0;
             byte[] rawRow = getOrCreateBuffer(rowSize);
 
-            while (rs.next()) {
+            while (rs.next() && overflowHandler.shouldContinue(rowCount, maxRows)) {
                 readRowToBytes(rs, rawRow, queryMeta.columns, colCount);
                 handler.onNextRow(rawRow, rowMeta);
+                rowCount++;
+            }
+
+            if (rowCount >= maxRows) {
+                overflowHandler.onOverflow(maxRows);
             }
 
             rs.close();
@@ -972,6 +1013,11 @@ public class SessionImpl implements Session {
             setParameters(ps, params);
             int result = ps.executeUpdate();
             ps.close();
+
+            if (resultCache != null) {
+                resultCache.invalidateAll();
+            }
+
             return result;
         } catch (SQLException e) {
             throw new RuntimeException("Update execution failed: " + sql, e);
@@ -1011,6 +1057,11 @@ public class SessionImpl implements Session {
 
             int[] results = ps.executeBatch();
             ps.close();
+
+            if (resultCache != null) {
+                resultCache.invalidateAll();
+            }
+
             return results;
 
         } catch (SQLException e) {
@@ -1059,6 +1110,11 @@ public class SessionImpl implements Session {
 
             int[] results = ps.executeBatch();
             ps.close();
+
+            if (resultCache != null) {
+                resultCache.invalidateAll();
+            }
+
             return results;
 
         } catch (SQLException e) {
