@@ -11,34 +11,66 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Configuration for mapping an entity class to a database table.
- * <p>
- * Contains all metadata needed to map between a Java entity class
- * and a database table, including field mappings, naming strategy,
- * and type handlers.
- * </p>
+ * 实体类与数据库表的映射配置。
+ *
+ * <p>包含Java实体类与数据库表之间映射所需的所有元数据，
+ * 包括字段映射、命名策略和类型处理器等。</p>
+ *
+ * <p>该类采用构建器模式，支持链式调用配置字段映射：</p>
+ * <pre>{@code
+ * MappingConfig config = new MappingConfig(User.class, "t_user", typeHandlerRegistry)
+ *     .idField("id", Long.class)
+ *     .field("userName", String.class)
+ *     .field("createTime", LocalDateTime.class);
+ * }</pre>
  *
  * @author jrdb
  * @since 1.0.0
  */
 public class MappingConfig {
 
+    /**
+     * 实体类。
+     */
     private final Class<?> entityClass;
+
+    /**
+     * 数据库表名。
+     */
     private final String tableName;
+
+    /**
+     * 类型处理器注册表。
+     */
     private final TypeHandlerRegistry typeHandlerRegistry;
+
+    /**
+     * 命名策略，用于字段名与列名之间的转换。
+     */
     private NameStrategy nameStrategy;
 
+    /**
+     * 字段映射列表，按添加顺序存储。
+     */
     private final List<MappingField> fields = new ArrayList<>();
+
+    /**
+     * 字段名到映射字段的映射表。
+     */
     private final Map<String, MappingField> fieldNameMap = new HashMap<>();
+
+    /**
+     * 列名到映射字段的映射表。
+     */
     private final Map<String, MappingField> columnNameMap = new HashMap<>();
 
     /**
-     * Constructs a MappingConfig with the specified properties.
+     * 构造映射配置。
      *
-     * @param entityClass the entity class to map
-     * @param tableName the database table name
-     * @param typeHandlerRegistry the registry for type handlers
-     * @throws IllegalArgumentException if any required parameter is null
+     * @param entityClass 实体类，不能为null
+     * @param tableName 数据库表名，不能为null
+     * @param typeHandlerRegistry 类型处理器注册表，不能为null
+     * @throws IllegalArgumentException 如果任一必需参数为null
      */
     public MappingConfig(Class<?> entityClass, String tableName, TypeHandlerRegistry typeHandlerRegistry) {
         this.entityClass = Objects.requireNonNull(entityClass, "entityClass cannot be null");
@@ -48,71 +80,72 @@ public class MappingConfig {
     }
 
     /**
-     * Gets the entity class.
+     * 获取实体类。
      *
-     * @return the entity class
+     * @return 实体类
      */
     public Class<?> getEntityClass() {
         return entityClass;
     }
 
     /**
-     * Gets the table name.
+     * 获取数据库表名。
      *
-     * @return the database table name
+     * @return 数据库表名
      */
     public String getTableName() {
         return tableName;
     }
 
     /**
-     * Gets the type handler registry.
+     * 获取类型处理器注册表。
      *
-     * @return the type handler registry
+     * @return 类型处理器注册表
      */
     public TypeHandlerRegistry getTypeHandlerRegistry() {
         return typeHandlerRegistry;
     }
 
     /**
-     * Gets the naming strategy.
+     * 获取命名策略。
      *
-     * @return the naming strategy
+     * @return 命名策略
      */
     public NameStrategy getNameStrategy() {
         return nameStrategy;
     }
 
     /**
-     * Sets the naming strategy.
+     * 设置命名策略。
      *
-     * @param nameStrategy the naming strategy
-     * @throws IllegalArgumentException if nameStrategy is null
+     * @param nameStrategy 命名策略，不能为null
+     * @throws IllegalArgumentException 如果命名策略为null
      */
     public void setNameStrategy(NameStrategy nameStrategy) {
         this.nameStrategy = Objects.requireNonNull(nameStrategy, "nameStrategy cannot be null");
     }
 
     /**
-     * Gets all field mappings.
+     * 获取所有字段映射。
      *
-     * @return an unmodifiable list of field mappings
+     * <p>返回不可修改的列表，保证外部无法直接修改内部字段列表。</p>
+     *
+     * @return 字段映射列表（不可修改）
      */
     public List<MappingField> getFields() {
         return Collections.unmodifiableList(fields);
     }
 
     /**
-     * Adds a field mapping with explicit column name.
-     * <p>
-     * Builder-style method that returns this instance for chaining.
-     * </p>
+     * 添加字段映射（指定列名）。
      *
-     * @param fieldName the Java field name
-     * @param columnName the database column name
-     * @param javaType the Java type
-     * @return this MappingConfig instance
-     * @throws IllegalArgumentException if any parameter is null
+     * <p>构建器风格方法，返回当前实例以支持链式调用。</p>
+     *
+     * @param fieldName Java字段名，不能为null
+     * @param columnName 数据库列名，不能为null
+     * @param javaType Java类型，不能为null
+     * @return 当前映射配置实例
+     * @throws IllegalArgumentException 如果任一参数为null
      */
     public MappingConfig field(String fieldName, String columnName, Class<?> javaType) {
         MappingField field = new MappingField(fieldName, columnName, javaType);
@@ -121,16 +154,15 @@ public class MappingConfig {
     }
 
     /**
-     * Adds a field mapping with auto-converted column name.
-     * <p>
-     * The column name is automatically converted from the field name
-     * using the configured naming strategy (e.g., userId -> user_id).
-     * </p>
+     * 添加字段映射（自动转换列名）。
      *
-     * @param fieldName the Java field name
-     * @param javaType the Java type
-     * @return this MappingConfig instance
-     * @throws IllegalArgumentException if any parameter is null
+     * <p>根据配置的命名策略自动将字段名转换为列名
+     * （例如：userId -> user_id）。</p>
+     *
+     * @param fieldName Java字段名，不能为null
+     * @param javaType Java类型，不能为null
+     * @return 当前映射配置实例
+     * @throws IllegalArgumentException 如果任一参数为null
      */
     public MappingConfig field(String fieldName, Class<?> javaType) {
         String columnName = nameStrategy.fieldNameToColumnName(fieldName);
@@ -138,14 +170,13 @@ public class MappingConfig {
     }
 
     /**
-     * Adds an id field mapping with auto-converted column name.
-     * <p>
-     * Marks the field as the primary key/id field.
-     * </p>
+     * 添加主键字段映射（自动转换列名）。
      *
-     * @param fieldName the Java field name
-     * @param javaType the Java type
-     * @return this MappingConfig instance
+     * <p>将字段标记为主键/ID字段，并根据命名策略自动转换列名。</p>
+     *
+     * @param fieldName Java字段名
+     * @param javaType Java类型
+     * @return 当前映射配置实例
      */
     public MappingConfig idField(String fieldName, Class<?> javaType) {
         String columnName = nameStrategy.fieldNameToColumnName(fieldName);
@@ -153,15 +184,14 @@ public class MappingConfig {
     }
 
     /**
-     * Adds an id field mapping with explicit column name.
-     * <p>
-     * Marks the field as the primary key/id field.
-     * </p>
+     * 添加主键字段映射（指定列名）。
      *
-     * @param fieldName the Java field name
-     * @param columnName the database column name
-     * @param javaType the Java type
-     * @return this MappingConfig instance
+     * <p>将字段标记为主键/ID字段。</p>
+     *
+     * @param fieldName Java字段名
+     * @param columnName 数据库列名
+     * @param javaType Java类型
+     * @return 当前映射配置实例
      */
     public MappingConfig idField(String fieldName, String columnName, Class<?> javaType) {
         MappingField field = new MappingField(fieldName, columnName, javaType).id();
@@ -170,30 +200,30 @@ public class MappingConfig {
     }
 
     /**
-     * Gets a field mapping by field name.
+     * 根据字段名获取字段映射。
      *
-     * @param fieldName the Java field name
-     * @return the MappingField, or null if not found
+     * @param fieldName Java字段名
+     * @return 字段映射，如果未找到则返回null
      */
     public MappingField getFieldByFieldName(String fieldName) {
         return fieldNameMap.get(fieldName);
     }
 
     /**
-     * Gets a field mapping by column name.
+     * 根据列名获取字段映射。
      *
-     * @param columnName the database column name
-     * @return the MappingField, or null if not found
+     * @param columnName 数据库列名
+     * @return 字段映射，如果未找到则返回null
      */
     public MappingField getFieldByColumnName(String columnName) {
         return columnNameMap.get(columnName);
     }
 
     /**
-     * Sets an existing field as the id field by field name.
+     * 将已存在的字段设置为主键字段。
      *
-     * @param fieldName the field name to mark as id
-     * @throws IllegalArgumentException if the field is not found
+     * @param fieldName 要标记为主键的字段名
+     * @throws IllegalArgumentException 如果字段未找到
      */
     public void setIdField(String fieldName) {
         MappingField field = fieldNameMap.get(fieldName);
@@ -204,10 +234,13 @@ public class MappingConfig {
     }
 
     /**
-     * Gets the type handler for a field from the registry.
+     * 从注册表获取字段的类型处理器。
      *
-     * @param field the mapping field
-     * @return the type handler, or null if not found
+     * <p>优先返回字段上设置的类型处理器，若未设置则从注册表中
+     * 根据Java类型查找对应的类型处理器。</p>
+     *
+     * @param field 映射字段
+     * @return 类型处理器，如果未找到则返回null
      */
     public TypeHandler<?> getTypeHandler(MappingField field) {
         if (field.getTypeHandler() != null) {
@@ -216,12 +249,24 @@ public class MappingConfig {
         return typeHandlerRegistry.getTypeHandler(field.getJavaType());
     }
 
+    /**
+     * 添加字段映射到内部集合。
+     *
+     * <p>将字段添加到列表，并同时维护字段名和列名的映射表。</p>
+     *
+     * @param field 要添加的字段映射
+     */
     private void addField(MappingField field) {
         fields.add(field);
         fieldNameMap.put(field.getFieldName(), field);
         columnNameMap.put(field.getColumnName(), field);
     }
 
+    /**
+     * 返回映射配置的字符串表示。
+     *
+     * @return 包含实体类名、表名和字段数量的字符串
+     */
     @Override
     public String toString() {
         return "MappingConfig{" +
