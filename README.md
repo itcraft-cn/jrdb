@@ -95,6 +95,57 @@ try (ResultSet rs = preparedStatement.executeQuery()) {
 }
 ```
 
+## 批量操作
+
+### 批量 Insert/Update/Delete
+
+```java
+// Raw 方式 - 直接传参
+List<Object[]> paramsList = new ArrayList<>();
+for (int i = 0; i < 100; i++) {
+    paramsList.add(new Object[]{"user_" + i, 20 + i, "user_" + i + "@test.com", "active"});
+}
+int[] results = session.batchExecute(
+    "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)", 
+    paramsList
+);
+
+// ASM 方式 - 实体映射
+List<User> users = new ArrayList<>();
+for (int i = 0; i < 100; i++) {
+    users.add(new User(null, "user_" + i, 20 + i, "user_" + i + "@test.com", "active"));
+}
+EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
+int[] results = session.batchExecute(
+    "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)",
+    users, mapper
+);
+
+// 批量更新
+List<Object[]> updateParams = new ArrayList<>();
+for (long id : ids) {
+    updateParams.add(new Object[]{"updated", 30, id});
+}
+session.batchExecute("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
+
+// 批量删除
+List<Object[]> deleteParams = new ArrayList<>();
+for (long id : ids) {
+    deleteParams.add(new Object[]{id});
+}
+session.batchExecute("DELETE FROM users WHERE id = ?", deleteParams);
+```
+
+### 性能对比 (100条/批, 4线程)
+
+| 操作 | dbmmap_raw | myBatis | hibernate | jdbc |
+|------|------------|---------|-----------|------|
+| batchInsert | 7.18K | **7.56K** | 6.29K | 7.54K |
+| batchUpdate | **5.02K** | 4.36K | 4.41K | 4.46K |
+| batchDelete | 4.93K | **5.77K** | 0.07K* | 4.62K |
+
+*Hibernate batchDelete 极慢是因为使用 get+delete 循环
+
 ## RowHandler 流式处理
 
 ### 使用场景
