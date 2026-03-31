@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -101,6 +102,11 @@ public class SessionImpl implements Session {
      * 行缓冲区的默认大小（1024字节）。
      */
     private static final int DEFAULT_ROW_BUFFER_SIZE = 1024;
+
+    /**
+     * 批量操作的默认批次大小。
+     */
+    private static final int DEFAULT_BATCH_SIZE = 1000;
 
     /**
      * 内存池，用于分配堆外内存块。
@@ -622,7 +628,33 @@ public class SessionImpl implements Session {
     private void setParameters(PreparedStatement ps, Object[] params) throws SQLException {
         final int len = params.length;
         for (int i = 0; i < len; i++) {
-            ps.setObject(i + 1, params[i]);
+            Object param = params[i];
+            int idx = i + 1;
+            if (param == null) {
+                ps.setNull(idx, java.sql.Types.NULL);
+            } else if (param instanceof String) {
+                ps.setString(idx, (String) param);
+            } else if (param instanceof Integer) {
+                ps.setInt(idx, (Integer) param);
+            } else if (param instanceof Long) {
+                ps.setLong(idx, (Long) param);
+            } else if (param instanceof Double) {
+                ps.setDouble(idx, (Double) param);
+            } else if (param instanceof Float) {
+                ps.setFloat(idx, (Float) param);
+            } else if (param instanceof Boolean) {
+                ps.setBoolean(idx, (Boolean) param);
+            } else if (param instanceof java.sql.Date) {
+                ps.setDate(idx, (java.sql.Date) param);
+            } else if (param instanceof java.sql.Timestamp) {
+                ps.setTimestamp(idx, (java.sql.Timestamp) param);
+            } else if (param instanceof java.util.Date) {
+                ps.setTimestamp(idx, new java.sql.Timestamp(((java.util.Date) param).getTime()));
+            } else if (param instanceof byte[]) {
+                ps.setBytes(idx, (byte[]) param);
+            } else {
+                ps.setObject(idx, param);
+            }
         }
     }
 
@@ -1009,10 +1041,13 @@ public class SessionImpl implements Session {
         }
         try {
             Connection conn = getConnection();
-            PreparedStatement ps = conn.prepareStatement(sql);
+            PreparedStatement ps = getOrCreateStatement(sql, conn);
             setParameters(ps, params);
             int result = ps.executeUpdate();
-            ps.close();
+
+            if (!config.isL1CacheEnabled()) {
+                ps.close();
+            }
 
             if (resultCache != null) {
                 resultCache.invalidateAll();
@@ -1021,6 +1056,41 @@ public class SessionImpl implements Session {
             return result;
         } catch (SQLException e) {
             throw new RuntimeException("Update execution failed: " + sql, e);
+        }
+    }
+
+    @Override
+    public Long insert(String sql, Object... params) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            setParameters(ps, params);
+            int affectedRows = ps.executeUpdate();
+
+            if (affectedRows == 0) {
+                ps.close();
+                return null;
+            }
+
+            Long generatedKey = null;
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    generatedKey = rs.getLong(1);
+                }
+            }
+
+            ps.close();
+
+            if (resultCache != null) {
+                resultCache.invalidateAll();
+            }
+
+            return generatedKey;
+        } catch (SQLException e) {
+            throw new RuntimeException("Insert execution failed: " + sql, e);
         }
     }
 
@@ -1046,23 +1116,41 @@ public class SessionImpl implements Session {
             return new int[0];
         }
 
+        int totalSize = paramsList.size();
+        int[] allResults = new int[totalSize];
+        int resultIndex = 0;
+
         try {
             Connection conn = getConnection();
             PreparedStatement ps = conn.prepareStatement(sql);
 
+            int batchCount = 0;
             for (Object[] params : paramsList) {
                 setParameters(ps, params);
                 ps.addBatch();
+                batchCount++;
+
+                if (batchCount >= DEFAULT_BATCH_SIZE) {
+                    int[] batchResults = ps.executeBatch();
+                    System.arraycopy(batchResults, 0, allResults, resultIndex, batchResults.length);
+                    resultIndex += batchResults.length;
+                    ps.clearBatch();
+                    batchCount = 0;
+                }
             }
 
-            int[] results = ps.executeBatch();
+            if (batchCount > 0) {
+                int[] batchResults = ps.executeBatch();
+                System.arraycopy(batchResults, 0, allResults, resultIndex, batchResults.length);
+            }
+
             ps.close();
 
             if (resultCache != null) {
                 resultCache.invalidateAll();
             }
 
-            return results;
+            return allResults;
 
         } catch (SQLException e) {
             throw new RuntimeException("Batch execution failed: " + sql, e);

@@ -133,6 +133,17 @@ public interface Session extends AutoCloseable {
      */
     int update(String sql, Object... params);
 
+    /**
+     * 执行INSERT操作并返回生成的主键。
+     *
+     * <p>适用于单条INSERT，返回自增主键值。
+     *
+     * @param sql    INSERT语句
+     * @param params 参数值数组（可空）
+     * @return 生成的主键值，如果没有则返回null
+     */
+    Long insert(String sql, Object... params);
+
     // ==================== Batch ====================
 
     /**
