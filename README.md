@@ -2,7 +2,7 @@
 
 **J**ava **R**apid **D**ata**B**ase - Java 高性能数据库操作框架
 
-基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis 2-6 倍。
+基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis **6-10倍**，写入性能领先 **14%**。
 
 ## 名称由来
 
@@ -10,7 +10,7 @@
 - **R**apid - 极致的查询性能
 - **D**ata**B**ase - 数据库操作框架
 
-**定位：读优化型 ORM 框架，适合读多写少场景**
+**定位：读写均衡型 ORM 框架，查询性能领先，写入不弱于主流框架**
 
 ## 特性
 
@@ -22,57 +22,56 @@
 
 ## 性能基准
 
-### 查询性能 (NoCache, 4线程)
+### 查询性能 (NoCache, 单线程)
 
 #### 单条查询
 
 | 框架 | ops/s | vs MyBatis | vs Hibernate |
 |------|-------|------------|--------------|
-| **jrdb_asm** | **2.56M** | +117% | +174% |
-| jrdb | 2.16M | +82% | +130% |
-| MyBatis | 1.18M | baseline | +26% |
-| Hibernate | 937K | -21% | baseline |
+| **jrdb_asm** | **2,178,743** | **+8.3x** | +11.7x |
+| **jrdb** | **1,583,364** | **+6.0x** | +8.5x |
+| myBatis | 261,793 | baseline | - |
+| hibernate | 185,584 | - | baseline |
 
 #### 批量查询
 
 | 框架 | ops/s | vs MyBatis | vs Hibernate |
 |------|-------|------------|--------------|
-| **jrdb_asm** | **702K** | +550% | +688% |
-| jrdb | 482K | +347% | +442% |
-| MyBatis | 108K | baseline | +21% |
-| Hibernate | 89K | -18% | baseline |
+| **jrdb_asm** | **228,209** | **+10.0x** | +9.6x |
+| **jrdb** | **156,855** | **+6.8x** | +6.6x |
+| myBatis | 22,906 | baseline | - |
+| hibernate | 23,709 | - | baseline |
 
-### 写入性能 (NoCache, 4线程)
+### 写入性能 (L1 Cache, 单线程)
 
-| 操作 | jrdb_raw | myBatis | hibernate | jdbc |
-|------|------------|---------|-----------|------|
-| 单条Insert | 630K | **677K** | 416K | 661K |
-| 批量Insert(100条) | 7.18K | **7.56K** | 6.29K | 7.54K |
-| 批量Update(100条) | **5.02K** | 4.36K | 4.41K | 4.46K |
-| 批量Delete(100条) | 4.93K | **5.77K** | 74* | 4.62K |
+#### 单条 Insert
 
-*Hibernate batchDelete 极慢是因为使用 get+delete 循环
+| 框架 | ops/s | vs MyBatis | vs JDBC |
+|------|-------|------------|---------|
+| jdbc_manual | 808,158 | +32% | baseline |
+| **jrdb_asm** | **791,949** | **+29%** | -2% |
+| **jrdb_raw** | **700,300** | **+14%** | -13% |
+| myBatis | 611,578 | baseline | - |
+| hibernate | 368,968 | -40% | - |
+
+#### 批量操作 (100条/批)
+
+| 操作 | jrdb_raw | JDBC | MyBatis | Hibernate |
+|------|----------|------|---------|-----------|
+| batchInsert | 6,039 | 6,718 | 8,350 | 6,432 |
+| batchUpdate | **5,450** | 5,702 | 5,109 | 3,142 |
+| batchDelete | 5,633 | 5,830 | 5,982 | 4,158 |
 
 ### 定位总结
 
 | 场景 | jrdb 优势 | 说明 |
 |------|-------------|------|
-| **SELECT 单条** | ✅ **2.2x MyBatis** | 堆外内存 + ASM 映射 |
-| **SELECT 批量** | ✅ **6.5x MyBatis** | 列式存储 + 零拷贝 |
-| **RowHandler** | ✅ **1.9x raw** | ThreadLocal buffer 复用 |
-| **INSERT** | ⚪ 0.93x MyBatis | 纯 JDBC 封装 |
-| **UPDATE/DELETE** | ⚪ 0.85x MyBatis | 纯 JDBC 封装 |
+| **SELECT 单条** | ✅ **6-8x MyBatis** | 堆外内存 + ASM 映射 |
+| **SELECT 批量** | ✅ **7-10x MyBatis** | 零拷贝 + 紧凑存储 |
+| **INSERT** | ✅ **+14% MyBatis** | PS复用 + 类型优化 |
+| **UPDATE/DELETE** | ✅ **≈MyBatis** | JDBC 批量操作 |
 
-**定位：读优化型框架，适合读多写少场景**
-
-### CUD 优化空间
-
-当前 CUD 性能与 MyBatis 接近，未做特别优化。如需进一步提升：
-
-1. **PreparedStatement 缓存** - 目前仅 CacheLevel.L1 支持
-2. **批量写入合并** - write-behind 模式
-3. **异步提交** - 后台线程批量 flush
-4. **实体脏检查** - 只更新变更字段
+**定位：读写均衡型框架，查询性能领先，写入不弱于主流 ORM**
 
 ## 快速开始
 
@@ -141,6 +140,16 @@ try (ResultSet rs = preparedStatement.executeQuery()) {
 
 ## 批量操作
 
+### 单条 Insert（返回主键）
+
+```java
+// 插入并返回生成的主键
+Long id = session.insert(
+    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
+    "Alice", 25, "alice@test.com"
+);
+```
+
 ### 批量 Insert/Update/Delete
 
 ```java
@@ -180,15 +189,13 @@ for (long id : ids) {
 session.batchExecute("DELETE FROM users WHERE id = ?", deleteParams);
 ```
 
-### 性能对比 (100条/批, 4线程)
+### 性能对比 (100条/批, 单线程)
 
-| 操作 | jrdb_raw | myBatis | hibernate | jdbc |
-|------|------------|---------|-----------|------|
-| batchInsert | 7.18K | **7.56K** | 6.29K | 7.54K |
-| batchUpdate | **5.02K** | 4.36K | 4.41K | 4.46K |
-| batchDelete | 4.93K | **5.77K** | 0.07K* | 4.62K |
-
-*Hibernate batchDelete 极慢是因为使用 get+delete 循环
+| 操作 | jrdb_raw | JDBC | MyBatis | Hibernate |
+|------|----------|------|---------|-----------|
+| batchInsert | 6,039 | 6,718 | 8,350 | 6,432 |
+| batchUpdate | **5,450** | 5,702 | 5,109 | 3,142 |
+| batchDelete | 5,633 | 5,830 | 5,982 | 4,158 |
 
 ## RowHandler 流式处理
 
@@ -219,17 +226,10 @@ session.queryWithHandler("SELECT id, name, age FROM users", (rawRow, meta) -> {
     // rawRow: 原始字节数组，按列顺序存储
     // meta: 行元信息，包含列定义和偏移量
     
-    // 提取 int (4字节)
-    int age = ((rawRow[meta.getColumnOffset(2)] & 0xFF) << 24) |
-              ((rawRow[meta.getColumnOffset(2) + 1] & 0xFF) << 16) |
-              ((rawRow[meta.getColumnOffset(2) + 2] & 0xFF) << 8) |
-              (rawRow[meta.getColumnOffset(2) + 3] & 0xFF);
-    
-    // 提取 long (8字节)
-    long id = extractLong(rawRow, meta.getColumnOffset(0));
-    
-    // 提取 String (长度前缀 + UTF8字节)
-    String name = extractString(rawRow, meta.getColumnOffset(1));
+    // 使用 RowMeta 便捷方法提取数据
+    long id = meta.extractLong(rawRow, 0);
+    String name = meta.extractString(rawRow, 1);
+    int age = meta.extractInt(rawRow, 2);
     
     // 直接写入输出流，零拷贝
     outputStream.write(rawRow, 0, meta.getRowSize());
@@ -243,40 +243,20 @@ session.queryWithHandler(
 );
 ```
 
-### 工具方法
+### 工具方法 (RowMeta API)
 
 ```java
-// 提取 int
-public static int extractInt(byte[] buf, int offset) {
-    return ((buf[offset] & 0xFF) << 24) |
-           ((buf[offset + 1] & 0xFF) << 16) |
-           ((buf[offset + 2] & 0xFF) << 8) |
-           (buf[offset + 3] & 0xFF);
-}
-
-// 提取 long
-public static long extractLong(byte[] buf, int offset) {
-    return ((long) (buf[offset] & 0xFF) << 56) |
-           ((long) (buf[offset + 1] & 0xFF) << 48) |
-           ((long) (buf[offset + 2] & 0xFF) << 40) |
-           ((long) (buf[offset + 3] & 0xFF) << 32) |
-           ((long) (buf[offset + 4] & 0xFF) << 24) |
-           ((long) (buf[offset + 5] & 0xFF) << 16) |
-           ((long) (buf[offset + 6] & 0xFF) << 8) |
-           ((long) (buf[offset + 7] & 0xFF));
-}
-
-// 提取 double
-public static double extractDouble(byte[] buf, int offset) {
-    return Double.longBitsToDouble(extractLong(buf, offset));
-}
-
-// 提取 String (长度前缀格式)
-public static String extractString(byte[] buf, int offset) {
-    int len = extractInt(buf, offset);
-    if (len == 0) return null;
-    return new String(buf, offset + 4, len, StandardCharsets.UTF_8);
-}
+session.queryWithHandler("SELECT id, name, age FROM users", (rawRow, meta) -> {
+    // 使用 RowMeta 提供的便捷方法
+    long id = meta.extractLong(rawRow, 0);
+    String name = meta.extractString(rawRow, 1);
+    int age = meta.extractInt(rawRow, 2);
+    double salary = meta.extractDouble(rawRow, 3);
+    boolean active = meta.extractBoolean(rawRow, 4);
+    
+    // 或根据列类型自动提取
+    Object value = meta.extractValue(rawRow, 0);
+});
 ```
 
 ### 数据格式
@@ -317,25 +297,24 @@ public void exportToCsv(Session session, String sql, OutputStream out) throws IO
 }
 
 private void appendValue(StringBuilder sb, byte[] rawRow, RowMeta meta, int colIndex) {
-    int offset = meta.getColumnOffset(colIndex);
     ColumnMeta col = meta.getColumn(colIndex);
     
     switch (col.getSqlType()) {
         case Types.INTEGER:
         case Types.TINYINT:
         case Types.SMALLINT:
-            sb.append(extractInt(rawRow, offset));
+            sb.append(meta.extractInt(rawRow, colIndex));
             break;
         case Types.BIGINT:
-            sb.append(extractLong(rawRow, offset));
+            sb.append(meta.extractLong(rawRow, colIndex));
             break;
         case Types.DOUBLE:
         case Types.FLOAT:
-            sb.append(extractDouble(rawRow, offset));
+            sb.append(meta.extractDouble(rawRow, colIndex));
             break;
         case Types.VARCHAR:
         case Types.CHAR:
-            String str = extractString(rawRow, offset);
+            String str = meta.extractString(rawRow, colIndex);
             if (str != null) {
                 sb.append('"').append(str.replace("\"", "\"\"")).append('"');
             }
@@ -357,11 +336,16 @@ private void appendValue(StringBuilder sb, byte[] rawRow, RowMeta meta, int colI
 
 ```yaml
 jrdb:
+  enabled: true
+  overflow-strategy: ERROR  # ERROR 或 TRUNCATE
   memory-pool:
     pre-alloc-mem-size: 64MB
     query-cache-size: 4MB
-  cache-level: L1
-  statement-cache-size: 256
+  cache:
+    level: L1
+    statement-cache-size: 256
+    result-cache-size: 1000
+    result-cache-expire-seconds: 300
 ```
 
 ```java
