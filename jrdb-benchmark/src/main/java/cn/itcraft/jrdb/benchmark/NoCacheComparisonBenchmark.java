@@ -4,7 +4,6 @@ import cn.itcraft.jrdb.benchmark.entity.User;
 import cn.itcraft.jrdb.benchmark.entity.UserEntity;
 import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
-import cn.itcraft.jrdb.core.mapping.EntityMapper;
 import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
@@ -25,8 +24,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -106,29 +103,6 @@ public class NoCacheComparisonBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class JrdbAsmState {
-        EntityMapper<User> mapper;
-        Connection connection;
-        PreparedStatement singleQueryPs;
-        PreparedStatement queryListPs;
-
-        @Setup(Level.Trial)
-        public void setup(SharedState shared) throws SQLException {
-            mapper = shared.mapperRegistry.getMapper(User.class);
-            connection = shared.dataSource.getConnection();
-            singleQueryPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?");
-            queryListPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
-        }
-
-        @TearDown(Level.Trial)
-        public void tearDown() throws SQLException {
-            if (singleQueryPs != null) singleQueryPs.close();
-            if (queryListPs != null) queryListPs.close();
-            if (connection != null) connection.close();
-        }
-    }
-
-    @State(Scope.Thread)
     public static class MyBatisState {
         SqlSession session;
 
@@ -195,14 +169,10 @@ public class NoCacheComparisonBenchmark {
     }
 
     @Benchmark
-    public User jrdb_asm_singleQuery(JrdbAsmState state) throws SQLException {
-        state.singleQueryPs.setLong(1, 1L);
-        try (ResultSet rs = state.singleQueryPs.executeQuery()) {
-            if (rs.next()) {
-                return state.mapper.mapFromResultSet(rs);
-            }
-            return null;
-        }
+    public User jrdb_asm_singleQuery(JrdbState state) {
+        return state.session.queryForObject(
+                "SELECT id, name, age, email, status FROM users WHERE id = ?", 
+                User.class, 1L);
     }
 
     @Benchmark
@@ -228,14 +198,10 @@ public class NoCacheComparisonBenchmark {
     }
 
     @Benchmark
-    public List<User> jrdb_asm_queryList(JrdbAsmState state) throws SQLException {
-        List<User> users = new ArrayList<>(100);
-        try (ResultSet rs = state.queryListPs.executeQuery()) {
-            while (rs.next()) {
-                users.add(state.mapper.mapFromResultSet(rs));
-            }
-        }
-        return users;
+    public List<User> jrdb_asm_queryList(JrdbState state) {
+        return state.session.queryForList(
+                "SELECT id, name, age, email, status FROM users LIMIT 100", 
+                User.class);
     }
 
     @Benchmark
