@@ -41,6 +41,7 @@ public class SessionImpl implements Session {
     private static final int SMALLINT_COLUMN_SIZE = 2;
     private static final int STRING_COLUMN_SIZE = 64;
     private static final int DECIMAL_COLUMN_SIZE = 32;
+    private static final int DEFAULT_ROW_BUFFER_SIZE = 1024;
 
     private final MemoryPool memoryPool;
     private final DbMmapConfig config;
@@ -50,6 +51,7 @@ public class SessionImpl implements Session {
     private final QueryResultCache resultCache;
     private final CacheLevel cacheLevel;
     private final QueryAction queryAction;
+    private final ThreadLocal<byte[]> rowBuffer;
     private Connection connection;
     private volatile boolean closed;
 
@@ -87,6 +89,7 @@ public class SessionImpl implements Session {
             this.queryAction = this::directQuery;
         }
 
+        this.rowBuffer = ThreadLocal.withInitial(() -> new byte[DEFAULT_ROW_BUFFER_SIZE]);
         this.closed = false;
     }
 
@@ -365,7 +368,7 @@ public class SessionImpl implements Session {
             RowMeta rowMeta = new RowMeta(queryMeta.columns);
             int rowSize = rowMeta.getRowSize();
             int colCount = queryMeta.columns.size();
-            byte[] rawRow = new byte[rowSize];
+            byte[] rawRow = getOrCreateBuffer(rowSize);
 
             while (rs.next()) {
                 readRowToBytes(rs, rawRow, queryMeta.columns, colCount);
@@ -380,6 +383,15 @@ public class SessionImpl implements Session {
         } catch (SQLException e) {
             throw new RuntimeException("Query with handler failed: " + sql, e);
         }
+    }
+
+    private byte[] getOrCreateBuffer(int requiredSize) {
+        byte[] buffer = rowBuffer.get();
+        if (buffer.length < requiredSize) {
+            buffer = new byte[requiredSize];
+            rowBuffer.set(buffer);
+        }
+        return buffer;
     }
 
     private void readRowToBytes(ResultSet rs, byte[] rawRow, List<ColumnMeta> columns, int colCount) throws SQLException {
