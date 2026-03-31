@@ -300,7 +300,7 @@ public class BatchOperationBenchmark {
     @Benchmark
     public int[] jrdb_raw_batchInsert(JrdbState state, SharedState shared) {
         List<Object[]> params = shared.createParams(BATCH_SIZE);
-        return state.session.batchExecute(
+        return state.session.batchUpdate(
                 "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)", params);
     }
 
@@ -312,7 +312,7 @@ public class BatchOperationBenchmark {
             Object[] allParams = state.mapper.mapToRow(user);
             paramsList.add(Arrays.copyOfRange(allParams, 1, 5));
         }
-        return state.session.batchExecute(
+        return state.session.batchUpdate(
                 "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)", paramsList);
     }
 
@@ -369,7 +369,7 @@ public class BatchOperationBenchmark {
         for (int i = 1; i <= BATCH_SIZE; i++) {
             params.add(new Object[]{"updated_" + i, 30 + i, (long) i});
         }
-        return state.session.batchExecute(
+        return state.session.batchUpdate(
                 "UPDATE users SET name = ?, age = ? WHERE id = ?", params);
     }
 
@@ -385,7 +385,7 @@ public class BatchOperationBenchmark {
         for (User user : users) {
             paramsList.add(new Object[]{user.getName(), user.getAge(), user.getId()});
         }
-        return state.session.batchExecute(
+        return state.session.batchUpdate(
                 "UPDATE users SET name = ?, age = ? WHERE id = ?", paramsList);
     }
 
@@ -443,7 +443,7 @@ public class BatchOperationBenchmark {
         for (int i = 1; i <= BATCH_SIZE; i++) {
             params.add(new Object[]{(long) i});
         }
-        return state.session.batchExecute("DELETE FROM users WHERE id = ?", params);
+        return state.session.batchUpdate("DELETE FROM users WHERE id = ?", params);
     }
 
     @Benchmark
@@ -458,7 +458,7 @@ public class BatchOperationBenchmark {
         for (User user : users) {
             paramsList.add(new Object[]{user.getId()});
         }
-        return state.session.batchExecute("DELETE FROM users WHERE id = ?", paramsList);
+        return state.session.batchUpdate("DELETE FROM users WHERE id = ?", paramsList);
     }
 
     @Benchmark

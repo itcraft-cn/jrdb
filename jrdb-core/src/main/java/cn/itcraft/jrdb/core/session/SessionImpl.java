@@ -235,21 +235,7 @@ public class SessionImpl implements Session {
         });
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>执行无参数的SQL查询。
-     *
-     * @param sql 要执行的SQL查询语句
-     * @return 查询结果，包含结果集数据
-     * @throws IllegalStateException 如果会话已关闭
-     */
-    @Override
-    public QueryResult query(String sql) {
-        return query(sql, new Object[0]);
-    }
-
-    /**
+/**
      * {@inheritDoc}
      *
      * <p>执行带参数的SQL查询。根据缓存级别选择直接查询或缓存查询策略。
@@ -731,7 +717,7 @@ public class SessionImpl implements Session {
         if (closed) {
             throw new IllegalStateException("Session is closed");
         }
-        QueryResult result = query(sql);
+        QueryResult result = query(sql, new Object[0]);
         if (result == null) {
             return null;
         }
@@ -740,16 +726,6 @@ public class SessionImpl implements Session {
         } finally {
             result.close();
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * <p>执行无参数的流式行处理查询。
-     */
-    @Override
-    public void queryWithHandler(String sql, RowHandler handler) {
-        queryWithHandler(sql, handler, new Object[0]);
     }
 
     /**
@@ -974,16 +950,6 @@ public class SessionImpl implements Session {
     /**
      * {@inheritDoc}
      *
-     * <p>执行无参数的更新操作。
-     */
-    @Override
-    public int update(String sql) {
-        return update(sql, new Object[0]);
-    }
-
-    /**
-     * {@inheritDoc}
-     *
      * <p>执行带参数的更新操作（INSERT/UPDATE/DELETE）。
      *
      * <p>更新操作不使用PreparedStatement缓存，每次都创建新Statement，
@@ -1015,34 +981,9 @@ public class SessionImpl implements Session {
     /**
      * {@inheritDoc}
      *
-     * <p>执行多条SQL的批量更新。
-     *
-     * <p>每条SQL独立执行，适合多条不同SQL的场景。
-     * 注意：此方法不是真正的JDBC批处理，只是简单循环执行。
-     *
-     * @param sqls SQL语句数组
-     * @return 每条SQL影响的行数数组
-     * @throws IllegalStateException 如果会话已关闭
-     */
-    @Override
-    public int[] batchUpdate(String... sqls) {
-        if (closed) {
-            throw new IllegalStateException("Session is closed");
-        }
-        int[] results = new int[sqls.length];
-        for (int i = 0; i < sqls.length; i++) {
-            results[i] = update(sqls[i]);
-        }
-        return results;
-    }
-
-    /**
-     * {@inheritDoc}
-     *
      * <p>执行参数化批量操作。
      *
      * <p>使用JDBC的addBatch/executeBatch机制，适合同一SQL不同参数的场景。
-     * 性能优于batchUpdate，推荐用于大量数据插入/更新。
      *
      * @param sql        SQL语句（带占位符）
      * @param paramsList 参数列表，每组参数对应一次执行
@@ -1051,7 +992,7 @@ public class SessionImpl implements Session {
      * @throws RuntimeException      如果执行失败
      */
     @Override
-    public int[] batchExecute(String sql, List<Object[]> paramsList) {
+    public int[] batchUpdate(String sql, List<Object[]> paramsList) {
         if (closed) {
             throw new IllegalStateException("Session is closed");
         }
@@ -1095,7 +1036,7 @@ public class SessionImpl implements Session {
      * @throws RuntimeException      如果执行失败
      */
     @Override
-    public <T> int[] batchExecute(String sql, List<T> entities, EntityMapper<T> mapper) {
+    public <T> int[] batchUpdate(String sql, List<T> entities, EntityMapper<T> mapper) {
         if (closed) {
             throw new IllegalStateException("Session is closed");
         }
