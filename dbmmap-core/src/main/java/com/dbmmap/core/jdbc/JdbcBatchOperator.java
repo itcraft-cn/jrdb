@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,7 +21,7 @@ public class JdbcBatchOperator implements BatchOperator {
 
     private static final int COMMIT_SIZE = 1000;
 
-    private static final Map<String, JdbcSqlBox<?>> SQL_BOX_MAP = new HashMap<>();
+    private static final Map<String, JdbcSqlBox<?>> SQL_BOX_MAP = new ConcurrentHashMap<>();
 
     private DataSource dataSource;
 

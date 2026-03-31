@@ -44,6 +44,6 @@ public class QueryResultCache {
         if (params == null || params.length == 0) {
             return sql;
         }
-        return sql + ":" + Arrays.hashCode(params);
+        return new StringBuilder(sql.length() + 12).append(sql).append(':').append(Arrays.hashCode(params)).toString();
     }
 }

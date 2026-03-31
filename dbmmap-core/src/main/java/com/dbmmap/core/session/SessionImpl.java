@@ -11,16 +11,29 @@ import com.dbmmap.core.query.QueryResult;
 import com.dbmmap.core.query.QueryResultImpl;
 import com.dbmmap.core.storage.ColumnMeta;
 import com.dbmmap.core.storage.RowStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 public class SessionImpl implements Session {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(SessionImpl.class);
+    
+    private static final int INT_COLUMN_SIZE = 4;
+    private static final int LONG_COLUMN_SIZE = 8;
+    private static final int DOUBLE_COLUMN_SIZE = 8;
+    private static final int BOOLEAN_COLUMN_SIZE = 1;
+    private static final int SMALLINT_COLUMN_SIZE = 2;
+    private static final int STRING_COLUMN_SIZE = 64;
+    private static final int DECIMAL_COLUMN_SIZE = 32;
     
     private final MemoryPool memoryPool;
     private final DbMmapConfig config;
@@ -80,12 +93,12 @@ public class SessionImpl implements Session {
     }
     
     private <K, V> Map<K, V> createLruCache(int maxSize) {
-        return new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+        return Collections.synchronizedMap(new LinkedHashMap<K, V>(maxSize, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
                 return size() > maxSize;
             }
-        };
+        });
     }
     
     @Override
@@ -249,25 +262,25 @@ public class SessionImpl implements Session {
             case Types.DATE:
             case Types.FLOAT:
             case Types.REAL:
-                return 4;
+                return INT_COLUMN_SIZE;
             case Types.BIGINT:
             case Types.TIMESTAMP:
             case Types.DOUBLE:
-                return 8;
+                return LONG_COLUMN_SIZE;
             case Types.BOOLEAN:
             case Types.TINYINT:
-                return 1;
+                return BOOLEAN_COLUMN_SIZE;
             case Types.SMALLINT:
-                return 2;
+                return SMALLINT_COLUMN_SIZE;
             case Types.VARCHAR:
             case Types.CHAR:
             case Types.LONGVARCHAR:
-                return 64;
+                return STRING_COLUMN_SIZE;
             case Types.DECIMAL:
             case Types.NUMERIC:
-                return 32;
+                return DECIMAL_COLUMN_SIZE;
             default:
-                return 32;
+                return DECIMAL_COLUMN_SIZE;
         }
     }
     
@@ -363,7 +376,9 @@ public class SessionImpl implements Session {
     public void clearCache() {
         if (statementCache != null) {
             for (PreparedStatement ps : statementCache.values()) {
-                try { ps.close(); } catch (SQLException e) { }
+                try { ps.close(); } catch (SQLException e) {
+                    LOGGER.warn("Failed to close PreparedStatement: {}", e.getMessage());
+                }
             }
             statementCache.clear();
         }
@@ -398,7 +413,9 @@ public class SessionImpl implements Session {
         }
         clearCache();
         if (connection != null) {
-            try { connection.close(); } catch (SQLException e) { }
+            try { connection.close(); } catch (SQLException e) {
+                LOGGER.warn("Failed to close connection: {}", e.getMessage());
+            }
         }
         closed = true;
     }

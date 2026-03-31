@@ -54,7 +54,7 @@ public class MapperClassGenerator {
         mv.visitEnd();
     }
 
-    private void generateMapFromResultSet(ClassWriter cw, String className, 
+    private void generateMapFromResultSet(ClassWriter cw, String className,
                                           MappingConfig config, String entityClassName) {
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "mapFromResultSet",
                 "(Ljava/sql/ResultSet;)Ljava/lang/Object;",
@@ -71,115 +71,74 @@ public class MapperClassGenerator {
         List<MappingField> fields = config.getFields();
         for (int i = 0; i < fields.size(); i++) {
             MappingField field = fields.get(i);
-            Class<?> fieldType = field.getJavaType();
-            String setterName = getSetterName(field.getFieldName());
-            
-            mv.visitVarInsn(Opcodes.ALOAD, 2);
-            mv.visitVarInsn(Opcodes.ALOAD, 1);
-            mv.visitLdcInsn(field.getColumnName());
-
-            if (fieldType == int.class || fieldType == Integer.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getInt", "(Ljava/lang/String;)I", true);
-                if (fieldType == Integer.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer",
-                            "valueOf", "(I)Ljava/lang/Integer;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Integer;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(I)V", false);
-                }
-            } else if (fieldType == long.class || fieldType == Long.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getLong", "(Ljava/lang/String;)J", true);
-                if (fieldType == Long.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Long",
-                            "valueOf", "(J)Ljava/lang/Long;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Long;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(J)V", false);
-                }
-            } else if (fieldType == String.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getString", "(Ljava/lang/String;)Ljava/lang/String;", true);
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                        setterName, "(Ljava/lang/String;)V", false);
-            } else if (fieldType == double.class || fieldType == Double.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getDouble", "(Ljava/lang/String;)D", true);
-                if (fieldType == Double.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Double",
-                            "valueOf", "(D)Ljava/lang/Double;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Double;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(D)V", false);
-                }
-            } else if (fieldType == float.class || fieldType == Float.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getFloat", "(Ljava/lang/String;)F", true);
-                if (fieldType == Float.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Float",
-                            "valueOf", "(F)Ljava/lang/Float;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Float;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(F)V", false);
-                }
-            } else if (fieldType == boolean.class || fieldType == Boolean.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getBoolean", "(Ljava/lang/String;)Z", true);
-                if (fieldType == Boolean.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Boolean",
-                            "valueOf", "(Z)Ljava/lang/Boolean;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Boolean;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Z)V", false);
-                }
-            } else if (fieldType == short.class || fieldType == Short.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getShort", "(Ljava/lang/String;)S", true);
-                if (fieldType == Short.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Short",
-                            "valueOf", "(S)Ljava/lang/Short;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Short;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(S)V", false);
-                }
-            } else if (fieldType == byte.class || fieldType == Byte.class) {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getByte", "(Ljava/lang/String;)B", true);
-                if (fieldType == Byte.class) {
-                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Byte",
-                            "valueOf", "(B)Ljava/lang/Byte;", false);
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(Ljava/lang/Byte;)V", false);
-                } else {
-                    mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                            setterName, "(B)V", false);
-                }
-            } else {
-                mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
-                        "getObject", "(Ljava/lang/String;)Ljava/lang/Object;", true);
-                mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(fieldType));
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
-                        setterName, "(" + Type.getDescriptor(fieldType) + ")V", false);
-            }
+            generateFieldMapping(mv, field, entityClassName);
         }
 
         mv.visitVarInsn(Opcodes.ALOAD, 2);
         mv.visitInsn(Opcodes.ARETURN);
         mv.visitMaxs(3, 4);
         mv.visitEnd();
+    }
+
+    private void generateFieldMapping(MethodVisitor mv, MappingField field, String entityClassName) {
+        Class<?> fieldType = field.getJavaType();
+        String setterName = getSetterName(field.getFieldName());
+
+        mv.visitVarInsn(Opcodes.ALOAD, 2);
+        mv.visitVarInsn(Opcodes.ALOAD, 1);
+        mv.visitLdcInsn(field.getColumnName());
+
+        if (fieldType == int.class || fieldType == Integer.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getInt", "I",
+                    "java/lang/Integer", "Ljava/lang/Integer;", fieldType == Integer.class);
+        } else if (fieldType == long.class || fieldType == Long.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getLong", "J",
+                    "java/lang/Long", "Ljava/lang/Long;", fieldType == Long.class);
+        } else if (fieldType == double.class || fieldType == Double.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getDouble", "D",
+                    "java/lang/Double", "Ljava/lang/Double;", fieldType == Double.class);
+        } else if (fieldType == float.class || fieldType == Float.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getFloat", "F",
+                    "java/lang/Float", "Ljava/lang/Float;", fieldType == Float.class);
+        } else if (fieldType == boolean.class || fieldType == Boolean.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getBoolean", "Z",
+                    "java/lang/Boolean", "Ljava/lang/Boolean;", fieldType == Boolean.class);
+        } else if (fieldType == short.class || fieldType == Short.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getShort", "S",
+                    "java/lang/Short", "Ljava/lang/Short;", fieldType == Short.class);
+        } else if (fieldType == byte.class || fieldType == Byte.class) {
+            generatePrimitiveTypeMapping(mv, entityClassName, setterName, "getByte", "B",
+                    "java/lang/Byte", "Ljava/lang/Byte;", fieldType == Byte.class);
+        } else if (fieldType == String.class) {
+            mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
+                    "getString", "(Ljava/lang/String;)Ljava/lang/String;", true);
+            mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
+                    setterName, "(Ljava/lang/String;)V", false);
+        } else {
+            generateObjectTypeMapping(mv, field, entityClassName, setterName);
+        }
+    }
+
+    private void generatePrimitiveTypeMapping(MethodVisitor mv, String entityClassName, String setterName,
+                                               String resultSetMethod, String primitiveDesc,
+                                               String wrapperClass, String wrapperDesc, boolean isWrapper) {
+        mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
+                resultSetMethod, "(Ljava/lang/String;)" + primitiveDesc, true);
+        if (isWrapper) {
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, wrapperClass, "valueOf",
+                    "(" + primitiveDesc + ")" + wrapperDesc, false);
+        }
+        String setterDesc = "(" + (isWrapper ? wrapperDesc : primitiveDesc) + ")V";
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName, setterName, setterDesc, false);
+    }
+
+    private void generateObjectTypeMapping(MethodVisitor mv, MappingField field, 
+                                           String entityClassName, String setterName) {
+        mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/sql/ResultSet",
+                "getObject", "(Ljava/lang/String;)Ljava/lang/Object;", true);
+        mv.visitTypeInsn(Opcodes.CHECKCAST, Type.getInternalName(field.getJavaType()));
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, entityClassName,
+                setterName, "(" + Type.getDescriptor(field.getJavaType()) + ")V", false);
     }
 
     private void generateMapToRow(ClassWriter cw, String className,

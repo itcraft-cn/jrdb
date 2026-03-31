@@ -52,32 +52,29 @@ public class JdbcQueryExecutor implements QueryExecutor {
     @Override
     public QueryResult query(BoundSql boundSql) throws SQLException {
         Connection conn = getConnection();
-        PreparedStatement stmt = conn.prepareStatement(boundSql.getSql());
-        setParameters(stmt, boundSql.getParams());
-        ResultSet rs = stmt.executeQuery();
+        try (PreparedStatement stmt = conn.prepareStatement(boundSql.getSql());
+             ResultSet rs = stmt.executeQuery()) {
+            setParameters(stmt, boundSql.getParams());
+            
+            List<ColumnMeta> columns = buildColumnMeta(rs.getMetaData());
+            List<Object[]> rows = readRows(rs, columns, maxRows);
 
-        List<ColumnMeta> columns = buildColumnMeta(rs.getMetaData());
-        List<Object[]> rows = readRows(rs, columns, maxRows);
+            int rowSize = calculateRowSize(columns);
+            MemoryBlock block = pool.allocate();
+            RowStore store = new RowStore(block, columns);
+            fillRowStore(store, rows, columns);
 
-        rs.close();
-        stmt.close();
-
-        int rowSize = calculateRowSize(columns);
-        MemoryBlock block = pool.allocate();
-        RowStore store = new RowStore(block, columns);
-        fillRowStore(store, rows, columns);
-
-        return new QueryResultImpl(store, rows.size(), block, pool);
+            return new QueryResultImpl(store, rows.size(), block, pool);
+        }
     }
 
     @Override
     public int update(BoundSql boundSql) throws SQLException {
         Connection conn = getConnection();
-        PreparedStatement stmt = conn.prepareStatement(boundSql.getSql());
-        setParameters(stmt, boundSql.getParams());
-        int affected = stmt.executeUpdate();
-        stmt.close();
-        return affected;
+        try (PreparedStatement stmt = conn.prepareStatement(boundSql.getSql())) {
+            setParameters(stmt, boundSql.getParams());
+            return stmt.executeUpdate();
+        }
     }
 
     @Override
@@ -85,10 +82,10 @@ public class JdbcQueryExecutor implements QueryExecutor {
         Connection conn = getConnection();
         int[] results = new int[boundSqls.length];
         for (int i = 0; i < boundSqls.length; i++) {
-            PreparedStatement stmt = conn.prepareStatement(boundSqls[i].getSql());
-            setParameters(stmt, boundSqls[i].getParams());
-            results[i] = stmt.executeUpdate();
-            stmt.close();
+            try (PreparedStatement stmt = conn.prepareStatement(boundSqls[i].getSql())) {
+                setParameters(stmt, boundSqls[i].getParams());
+                results[i] = stmt.executeUpdate();
+            }
         }
         return results;
     }

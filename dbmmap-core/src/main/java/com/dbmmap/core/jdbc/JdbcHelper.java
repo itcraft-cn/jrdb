@@ -22,8 +22,8 @@ final class JdbcHelper {
         try {
             return dataSource.getConnection();
         } catch (SQLException e) {
-            LOGGER.warn(e.getMessage(), e);
-            throw new RuntimeException(e);
+            LOGGER.warn("Failed to get connection: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get connection", e);
         }
     }
 
@@ -35,8 +35,7 @@ final class JdbcHelper {
             try {
                 conn.close();
             } catch (SQLException e) {
-                LOGGER.warn(e.getMessage(), e);
-                throw new RuntimeException(e);
+                LOGGER.warn("Failed to close connection: {}", e.getMessage(), e);
             }
         }
     }
@@ -75,8 +74,8 @@ final class JdbcHelper {
             return batchResult;
         } catch (SQLException e) {
             rollback(conn);
-            LOGGER.warn(e.getMessage(), e);
-            throw new RuntimeException(e);
+            LOGGER.warn("Batch modify failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Batch modify failed", e);
         }
     }
 
@@ -84,8 +83,7 @@ final class JdbcHelper {
         try {
             conn.rollback();
         } catch (SQLException e) {
-            LOGGER.warn(e.getMessage(), e);
-            throw new RuntimeException(e);
+            LOGGER.warn("Failed to rollback transaction: {}", e.getMessage(), e);
         }
     }
 
