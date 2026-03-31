@@ -5,6 +5,8 @@ import com.dbmmap.core.cache.CachedQueryResultAdapter;
 import com.dbmmap.core.cache.QueryResultCache;
 import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
+import com.dbmmap.core.handler.RowHandler;
+import com.dbmmap.core.handler.RowMeta;
 import com.dbmmap.core.memory.MemoryBlock;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.query.QueryResult;
@@ -295,9 +297,6 @@ public class SessionImpl implements Session {
             case Types.BIGINT:
                 store.setLongFast(rowOffset, colOffset, rs.getLong(rsColIndex));
                 break;
-            case Types.VARCHAR:
-            case Types.CHAR:
-            case Types.LONGVARCHAR:
             case Types.DOUBLE:
             case Types.FLOAT:
                 store.setDoubleFast(rowOffset, colOffset, rs.getDouble(rsColIndex));
@@ -315,6 +314,9 @@ public class SessionImpl implements Session {
                 java.math.BigDecimal bd = rs.getBigDecimal(rsColIndex);
                 store.setDoubleFast(rowOffset, colOffset, bd != null ? bd.doubleValue() : 0.0);
                 break;
+            case Types.VARCHAR:
+            case Types.CHAR:
+            case Types.LONGVARCHAR:
             case Types.CLOB:
             default:
                 store.setStringFast(rowOffset, colOffset, rs.getString(rsColIndex), maxSize);
@@ -336,6 +338,122 @@ public class SessionImpl implements Session {
         } finally {
             result.close();
         }
+    }
+
+    @Override
+    public void queryWithHandler(String sql, RowHandler handler) {
+        queryWithHandler(sql, handler, new Object[0]);
+    }
+
+    @Override
+    public void queryWithHandler(String sql, RowHandler handler, Object... params) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (handler == null) {
+            throw new NullPointerException("handler cannot be null");
+        }
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = getOrCreateStatement(sql, conn);
+            setParameters(ps, params);
+
+            ResultSet rs = ps.executeQuery();
+            QueryMeta queryMeta = createQueryMeta(rs);
+
+            RowMeta rowMeta = new RowMeta(queryMeta.columns);
+            int rowSize = rowMeta.getRowSize();
+            int colCount = queryMeta.columns.size();
+            byte[] rawRow = new byte[rowSize];
+
+            while (rs.next()) {
+                readRowToBytes(rs, rawRow, queryMeta.columns, colCount);
+                handler.onNextRow(rawRow, rowMeta);
+            }
+
+            rs.close();
+            if (cacheLevel == CacheLevel.NONE) {
+                ps.close();
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Query with handler failed: " + sql, e);
+        }
+    }
+
+    private void readRowToBytes(ResultSet rs, byte[] rawRow, List<ColumnMeta> columns, int colCount) throws SQLException {
+        int offset = 0;
+        for (int i = 0; i < colCount; i++) {
+            ColumnMeta cm = columns.get(i);
+            int rsColIndex = i + 1;
+            readColumnToBytes(rs, rawRow, offset, rsColIndex, cm.getSqlType(), cm.getSize());
+            offset += cm.getSize();
+        }
+    }
+
+    private void readColumnToBytes(ResultSet rs, byte[] rawRow, int offset, int rsColIndex, int sqlType, int maxSize) throws SQLException {
+        switch (sqlType) {
+            case Types.INTEGER:
+            case Types.TINYINT:
+            case Types.SMALLINT:
+                writeInt(rawRow, offset, rs.getInt(rsColIndex));
+                break;
+            case Types.BIGINT:
+                writeLong(rawRow, offset, rs.getLong(rsColIndex));
+                break;
+            case Types.TIMESTAMP:
+            case Types.DATE:
+                java.sql.Timestamp ts = rs.getTimestamp(rsColIndex);
+                writeLong(rawRow, offset, ts != null ? ts.getTime() : 0L);
+                break;
+            case Types.DOUBLE:
+            case Types.FLOAT:
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                writeDouble(rawRow, offset, rs.getDouble(rsColIndex));
+                break;
+            case Types.BOOLEAN:
+                rawRow[offset] = (byte) (rs.getBoolean(rsColIndex) ? 1 : 0);
+                break;
+            case Types.VARCHAR:
+            case Types.CHAR:
+            case Types.LONGVARCHAR:
+            case Types.CLOB:
+            default:
+                String str = rs.getString(rsColIndex);
+                if (str != null) {
+                    byte[] strBytes = str.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    int len = Math.min(strBytes.length, maxSize - 4);
+                    writeInt(rawRow, offset, len);
+                    System.arraycopy(strBytes, 0, rawRow, offset + 4, len);
+                } else {
+                    writeInt(rawRow, offset, 0);
+                }
+                break;
+        }
+    }
+
+    private void writeInt(byte[] buf, int offset, int value) {
+        buf[offset] = (byte) (value >> 24);
+        buf[offset + 1] = (byte) (value >> 16);
+        buf[offset + 2] = (byte) (value >> 8);
+        buf[offset + 3] = (byte) value;
+    }
+
+    private void writeLong(byte[] buf, int offset, long value) {
+        buf[offset] = (byte) (value >> 56);
+        buf[offset + 1] = (byte) (value >> 48);
+        buf[offset + 2] = (byte) (value >> 40);
+        buf[offset + 3] = (byte) (value >> 32);
+        buf[offset + 4] = (byte) (value >> 24);
+        buf[offset + 5] = (byte) (value >> 16);
+        buf[offset + 6] = (byte) (value >> 8);
+        buf[offset + 7] = (byte) value;
+    }
+
+    private void writeDouble(byte[] buf, int offset, double value) {
+        writeLong(buf, offset, Double.doubleToLongBits(value));
     }
 
     @Override
