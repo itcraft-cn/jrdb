@@ -7,6 +7,7 @@ import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
 import com.dbmmap.core.handler.RowHandler;
 import com.dbmmap.core.handler.RowMeta;
+import com.dbmmap.core.mapping.EntityMapper;
 import com.dbmmap.core.memory.MemoryBlock;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.query.QueryResult;
@@ -500,6 +501,64 @@ public class SessionImpl implements Session {
             results[i] = update(sqls[i]);
         }
         return results;
+    }
+
+    @Override
+    public int[] batchExecute(String sql, List<Object[]> paramsList) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (paramsList == null || paramsList.isEmpty()) {
+            return new int[0];
+        }
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            for (Object[] params : paramsList) {
+                setParameters(ps, params);
+                ps.addBatch();
+            }
+
+            int[] results = ps.executeBatch();
+            ps.close();
+            return results;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Batch execution failed: " + sql, e);
+        }
+    }
+
+    @Override
+    public <T> int[] batchExecute(String sql, List<T> entities, EntityMapper<T> mapper) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (entities == null || entities.isEmpty()) {
+            return new int[0];
+        }
+        if (mapper == null) {
+            throw new NullPointerException("mapper cannot be null");
+        }
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql);
+
+            for (T entity : entities) {
+                Object[] params = mapper.mapToRow(entity);
+                setParameters(ps, params);
+                ps.addBatch();
+            }
+
+            int[] results = ps.executeBatch();
+            ps.close();
+            return results;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Batch execution failed: " + sql, e);
+        }
     }
 
     public void clearCache() {

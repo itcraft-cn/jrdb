@@ -1,9 +1,11 @@
 package com.dbmmap.core.session;
 
 import com.dbmmap.core.handler.RowHandler;
+import com.dbmmap.core.mapping.EntityMapper;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.query.QueryResult;
 
+import java.util.List;
 import java.util.function.Function;
 
 public interface Session extends AutoCloseable {
@@ -23,6 +25,10 @@ public interface Session extends AutoCloseable {
     int update(String sql, Object... params);
 
     int[] batchUpdate(String... sqls);
+
+    int[] batchExecute(String sql, List<Object[]> paramsList);
+
+    <T> int[] batchExecute(String sql, List<T> entities, EntityMapper<T> mapper);
 
     MemoryPool getMemoryPool();
 
