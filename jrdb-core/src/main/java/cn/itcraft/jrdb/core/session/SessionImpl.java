@@ -33,11 +33,11 @@ import java.util.function.Function;
 
 /**
  * Session接口的默认实现类。
- * 
+ *
  * <p>SessionImpl是jrdb框架的核心会话实现，负责管理数据库连接、执行SQL查询、
  * 处理结果集映射以及缓存管理。该实现采用堆外内存存储查询结果，通过零拷贝技术
  * 实现高性能数据访问。
- * 
+ *
  * <p>主要特性：
  * <ul>
  *   <li>基于堆外内存的结果集存储，零GC压力</li>
@@ -45,9 +45,9 @@ import java.util.function.Function;
  *   <li>流式行处理支持，适合大数据量场景</li>
  *   <li>批处理操作优化</li>
  * </ul>
- * 
+ *
  * <p>线程安全性：此类不是线程安全的，每个线程应使用独立的Session实例。
- * 
+ *
  * @see Session
  * @see MemoryPool
  * @see QueryResult
@@ -159,7 +159,7 @@ public class SessionImpl implements Session {
 
     /**
      * 构造一个新的SessionImpl实例。
-     * 
+     *
      * <p>根据配置的缓存级别初始化相应的缓存组件：
      * <ul>
      *   <li>NONE：不使用任何缓存</li>
@@ -168,7 +168,7 @@ public class SessionImpl implements Session {
      * </ul>
      *
      * @param memoryPool 内存池，用于分配堆外内存，不能为null
-     * @param config jrdb配置对象，不能为null
+     * @param config     jrdb配置对象，不能为null
      * @param dataSource 数据源，用于获取数据库连接，不能为null
      * @throws NullPointerException 如果任一参数为null
      */
@@ -212,12 +212,12 @@ public class SessionImpl implements Session {
 
     /**
      * 创建一个LRU（最近最少使用）缓存。
-     * 
+     *
      * <p>使用LinkedHashMap的accessOrder模式实现LRU淘汰策略，
      * 当缓存大小超过maxSize时，自动移除最久未访问的条目。
      *
-     * @param <K> 缓存键类型
-     * @param <V> 缓存值类型
+     * @param <K>     缓存键类型
+     * @param <V>     缓存值类型
      * @param maxSize 缓存最大容量
      * @return 线程安全的LRU缓存Map
      */
@@ -232,7 +232,7 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行无参数的SQL查询。
      *
      * @param sql 要执行的SQL查询语句
@@ -246,11 +246,11 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行带参数的SQL查询。根据缓存级别选择直接查询或缓存查询策略。
      * 查询结果存储在堆外内存中，支持零拷贝访问。
      *
-     * @param sql 要执行的SQL查询语句
+     * @param sql    要执行的SQL查询语句
      * @param params SQL参数，按顺序替换SQL中的占位符
      * @return 查询结果，包含结果集数据和元数据
      * @throws IllegalStateException 如果会话已关闭
@@ -265,10 +265,10 @@ public class SessionImpl implements Session {
 
     /**
      * 执行带缓存的查询。
-     * 
+     *
      * <p>首先检查结果缓存中是否存在相同的查询结果，如果存在则直接返回缓存结果。
      * 否则执行数据库查询，将结果复制到缓存后返回。
-     * 
+     *
      * <p>缓存查询的特点：
      * <ul>
      *   <li>缓存命中时无需访问数据库，响应极快</li>
@@ -276,7 +276,7 @@ public class SessionImpl implements Session {
      *   <li>适合读多写少、数据变化不频繁的场景</li>
      * </ul>
      *
-     * @param sql 要执行的SQL查询语句
+     * @param sql    要执行的SQL查询语句
      * @param params SQL参数数组
      * @return 查询结果，可能是缓存结果或新查询结果
      * @throws IllegalStateException 如果会话已关闭
@@ -298,11 +298,11 @@ public class SessionImpl implements Session {
 
     /**
      * 执行直接查询，不使用结果缓存。
-     * 
+     *
      * <p>直接执行SQL查询并将结果存储在堆外内存中，适合实时性要求高、
      * 数据变化频繁的场景。
      *
-     * @param sql 要执行的SQL查询语句
+     * @param sql    要执行的SQL查询语句
      * @param params SQL参数数组
      * @return 查询结果，存储在堆外内存中
      */
@@ -312,7 +312,7 @@ public class SessionImpl implements Session {
 
     /**
      * 执行SQL查询的核心方法。
-     * 
+     *
      * <p>查询执行流程：
      * <ol>
      *   <li>获取或创建数据库连接</li>
@@ -323,11 +323,11 @@ public class SessionImpl implements Session {
      *   <li>逐行读取数据并存储到堆外内存</li>
      *   <li>关闭ResultSet，根据缓存级别决定是否关闭Statement</li>
      * </ol>
-     * 
+     *
      * <p>数据存储采用紧凑的二进制格式，每列按固定大小存储，
      * 便于通过偏移量直接定位，无需反序列化。
      *
-     * @param sql 要执行的SQL查询语句
+     * @param sql    要执行的SQL查询语句
      * @param params SQL参数数组
      * @return 查询结果，包含堆外内存存储的结果集
      * @throws RuntimeException 如果SQL执行失败
@@ -374,7 +374,7 @@ public class SessionImpl implements Session {
 
     /**
      * 将QueryResult复制为CachedQueryResult。
-     * 
+     *
      * <p>将堆外内存中的查询结果复制到堆内存中，以便进行缓存。
      * 复制过程会遍历所有行和列，将数据转换为可序列化的格式。
      *
@@ -402,11 +402,11 @@ public class SessionImpl implements Session {
 
     /**
      * 从QueryResult中获取指定列的值。
-     * 
+     *
      * <p>按优先级尝试获取不同类型的值：首先尝试Long，失败后尝试Double，
      * 最后使用String。这种方式可以处理大多数常见数据类型。
      *
-     * @param result 查询结果对象
+     * @param result      查询结果对象
      * @param columnIndex 列索引（从0开始）
      * @return 列值对象
      */
@@ -425,16 +425,16 @@ public class SessionImpl implements Session {
 
     /**
      * 获取或创建PreparedStatement。
-     * 
+     *
      * <p>根据缓存级别采取不同策略：
      * <ul>
      *   <li>NONE：每次创建新的Statement</li>
      *   <li>L1/L2：从缓存获取，若不存在或已关闭则创建新的并缓存</li>
      * </ul>
-     * 
+     *
      * <p>重用Statement可以避免SQL解析和编译开销，显著提升性能。
      *
-     * @param sql SQL语句
+     * @param sql  SQL语句
      * @param conn 数据库连接
      * @return PreparedStatement实例
      * @throws SQLException 如果创建Statement失败
@@ -456,12 +456,12 @@ public class SessionImpl implements Session {
 
     /**
      * 获取或创建查询元数据。
-     * 
+     *
      * <p>元数据包含列信息、行大小、最大行数等。缓存元数据可以
      * 避免重复解析ResultSet元数据，提升查询性能。
      *
      * @param sql SQL语句，用作缓存键
-     * @param rs 结果集，用于提取元数据
+     * @param rs  结果集，用于提取元数据
      * @return 查询元数据对象
      * @throws SQLException 如果提取元数据失败
      */
@@ -480,7 +480,7 @@ public class SessionImpl implements Session {
 
     /**
      * 从ResultSet创建查询元数据。
-     * 
+     *
      * <p>提取每列的名称、SQL类型和存储大小，构建ColumnMeta列表。
      * 同时计算单行大小和内存槽可容纳的最大行数。
      *
@@ -503,7 +503,7 @@ public class SessionImpl implements Session {
 
     /**
      * 获取数据库连接。
-     * 
+     *
      * <p>采用懒加载方式，首次查询时才获取连接。
      * 如果连接不存在或已关闭，则从数据源获取新连接。
      *
@@ -519,11 +519,11 @@ public class SessionImpl implements Session {
 
     /**
      * 设置PreparedStatement的参数。
-     * 
+     *
      * <p>按顺序设置参数，索引从1开始（JDBC规范）。
      *
      * @param PreparedStatement对象
-     * @param params 参数数组
+     * @param params              参数数组
      * @throws SQLException 如果设置参数失败
      */
     private void setParameters(PreparedStatement ps, Object[] params) throws SQLException {
@@ -535,7 +535,7 @@ public class SessionImpl implements Session {
 
     /**
      * 根据SQL类型获取列的存储大小。
-     * 
+     *
      * <p>不同SQL类型对应不同的存储空间：
      * <ul>
      *   <li>INTEGER/DATE/FLOAT/REAL：4字节</li>
@@ -578,10 +578,10 @@ public class SessionImpl implements Session {
 
     /**
      * 将ResultSet中的列值快速写入RowStore。
-     * 
+     *
      * <p>这是核心数据写入方法，采用类型分支优化性能。
      * 根据SQL类型选择对应的方法直接写入堆外内存，避免装箱开销。
-     * 
+     *
      * <p>写入规则：
      * <ul>
      *   <li>整型系列：使用setIntFast写入</li>
@@ -593,17 +593,17 @@ public class SessionImpl implements Session {
      *   <li>字符串类型：使用setStringFast写入，UTF-8编码</li>
      * </ul>
      *
-     * @param store 行存储对象
-     * @param rs 结果集
-     * @param rowOffset 行在内存块中的偏移量
-     * @param colOffset 列在行中的偏移量
+     * @param store      行存储对象
+     * @param rs         结果集
+     * @param rowOffset  行在内存块中的偏移量
+     * @param colOffset  列在行中的偏移量
      * @param rsColIndex ResultSet中的列索引（从1开始）
-     * @param sqlType SQL类型常量
-     * @param maxSize 最大存储大小
+     * @param sqlType    SQL类型常量
+     * @param maxSize    最大存储大小
      * @throws SQLException 如果读取ResultSet失败
      */
     private void setColumnValueUltraFast(RowStore store, ResultSet rs, int rowOffset, int colOffset, int rsColIndex,
-                                          int sqlType, int maxSize)
+                                         int sqlType, int maxSize)
             throws SQLException {
         switch (sqlType) {
             case Types.INTEGER:
@@ -643,12 +643,12 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行查询并使用函数式处理器处理结果。
      * 处理完成后自动关闭结果集，确保资源释放。
      *
-     * @param <T> 返回类型
-     * @param sql SQL查询语句
+     * @param <T>     返回类型
+     * @param sql     SQL查询语句
      * @param handler 结果处理函数
      * @return 处理器返回的结果
      * @throws IllegalStateException 如果会话已关闭
@@ -671,7 +671,7 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行无参数的流式行处理查询。
      */
     @Override
@@ -681,16 +681,16 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行带参数的流式行处理查询。
-     * 
+     *
      * <p>流式处理特点：
      * <ul>
      *   <li>逐行处理，无需一次性加载全部数据到内存</li>
      *   <li>使用线程本地缓冲区，减少内存分配</li>
      *   <li>适合大数据量导出、ETL等场景</li>
      * </ul>
-     * 
+     *
      * <p>处理流程：
      * <ol>
      *   <li>获取连接和PreparedStatement</li>
@@ -700,11 +700,11 @@ public class SessionImpl implements Session {
      *   <li>关闭ResultSet</li>
      * </ol>
      *
-     * @param sql SQL查询语句
+     * @param sql     SQL查询语句
      * @param handler 行处理器，每行调用一次
-     * @param params SQL参数数组
+     * @param params  SQL参数数组
      * @throws IllegalStateException 如果会话已关闭
-     * @throws NullPointerException 如果handler为null
+     * @throws NullPointerException  如果handler为null
      */
     @Override
     public void queryWithHandler(String sql, RowHandler handler, Object... params) {
@@ -745,7 +745,7 @@ public class SessionImpl implements Session {
 
     /**
      * 获取或创建行缓冲区。
-     * 
+     *
      * <p>使用ThreadLocal存储行缓冲区，避免频繁分配。
      * 如果现有缓冲区大小不足，则创建新的更大的缓冲区。
      *
@@ -763,17 +763,18 @@ public class SessionImpl implements Session {
 
     /**
      * 将ResultSet中的单行数据读取到字节数组。
-     * 
+     *
      * <p>按列顺序依次读取数据并写入字节数组，
      * 每列的偏移量根据前几列的大小累加计算。
      *
-     * @param rs 结果集
-     * @param rawRow 目标字节数组
-     * @param columns 列元数据列表
+     * @param rs       结果集
+     * @param rawRow   目标字节数组
+     * @param columns  列元数据列表
      * @param colCount 列数量
      * @throws SQLException 如果读取数据失败
      */
-    private void readRowToBytes(ResultSet rs, byte[] rawRow, List<ColumnMeta> columns, int colCount) throws SQLException {
+    private void readRowToBytes(ResultSet rs, byte[] rawRow, List<ColumnMeta> columns, int colCount) throws
+                                                                                                     SQLException {
         int offset = 0;
         for (int i = 0; i < colCount; i++) {
             ColumnMeta cm = columns.get(i);
@@ -785,7 +786,7 @@ public class SessionImpl implements Session {
 
     /**
      * 将ResultSet中的单列数据读取到字节数组。
-     * 
+     *
      * <p>根据SQL类型选择对应的写入方式：
      * <ul>
      *   <li>整型：大端序写入4字节</li>
@@ -796,15 +797,16 @@ public class SessionImpl implements Session {
      *   <li>字符串：写入长度前缀+UTF-8字节</li>
      * </ul>
      *
-     * @param rs 结果集
-     * @param rawRow 目标字节数组
-     * @param offset 写入起始偏移量
+     * @param rs         结果集
+     * @param rawRow     目标字节数组
+     * @param offset     写入起始偏移量
      * @param rsColIndex ResultSet中的列索引（从1开始）
-     * @param sqlType SQL类型常量
-     * @param maxSize 最大存储大小
+     * @param sqlType    SQL类型常量
+     * @param maxSize    最大存储大小
      * @throws SQLException 如果读取数据失败
      */
-    private void readColumnToBytes(ResultSet rs, byte[] rawRow, int offset, int rsColIndex, int sqlType, int maxSize) throws SQLException {
+    private void readColumnToBytes(ResultSet rs, byte[] rawRow, int offset, int rsColIndex, int sqlType,
+                                   int maxSize) throws SQLException {
         switch (sqlType) {
             case Types.INTEGER:
             case Types.TINYINT:
@@ -834,13 +836,13 @@ public class SessionImpl implements Session {
             case Types.CLOB:
             default:
                 String str = rs.getString(rsColIndex);
-                if (str != null) {
+                if (str == null) {
+                    writeInt(rawRow, offset, 0);
+                } else {
                     byte[] strBytes = str.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     int len = Math.min(strBytes.length, maxSize - 4);
                     writeInt(rawRow, offset, len);
                     System.arraycopy(strBytes, 0, rawRow, offset + 4, len);
-                } else {
-                    writeInt(rawRow, offset, 0);
                 }
                 break;
         }
@@ -848,12 +850,12 @@ public class SessionImpl implements Session {
 
     /**
      * 将int值以大端序写入字节数组。
-     * 
+     *
      * <p>大端序即高位字节在前，便于网络传输和跨平台兼容。
      *
-     * @param buf 目标字节数组
+     * @param buf    目标字节数组
      * @param offset 写入起始偏移量
-     * @param value 要写入的int值
+     * @param value  要写入的int值
      */
     private void writeInt(byte[] buf, int offset, int value) {
         buf[offset] = (byte) (value >> 24);
@@ -864,12 +866,12 @@ public class SessionImpl implements Session {
 
     /**
      * 将long值以大端序写入字节数组。
-     * 
+     *
      * <p>大端序即高位字节在前，便于网络传输和跨平台兼容。
      *
-     * @param buf 目标字节数组
+     * @param buf    目标字节数组
      * @param offset 写入起始偏移量
-     * @param value 要写入的long值
+     * @param value  要写入的long值
      */
     private void writeLong(byte[] buf, int offset, long value) {
         buf[offset] = (byte) (value >> 56);
@@ -884,13 +886,13 @@ public class SessionImpl implements Session {
 
     /**
      * 将double值写入字节数组。
-     * 
+     *
      * <p>先将double转换为IEEE 754格式的long位表示，
      * 然后以大端序写入8字节。
      *
-     * @param buf 目标字节数组
+     * @param buf    目标字节数组
      * @param offset 写入起始偏移量
-     * @param value 要写入的double值
+     * @param value  要写入的double值
      */
     private void writeDouble(byte[] buf, int offset, double value) {
         writeLong(buf, offset, Double.doubleToLongBits(value));
@@ -898,7 +900,7 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行无参数的更新操作。
      */
     @Override
@@ -908,17 +910,17 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行带参数的更新操作（INSERT/UPDATE/DELETE）。
-     * 
+     *
      * <p>更新操作不使用PreparedStatement缓存，每次都创建新Statement，
      * 因为更新操作通常只执行一次，缓存意义不大。
      *
-     * @param sql SQL更新语句
+     * @param sql    SQL更新语句
      * @param params SQL参数数组
      * @return 受影响的行数
      * @throws IllegalStateException 如果会话已关闭
-     * @throws RuntimeException 如果执行失败
+     * @throws RuntimeException      如果执行失败
      */
     @Override
     public int update(String sql, Object... params) {
@@ -939,9 +941,9 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行多条SQL的批量更新。
-     * 
+     *
      * <p>每条SQL独立执行，适合多条不同SQL的场景。
      * 注意：此方法不是真正的JDBC批处理，只是简单循环执行。
      *
@@ -963,17 +965,17 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>执行参数化批量操作。
-     * 
+     *
      * <p>使用JDBC的addBatch/executeBatch机制，适合同一SQL不同参数的场景。
      * 性能优于batchUpdate，推荐用于大量数据插入/更新。
      *
-     * @param sql SQL语句（带占位符）
+     * @param sql        SQL语句（带占位符）
      * @param paramsList 参数列表，每组参数对应一次执行
      * @return 每次执行影响的行数数组
      * @throws IllegalStateException 如果会话已关闭
-     * @throws RuntimeException 如果执行失败
+     * @throws RuntimeException      如果执行失败
      */
     @Override
     public int[] batchExecute(String sql, List<Object[]> paramsList) {
@@ -1004,20 +1006,20 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>使用实体映射器执行参数化批量操作。
-     * 
+     *
      * <p>将实体对象转换为参数数组后执行批处理，
      * 适合ORM场景，简化应用层代码。
      *
-     * @param <T> 实体类型
-     * @param sql SQL语句（带占位符）
+     * @param <T>      实体类型
+     * @param sql      SQL语句（带占位符）
      * @param entities 实体对象列表
-     * @param mapper 实体到参数的映射器
+     * @param mapper   实体到参数的映射器
      * @return 每次执行影响的行数数组
      * @throws IllegalStateException 如果会话已关闭
-     * @throws NullPointerException 如果mapper为null
-     * @throws RuntimeException 如果执行失败
+     * @throws NullPointerException  如果mapper为null
+     * @throws RuntimeException      如果执行失败
      */
     @Override
     public <T> int[] batchExecute(String sql, List<T> entities, EntityMapper<T> mapper) {
@@ -1052,14 +1054,14 @@ public class SessionImpl implements Session {
 
     /**
      * 清空所有缓存。
-     * 
+     *
      * <p>清空操作包括：
      * <ul>
      *   <li>关闭并清空PreparedStatement缓存</li>
      *   <li>清空查询元数据缓存</li>
      *   <li>清空结果缓存</li>
      * </ul>
-     * 
+     *
      * <p>通常在数据变更后调用，确保后续查询获取最新数据。
      */
     public void clearCache() {
@@ -1083,7 +1085,7 @@ public class SessionImpl implements Session {
 
     /**
      * 使结果缓存失效。
-     * 
+     *
      * <p>仅清空L2结果缓存，不影响语句缓存和元数据缓存。
      * 用于数据变更后需要重新查询的场景。
      */
@@ -1095,7 +1097,7 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @return 内存池实例
      */
     @Override
@@ -1105,7 +1107,7 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @return 会话是否已关闭
      */
     @Override
@@ -1115,14 +1117,14 @@ public class SessionImpl implements Session {
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * <p>关闭会话并释放所有资源：
      * <ol>
      *   <li>清空所有缓存</li>
      *   <li>关闭数据库连接</li>
      *   <li>设置关闭标志</li>
      * </ol>
-     * 
+     *
      * <p>关闭后的会话不能再使用，重复调用close()是安全的。
      */
     @Override
@@ -1143,7 +1145,7 @@ public class SessionImpl implements Session {
 
     /**
      * 查询执行策略接口。
-     * 
+     *
      * <p>用于根据缓存级别选择不同的查询执行方式：
      * <ul>
      *   <li>直接查询：每次都执行数据库查询</li>
@@ -1155,7 +1157,7 @@ public class SessionImpl implements Session {
         /**
          * 执行查询。
          *
-         * @param sql SQL语句
+         * @param sql    SQL语句
          * @param params 参数数组
          * @return 查询结果
          */
@@ -1164,7 +1166,7 @@ public class SessionImpl implements Session {
 
     /**
      * 查询元数据内部类。
-     * 
+     *
      * <p>封装查询结果的元数据信息，包括：
      * <ul>
      *   <li>列元数据列表</li>
@@ -1192,7 +1194,7 @@ public class SessionImpl implements Session {
         /**
          * 构造查询元数据。
          *
-         * @param columns 列元数据列表
+         * @param columns  列元数据列表
          * @param slotSize 内存槽大小
          */
         QueryMeta(List<ColumnMeta> columns, int slotSize) {
