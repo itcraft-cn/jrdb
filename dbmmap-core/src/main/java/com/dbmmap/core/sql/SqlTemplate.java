@@ -64,7 +64,7 @@ public class SqlTemplate {
         Class<?> clazz = value.getClass();
         long classHash = clazz.hashCode();
         long fieldNameHash = parts.hashCode();
-        long key = (classHash << 32) + fieldNameHash;
+        long key = (classHash << 32) | fieldNameHash;
         Field field = FIELD_CACHE.get(key);
         if (field == null) {
             field = fetchField0(clazz, parts);
