@@ -163,13 +163,13 @@ public interface Session extends AutoCloseable {
     /**
      * 执行INSERT操作，不返回主键。
      *
-     * <p>等价于 update(sql, params)，适用于不需要主键的场景。
+     * <p>等价于 update(sql, params) > 0，返回是否成功。
      *
      * @param sql    INSERT语句
      * @param params 参数值数组（可空）
-     * @return 影响的行数
+     * @return true表示插入成功
      */
-    int insert(String sql, Object... params);
+    boolean insert(String sql, Object... params);
 
     // ==================== Batch ====================
 
@@ -213,13 +213,14 @@ public interface Session extends AutoCloseable {
     /**
      * 批量INSERT，不返回主键。
      *
-     * <p>等价于 batchUpdate(sql, paramsList)，适用于不需要主键的场景。
+     * <p>使用PreparedStatement的addBatch/executeBatch实现。
+     * 返回成功插入的条数。
      *
      * @param sql        INSERT语句
      * @param paramsList 参数列表，每个元素对应一次执行
-     * @return 每次执行影响的行数数组
+     * @return 成功插入的条数
      */
-    int[] batchInsert(String sql, List<Object[]> paramsList);
+    int batchInsert(String sql, List<Object[]> paramsList);
 
     /**
      * 批量执行同一SQL语句（实体映射方式）。

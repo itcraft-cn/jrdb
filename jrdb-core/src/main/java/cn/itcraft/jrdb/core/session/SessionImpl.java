@@ -1103,8 +1103,8 @@ public class SessionImpl implements Session {
     }
 
     @Override
-    public int insert(String sql, Object... params) {
-        return update(sql, params);
+    public boolean insert(String sql, Object... params) {
+        return update(sql, params) > 0;
     }
 
     @SuppressWarnings("unchecked")
@@ -1308,8 +1308,18 @@ public class SessionImpl implements Session {
     }
 
     @Override
-    public int[] batchInsert(String sql, List<Object[]> paramsList) {
-        return batchUpdate(sql, paramsList);
+    public int batchInsert(String sql, List<Object[]> paramsList) {
+        if (paramsList == null || paramsList.isEmpty()) {
+            return 0;
+        }
+        int[] results = batchUpdate(sql, paramsList);
+        int successCount = 0;
+        for (int r : results) {
+            if (r > 0) {
+                successCount++;
+            }
+        }
+        return successCount;
     }
 
     /**
