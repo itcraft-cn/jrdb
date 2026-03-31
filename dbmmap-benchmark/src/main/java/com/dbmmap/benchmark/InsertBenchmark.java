@@ -86,6 +86,7 @@ public class InsertBenchmark {
     @State(Scope.Thread)
     public static class DbMmapRawState {
         SessionImpl session;
+        DataSource dataSource;
 
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
@@ -93,6 +94,15 @@ public class InsertBenchmark {
                     .cacheLevel(CacheLevel.NONE)
                     .build();
             session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            dataSource = shared.dataSource;
+        }
+
+        @Setup(Level.Iteration)
+        public void setupIteration() throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                stmt.execute("DELETE FROM users");
+            }
         }
 
         @TearDown(Level.Trial)
@@ -115,6 +125,13 @@ public class InsertBenchmark {
                     "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)");
         }
 
+        @Setup(Level.Iteration)
+        public void setupIteration() throws SQLException {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DELETE FROM users");
+            }
+        }
+
         @TearDown(Level.Trial)
         public void tearDown() throws SQLException {
             if (insertPs != null) insertPs.close();
@@ -125,6 +142,7 @@ public class InsertBenchmark {
     @State(Scope.Thread)
     public static class MyBatisState {
         SqlSession session;
+        DataSource dataSource;
 
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
@@ -135,6 +153,15 @@ public class InsertBenchmark {
             config.addMapper(UserMapper.class);
             SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(config);
             session = factory.openSession();
+            dataSource = shared.dataSource;
+        }
+
+        @Setup(Level.Iteration)
+        public void setupIteration() throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                stmt.execute("DELETE FROM users");
+            }
         }
 
         @TearDown(Level.Trial)
@@ -146,6 +173,7 @@ public class InsertBenchmark {
     @State(Scope.Thread)
     public static class HibernateState {
         Session session;
+        DataSource dataSource;
 
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
@@ -161,6 +189,15 @@ public class InsertBenchmark {
             config.addAnnotatedClass(UserEntity.class);
             SessionFactory factory = config.buildSessionFactory();
             session = factory.openSession();
+            dataSource = shared.dataSource;
+        }
+
+        @Setup(Level.Iteration)
+        public void setupIteration() throws SQLException {
+            try (Connection conn = dataSource.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                stmt.execute("DELETE FROM users");
+            }
         }
 
         @TearDown(Level.Trial)
@@ -179,6 +216,13 @@ public class InsertBenchmark {
             connection = shared.dataSource.getConnection();
             insertPs = connection.prepareStatement(
                     "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)");
+        }
+
+        @Setup(Level.Iteration)
+        public void setupIteration() throws SQLException {
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("DELETE FROM users");
+            }
         }
 
         @TearDown(Level.Trial)
