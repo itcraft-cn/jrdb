@@ -4,10 +4,13 @@ import com.dbmmap.benchmark.entity.User;
 import com.dbmmap.benchmark.entity.UserEntity;
 import com.dbmmap.core.config.CacheLevel;
 import com.dbmmap.core.config.DbMmapConfig;
+import com.dbmmap.core.mapping.EntityMapper;
+import com.dbmmap.core.mapping.MapperRegistry;
 import com.dbmmap.core.memory.MemoryPool;
 import com.dbmmap.core.memory.MemoryPoolConfig;
 import com.dbmmap.core.query.QueryResult;
 import com.dbmmap.core.session.SessionImpl;
+import com.dbmmap.core.type.TypeHandlerRegistry;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.SqlSession;
@@ -22,8 +25,11 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -41,6 +47,7 @@ public class NoCacheComparisonBenchmark {
     public static class SharedState {
         DataSource dataSource;
         MemoryPool memoryPool;
+        MapperRegistry mapperRegistry;
 
         @Setup(Level.Trial)
         public void setup() throws SQLException {
@@ -68,6 +75,9 @@ public class NoCacheComparisonBenchmark {
                 .queryCacheSize(4 * 1024 * 1024)
                 .build();
             memoryPool = new MemoryPool(poolConfig);
+
+            TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
+            mapperRegistry = new MapperRegistry(typeHandlerRegistry);
         }
 
         @TearDown(Level.Trial)
@@ -92,6 +102,29 @@ public class NoCacheComparisonBenchmark {
         @TearDown(Level.Trial)
         public void tearDown() {
             if (session != null) session.close();
+        }
+    }
+
+    @State(Scope.Thread)
+    public static class DbMmapAsmState {
+        EntityMapper<User> mapper;
+        Connection connection;
+        PreparedStatement singleQueryPs;
+        PreparedStatement queryListPs;
+
+        @Setup(Level.Trial)
+        public void setup(SharedState shared) throws SQLException {
+            mapper = shared.mapperRegistry.getMapper(User.class);
+            connection = shared.dataSource.getConnection();
+            singleQueryPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users WHERE id = ?");
+            queryListPs = connection.prepareStatement("SELECT id, name, age, email, status FROM users LIMIT 100");
+        }
+
+        @TearDown(Level.Trial)
+        public void tearDown() throws SQLException {
+            if (singleQueryPs != null) singleQueryPs.close();
+            if (queryListPs != null) queryListPs.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -162,6 +195,17 @@ public class NoCacheComparisonBenchmark {
     }
 
     @Benchmark
+    public User dbmmap_asm_singleQuery(DbMmapAsmState state) throws SQLException {
+        state.singleQueryPs.setLong(1, 1L);
+        try (ResultSet rs = state.singleQueryPs.executeQuery()) {
+            if (rs.next()) {
+                return state.mapper.mapFromResultSet(rs);
+            }
+            return null;
+        }
+    }
+
+    @Benchmark
     public User myBatis_singleQuery(MyBatisState state) {
         return state.session.selectOne("com.dbmmap.benchmark.NoCacheComparisonBenchmark$UserMapper.getById", 1L);
     }
@@ -181,6 +225,17 @@ public class NoCacheComparisonBenchmark {
                 }
             }
         }
+    }
+
+    @Benchmark
+    public List<User> dbmmap_asm_queryList(DbMmapAsmState state) throws SQLException {
+        List<User> users = new ArrayList<>(100);
+        try (ResultSet rs = state.queryListPs.executeQuery()) {
+            while (rs.next()) {
+                users.add(state.mapper.mapFromResultSet(rs));
+            }
+        }
+        return users;
     }
 
     @Benchmark
