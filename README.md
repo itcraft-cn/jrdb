@@ -12,23 +12,57 @@
 
 ## 性能基准
 
-### 单条查询 (NoCache, 4线程)
+### 查询性能 (NoCache, 4线程)
 
-| 框架 | ops/s | vs MyBatis |
-|------|-------|------------|
-| **dbmmap_asm** | **2.56M** | +117% |
-| dbmmap | 2.16M | +82% |
-| MyBatis | 1.18M | baseline |
-| Hibernate | 937K | -21% |
+#### 单条查询
 
-### 批量查询 (NoCache, 4线程)
+| 框架 | ops/s | vs MyBatis | vs Hibernate |
+|------|-------|------------|--------------|
+| **dbmmap_asm** | **2.56M** | +117% | +174% |
+| dbmmap | 2.16M | +82% | +130% |
+| MyBatis | 1.18M | baseline | +26% |
+| Hibernate | 937K | -21% | baseline |
 
-| 框架 | ops/s | vs MyBatis |
-|------|-------|------------|
-| **dbmmap_asm** | **702K** | +550% |
-| dbmmap | 482K | +347% |
-| MyBatis | 108K | baseline |
-| Hibernate | 89K | -18% |
+#### 批量查询
+
+| 框架 | ops/s | vs MyBatis | vs Hibernate |
+|------|-------|------------|--------------|
+| **dbmmap_asm** | **702K** | +550% | +688% |
+| dbmmap | 482K | +347% | +442% |
+| MyBatis | 108K | baseline | +21% |
+| Hibernate | 89K | -18% | baseline |
+
+### 写入性能 (NoCache, 4线程)
+
+| 操作 | dbmmap_raw | myBatis | hibernate | jdbc |
+|------|------------|---------|-----------|------|
+| 单条Insert | 630K | **677K** | 416K | 661K |
+| 批量Insert(100条) | 7.18K | **7.56K** | 6.29K | 7.54K |
+| 批量Update(100条) | **5.02K** | 4.36K | 4.41K | 4.46K |
+| 批量Delete(100条) | 4.93K | **5.77K** | 74* | 4.62K |
+
+*Hibernate batchDelete 极慢是因为使用 get+delete 循环
+
+### 定位总结
+
+| 场景 | dbmmap 优势 | 说明 |
+|------|-------------|------|
+| **SELECT 单条** | ✅ **2.2x MyBatis** | 堆外内存 + ASM 映射 |
+| **SELECT 批量** | ✅ **6.5x MyBatis** | 列式存储 + 零拷贝 |
+| **RowHandler** | ✅ **1.9x raw** | ThreadLocal buffer 复用 |
+| **INSERT** | ⚪ 0.93x MyBatis | 纯 JDBC 封装 |
+| **UPDATE/DELETE** | ⚪ 0.85x MyBatis | 纯 JDBC 封装 |
+
+**定位：读优化型框架，适合读多写少场景**
+
+### CUD 优化空间
+
+当前 CUD 性能与 MyBatis 接近，未做特别优化。如需进一步提升：
+
+1. **PreparedStatement 缓存** - 目前仅 CacheLevel.L1 支持
+2. **批量写入合并** - write-behind 模式
+3. **异步提交** - 后台线程批量 flush
+4. **实体脏检查** - 只更新变更字段
 
 ## 快速开始
 
