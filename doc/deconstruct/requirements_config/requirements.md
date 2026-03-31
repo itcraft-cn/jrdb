@@ -52,10 +52,10 @@
 
 ```java
 // 场景1：使用默认配置
-DbMmapConfig config = DbMmapConfig.builder().build();
+JrdbConfig config = JrdbConfig.builder().build();
 
 // 场景2：详细配置
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .memoryPoolConfig(MemoryPoolConfig.builder()
         .preAllocMemSize(512 * 1024 * 1024)
         .build())

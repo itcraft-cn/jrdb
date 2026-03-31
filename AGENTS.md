@@ -1,16 +1,19 @@
-# {project.title placeholder}
+# jrdb - Java Rapid DataBase
 
-## {project.desc placeholder}
+## 项目简介
 
-## {project.other1 placeholder}
+jrdb 是一个高性能 Java 数据库操作框架，基于堆外内存 + ASM 动态映射实现。
 
-## {project.other2 placeholder}
+**核心特性：**
+- 查询性能领先 MyBatis 2-6 倍
+- 堆外内存存储，零 GC 压力
+- ASM 动态字节码映射
+- 适合读多写少场景
 
-## {project.other3 placeholder}
-
-## ...
-
-## {project.otherN placeholder}
+**名称由来：**
+- **J**ava - 专为 Java 平台设计
+- **R**apid - 极致的查询性能
+- **D**ata**B**ase - 数据库操作框架
 
 ## AI guide
 

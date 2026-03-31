@@ -254,7 +254,7 @@ flowchart TD
 ## 缓存配置
 
 ```java
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L2)       // 缓存级别
     .statementCacheSize(256)         // L1 Statement 缓存大小
     .resultCacheSize(1000)           // L2 结果缓存大小
@@ -306,7 +306,7 @@ public int update(String sql, Object... params) {
 
 ```java
 // 配置 L2 缓存
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L2)
     .resultCacheSize(1000)
     .resultCacheExpireSeconds(300)

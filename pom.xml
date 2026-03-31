@@ -4,12 +4,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cn.itcraft.dbmmap</groupId>
-    <artifactId>dbmmap</artifactId>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>dbmmap</name>
+    <name>jrdb</name>
     <description>Database Memory Mapping Framework - High Performance Off-Heap Storage</description>
 
     <properties>
@@ -21,9 +21,9 @@
     </properties>
 
     <modules>
-        <module>dbmmap-core</module>
-        <module>dbmmap-benchmark</module>
-        <module>dbmmap-spring-boot-starter</module>
+        <module>jrdb-core</module>
+        <module>jrdb-benchmark</module>
+        <module>jrdb-spring-boot-starter</module>
     </modules>
 
     <dependencyManagement>

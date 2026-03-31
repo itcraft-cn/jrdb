@@ -1,8 +1,8 @@
-# dbmmap Phase 4 实现计划
+# jrdb Phase 4 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan.
 
-**Goal:** 实现dbmmap高级特性 - 列存视图、事务API、查询执行器、性能优化
+**Goal:** 实现jrdb高级特性 - 列存视图、事务API、查询执行器、性能优化
 
 **Architecture:** ColumnStore按列重排数据，提供OLAP聚合能力；Transaction独立事务管理API；QueryExecutor执行SQL并填充RowStore；性能优化包括内存对齐、批量操作。
 
@@ -13,7 +13,7 @@
 ## 文件结构
 
 ```
-dbmmap-core/src/main/java/com/dbmmap/core/
+jrdb-core/src/main/java/com/jrdb/core/
 ├── storage/
 │   ├── ColumnStore.java         # 列存储实现
 │   └── HybridView.java          # 混合视图切换
@@ -33,14 +33,14 @@ dbmmap-core/src/main/java/com/dbmmap/core/
 ## Task 1: ColumnStore列存储
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/storage/ColumnStore.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/storage/ColumnStoreTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/storage/ColumnStore.java`
+- `jrdb-core/src/test/java/com/jrdb/core/storage/ColumnStoreTest.java`
 
 **ColumnStore.java:**
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
@@ -154,14 +154,14 @@ public class ColumnStore {
 ## Task 2: HybridView混合视图
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/storage/HybridView.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/storage/HybridViewTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/storage/HybridView.java`
+- `jrdb-core/src/test/java/com/jrdb/core/storage/HybridViewTest.java`
 
 **HybridView.java:**
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
@@ -225,14 +225,14 @@ public class HybridView {
 ## Task 3: Transaction事务API
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/transaction/Transaction.java`
-- `dbmmap-core/src/main/java/com/dbmmap/core/transaction/TransactionImpl.java`
-- `dbmmap-core/src/main/java/com/dbmmap/core/transaction/TransactionManager.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/transaction/TransactionTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/transaction/Transaction.java`
+- `jrdb-core/src/main/java/com/jrdb/core/transaction/TransactionImpl.java`
+- `jrdb-core/src/main/java/com/jrdb/core/transaction/TransactionManager.java`
+- `jrdb-core/src/test/java/com/jrdb/core/transaction/TransactionTest.java`
 
 **Transaction.java:**
 ```java
-package cn.itcraft.dbmmap.core.transaction;
+package cn.itcraft.jrdb.core.transaction;
 
 import java.sql.Connection;
 
@@ -270,7 +270,7 @@ public interface Transaction {
 
 **TransactionImpl.java:**
 ```java
-package cn.itcraft.dbmmap.core.transaction;
+package cn.itcraft.jrdb.core.transaction;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -349,7 +349,7 @@ public class TransactionImpl implements Transaction {
 
 **TransactionManager.java:**
 ```java
-package cn.itcraft.dbmmap.core.transaction;
+package cn.itcraft.jrdb.core.transaction;
 
 import javax.sql.DataSource;
 import java.util.function.Function;
@@ -411,16 +411,16 @@ public class TransactionManager {
 ## Task 4: QueryExecutor查询执行器
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/executor/QueryExecutor.java`
-- `dbmmap-core/src/main/java/com/dbmmap/core/executor/JdbcQueryExecutor.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/executor/QueryExecutorTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/executor/QueryExecutor.java`
+- `jrdb-core/src/main/java/com/jrdb/core/executor/JdbcQueryExecutor.java`
+- `jrdb-core/src/test/java/com/jrdb/core/executor/QueryExecutorTest.java`
 
 **QueryExecutor.java:**
 ```java
-package cn.itcraft.dbmmap.core.executor;
+package cn.itcraft.jrdb.core.executor;
 
-import cn.itcraft.dbmmap.core.query.QueryResult;
-import cn.itcraft.dbmmap.core.sql.BoundSql;
+import cn.itcraft.jrdb.core.query.QueryResult;
+import cn.itcraft.jrdb.core.sql.BoundSql;
 
 /**
  * 查询执行器接口
@@ -446,17 +446,17 @@ public interface QueryExecutor {
 
 **JdbcQueryExecutor.java:**
 ```java
-package cn.itcraft.dbmmap.core.executor;
+package cn.itcraft.jrdb.core.executor;
 
-import cn.itcraft.dbmmap.core.config.DbMmapConfig;
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.query.QueryResult;
-import cn.itcraft.dbmmap.core.query.QueryResultImpl;
-import cn.itcraft.dbmmap.core.sql.BoundSql;
-import cn.itcraft.dbmmap.core.storage.ColumnMeta;
-import cn.itcraft.dbmmap.core.storage.RowStore;
-import cn.itcraft.dbmmap.core.transaction.Transaction;
+import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.query.QueryResult;
+import cn.itcraft.jrdb.core.query.QueryResultImpl;
+import cn.itcraft.jrdb.core.sql.BoundSql;
+import cn.itcraft.jrdb.core.storage.ColumnMeta;
+import cn.itcraft.jrdb.core.storage.RowStore;
+import cn.itcraft.jrdb.core.transaction.Transaction;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -465,10 +465,10 @@ import java.util.List;
 public class JdbcQueryExecutor implements QueryExecutor {
     
     private final MemoryPool memoryPool;
-    private final DbMmapConfig config;
+    private final JrdbConfig config;
     private Transaction transaction;
     
-    public JdbcQueryExecutor(MemoryPool memoryPool, DbMmapConfig config) {
+    public JdbcQueryExecutor(MemoryPool memoryPool, JrdbConfig config) {
         this.memoryPool = memoryPool;
         this.config = config;
     }
@@ -629,12 +629,12 @@ public class JdbcQueryExecutor implements QueryExecutor {
 ## Task 5: JdbcConfig配置
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/config/JdbcConfig.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/config/JdbcConfigTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/config/JdbcConfig.java`
+- `jrdb-core/src/test/java/com/jrdb/core/config/JdbcConfigTest.java`
 
 **JdbcConfig.java:**
 ```java
-package cn.itcraft.dbmmap.core.config;
+package cn.itcraft.jrdb.core.config;
 
 import javax.sql.DataSource;
 

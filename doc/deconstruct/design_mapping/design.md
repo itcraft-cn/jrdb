@@ -125,7 +125,7 @@ ASM 字节码生成器，动态创建 Mapper 类。
 
 ```java
 public class MapperClassGenerator {
-    private static final String ENTITY_MAPPER_INTERFACE = "com/dbmmap/core/mapping/EntityMapper";
+    private static final String ENTITY_MAPPER_INTERFACE = "com/jrdb/core/mapping/EntityMapper";
     private static final int ASM_VERSION = Opcodes.ASM9;
     
     public byte[] generate(MappingConfig config) {

@@ -8,7 +8,7 @@ config 模块负责全局配置管理，包括内存池配置、缓存级别、�
 
 ```mermaid
 classDiagram
-    class DbMmapConfig {
+    class JrdbConfig {
         -memoryPoolConfig: MemoryPoolConfig
         -overflowStrategy: OverflowStrategy
         -cacheLevel: CacheLevel
@@ -35,11 +35,11 @@ classDiagram
         DROP_NEWEST
     }
     
-    DbMmapConfig --> MemoryPoolConfig
-    DbMmapConfig --> CacheLevel
-    DbMmapConfig --> OverflowStrategy
+    JrdbConfig --> MemoryPoolConfig
+    JrdbConfig --> CacheLevel
+    JrdbConfig --> OverflowStrategy
     
-    class DbMmapConfigBuilder {
+    class JrdbConfigBuilder {
         -memoryPoolConfig: MemoryPoolConfig
         -overflowStrategy: OverflowStrategy
         -cacheLevel: CacheLevel
@@ -52,20 +52,20 @@ classDiagram
         +statementCacheSize(size: int): Builder
         +resultCacheSize(size: int): Builder
         +resultCacheExpireSeconds(seconds: int): Builder
-        +build(): DbMmapConfig
+        +build(): JrdbConfig
     }
     
-    DbMmapConfig ..> DbMmapConfigBuilder : creates
+    JrdbConfig ..> JrdbConfigBuilder : creates
 ```
 
 ## 核心类详解
 
-### DbMmapConfig
+### JrdbConfig
 
 全局配置类，不可变对象。
 
 ```java
-public class DbMmapConfig {
+public class JrdbConfig {
     private final MemoryPoolConfig memoryPoolConfig;
     private final OverflowStrategy overflowStrategy;
     private final CacheLevel cacheLevel;
@@ -73,7 +73,7 @@ public class DbMmapConfig {
     private final int resultCacheSize;
     private final int resultCacheExpireSeconds;
     
-    private DbMmapConfig(Builder builder) {
+    private JrdbConfig(Builder builder) {
         this.memoryPoolConfig = builder.memoryPoolConfig;
         this.overflowStrategy = builder.overflowStrategy;
         this.cacheLevel = builder.cacheLevel;
@@ -105,7 +105,7 @@ public class DbMmapConfig {
 }
 ```
 
-### DbMmapConfig.Builder
+### JrdbConfig.Builder
 
 Builder 模式构建配置。
 
@@ -128,8 +128,8 @@ public static class Builder {
         return this;
     }
     
-    public DbMmapConfig build() {
-        return new DbMmapConfig(this);
+    public JrdbConfig build() {
+        return new JrdbConfig(this);
     }
 }
 ```
@@ -221,12 +221,12 @@ config.resultCacheExpireSeconds(600)   // 10 分钟过期
 
 ```java
 // 基本配置
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L2)
     .build();
 
 // 详细配置
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .memoryPoolConfig(MemoryPoolConfig.builder()
         .preAllocMemSize(512 * 1024 * 1024)
         .queryCacheSize(32 * 1024 * 1024)
@@ -251,6 +251,6 @@ flowchart LR
     A --> D[cache]
     
     B --> E[MemoryPoolConfig 内存池配置]
-    C --> F[SessionFactory 使用 DbMmapConfig]
+    C --> F[SessionFactory 使用 JrdbConfig]
     D --> G[SessionImpl 根据缓存级别创建缓存]
 ```

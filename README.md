@@ -1,6 +1,16 @@
-# dbmmap
+# jrdb
 
-高性能数据库内存映射框架，基于堆外内存实现，追求极致查询性能。
+**J**ava **R**apid **D**ata**B**ase - Java 高性能数据库操作框架
+
+基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis 2-6 倍。
+
+## 名称由来
+
+- **J**ava - 专为 Java 平台设计
+- **R**apid - 极致的查询性能
+- **D**ata**B**ase - 数据库操作框架
+
+**定位：读优化型 ORM 框架，适合读多写少场景**
 
 ## 特性
 
@@ -18,8 +28,8 @@
 
 | 框架 | ops/s | vs MyBatis | vs Hibernate |
 |------|-------|------------|--------------|
-| **dbmmap_asm** | **2.56M** | +117% | +174% |
-| dbmmap | 2.16M | +82% | +130% |
+| **jrdb_asm** | **2.56M** | +117% | +174% |
+| jrdb | 2.16M | +82% | +130% |
 | MyBatis | 1.18M | baseline | +26% |
 | Hibernate | 937K | -21% | baseline |
 
@@ -27,14 +37,14 @@
 
 | 框架 | ops/s | vs MyBatis | vs Hibernate |
 |------|-------|------------|--------------|
-| **dbmmap_asm** | **702K** | +550% | +688% |
-| dbmmap | 482K | +347% | +442% |
+| **jrdb_asm** | **702K** | +550% | +688% |
+| jrdb | 482K | +347% | +442% |
 | MyBatis | 108K | baseline | +21% |
 | Hibernate | 89K | -18% | baseline |
 
 ### 写入性能 (NoCache, 4线程)
 
-| 操作 | dbmmap_raw | myBatis | hibernate | jdbc |
+| 操作 | jrdb_raw | myBatis | hibernate | jdbc |
 |------|------------|---------|-----------|------|
 | 单条Insert | 630K | **677K** | 416K | 661K |
 | 批量Insert(100条) | 7.18K | **7.56K** | 6.29K | 7.54K |
@@ -45,7 +55,7 @@
 
 ### 定位总结
 
-| 场景 | dbmmap 优势 | 说明 |
+| 场景 | jrdb 优势 | 说明 |
 |------|-------------|------|
 | **SELECT 单条** | ✅ **2.2x MyBatis** | 堆外内存 + ASM 映射 |
 | **SELECT 批量** | ✅ **6.5x MyBatis** | 列式存储 + 零拷贝 |
@@ -70,8 +80,8 @@
 
 ```xml
 <dependency>
-    <groupId>cn.itcraft.dbmmap</groupId>
-    <artifactId>dbmmap-core</artifactId>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-core</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
@@ -87,7 +97,7 @@ MemoryPoolConfig poolConfig = MemoryPoolConfig.builder()
 MemoryPool memoryPool = new MemoryPool(poolConfig);
 
 // 2. 创建配置
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L1)           // L1缓存
     .statementCacheSize(256)
     .build();
@@ -172,7 +182,7 @@ session.batchExecute("DELETE FROM users WHERE id = ?", deleteParams);
 
 ### 性能对比 (100条/批, 4线程)
 
-| 操作 | dbmmap_raw | myBatis | hibernate | jdbc |
+| 操作 | jrdb_raw | myBatis | hibernate | jdbc |
 |------|------------|---------|-----------|------|
 | batchInsert | 7.18K | **7.56K** | 6.29K | 7.54K |
 | batchUpdate | **5.02K** | 4.36K | 4.41K | 4.46K |
@@ -197,8 +207,8 @@ RowHandler 适合**流式处理**场景，避免创建中间对象：
 
 | 方式 | ops/s | vs rawQuery | 说明 |
 |------|-------|-------------|------|
-| dbmmap_rowHandler | **226K** | +93% | 零对象创建 |
-| dbmmap_rawQuery | 117K | baseline | QueryResult对象 |
+| jrdb_rowHandler | **226K** | +93% | 零对象创建 |
+| jrdb_rawQuery | 117K | baseline | QueryResult对象 |
 | jdbc_manual | 330K | +182% | 原生JDBC |
 
 ### 使用方法
@@ -339,14 +349,14 @@ private void appendValue(StringBuilder sb, byte[] rawRow, RowMeta meta, int colI
 
 ```xml
 <dependency>
-    <groupId>cn.itcraft.dbmmap</groupId>
-    <artifactId>dbmmap-spring-boot-starter</artifactId>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
 
 ```yaml
-dbmmap:
+jrdb:
   memory-pool:
     pre-alloc-mem-size: 64MB
     query-cache-size: 4MB
@@ -402,9 +412,9 @@ public List<User> getUsers() {
 
 | 模块 | 说明 |
 |------|------|
-| dbmmap-core | 核心实现：内存管理、查询执行、实体映射 |
-| dbmmap-benchmark | JMH 性能基准测试 |
-| dbmmap-spring-boot-starter | Spring Boot 自动配置 |
+| jrdb-core | 核心实现：内存管理、查询执行、实体映射 |
+| jrdb-benchmark | JMH 性能基准测试 |
+| jrdb-spring-boot-starter | Spring Boot 自动配置 |
 
 ## 构建 & 测试
 
@@ -416,7 +426,7 @@ mvn clean compile
 mvn test
 
 # 运行基准测试
-cd dbmmap-benchmark
+cd jrdb-benchmark
 mvn exec:exec -Dexec.executable="java" \
     -Dexec.args="-cp %classpath org.openjdk.jmh.Main NoCacheComparisonBenchmark -wi 10 -i 5 -t 4 -f 3"
 ```

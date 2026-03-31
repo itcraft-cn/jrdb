@@ -1,14 +1,14 @@
-# dbmmap 核心数据流图
+# jrdb 核心数据流图
 
 ## 概述
 
-本文档描述 dbmmap 项目中核心数据的流转过程，包括初始化、查询、更新、内存管理和实体映射等关键流程。
+本文档描述 jrdb 项目中核心数据的流转过程，包括初始化、查询、更新、内存管理和实体映射等关键流程。
 
 ## 1. 初始化流程
 
 ```mermaid
 flowchart TD
-    A[创建 DbMmapConfig] --> B[创建 MemoryPoolConfig]
+    A[创建 JrdbConfig] --> B[创建 MemoryPoolConfig]
     B --> C[创建 MemoryPool]
     C --> D[Unsafe 分配堆外内存]
     C --> E[创建 SlotAllocator]

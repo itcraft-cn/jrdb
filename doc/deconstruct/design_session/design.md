@@ -19,7 +19,7 @@ classDiagram
     
     class SessionImpl {
         -memoryPool: MemoryPool
-        -config: DbMmapConfig
+        -config: JrdbConfig
         -dataSource: DataSource
         -connection: Connection
         -statementCache: Map
@@ -33,7 +33,7 @@ classDiagram
     }
     
     class SessionFactory {
-        -config: DbMmapConfig
+        -config: JrdbConfig
         -memoryPool: MemoryPool
         -dataSource: DataSource
         -closed: boolean
@@ -44,9 +44,9 @@ classDiagram
     Session <|.. SessionImpl
     SessionFactory --> SessionImpl : creates
     SessionFactory --> MemoryPool
-    SessionFactory --> DbMmapConfig
+    SessionFactory --> JrdbConfig
     SessionImpl --> MemoryPool
-    SessionImpl --> DbMmapConfig
+    SessionImpl --> JrdbConfig
     SessionImpl --> QueryResultCache
 ```
 
@@ -83,12 +83,12 @@ public interface Session extends AutoCloseable {
 
 ```java
 public class SessionFactory {
-    private final DbMmapConfig config;
+    private final JrdbConfig config;
     private final MemoryPool memoryPool;
     private final DataSource dataSource;
     private volatile boolean closed;
     
-    public SessionFactory(DbMmapConfig config, DataSource dataSource) {
+    public SessionFactory(JrdbConfig config, DataSource dataSource) {
         this.config = config;
         this.dataSource = dataSource;
         MemoryPoolConfig poolConfig = config.getMemoryPoolConfig();
@@ -126,7 +126,7 @@ public class SessionFactory {
 
 ```java
 private final MemoryPool memoryPool;          // 内存池引用
-private final DbMmapConfig config;            // 配置
+private final JrdbConfig config;            // 配置
 private final DataSource dataSource;          // 数据源
 private Connection connection;                // 当前连接
 private final Map<String, PreparedStatement> statementCache;  // Statement缓存
@@ -383,7 +383,7 @@ stateDiagram-v2
 
 ```java
 // 创建 SessionFactory
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L2)
     .statementCacheSize(256)
     .build();

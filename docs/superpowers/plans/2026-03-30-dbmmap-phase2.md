@@ -1,8 +1,8 @@
-# dbmmap Phase 2 实现计划
+# jrdb Phase 2 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 实现dbmmap映射能力 - 类型处理、命名策略、Mapper映射器、ASM动态代码生成
+**Goal:** 实现jrdb映射能力 - 类型处理、命名策略、Mapper映射器、ASM动态代码生成
 
 **Architecture:** TypeHandler接口+内置实现处理JDBC类型转换；NameStrategy接口+默认实现处理命名转换；Mapper接口定义映射规则；ASM动态生成POJO映射代码。
 
@@ -13,11 +13,11 @@
 ## 文件结构
 
 ```
-dbmmap/
+jrdb/
 ├── pom.xml                          # 添加ASM依赖
-├── dbmmap-core/
+├── jrdb-core/
 │   └── src/
-│       ├── main/java/com/dbmmap/core/
+│       ├── main/java/com/jrdb/core/
 │       │   ├── type/
 │       │   │   ├── TypeHandler.java
 │       │   │   ├── TypeHandlerRegistry.java
@@ -39,11 +39,11 @@ dbmmap/
 │       │   └── asm/
 │       │       ├── MapperClassGenerator.java
 │       │       └── MapperClassLoader.java
-│       └── test/java/com/dbmmap/core/
+│       └── test/java/com/jrdb/core/
 │           ├── type/
 │           ├── mapping/
 │           └── asm/
-└── dbmmap-mapping/                   # 独立映射模块(可选，Phase 2后期)
+└── jrdb-mapping/                   # 独立映射模块(可选，Phase 2后期)
 ```
 
 ---
@@ -52,7 +52,7 @@ dbmmap/
 
 **Files:**
 - Modify: `pom.xml`
-- Modify: `dbmmap-core/pom.xml`
+- Modify: `jrdb-core/pom.xml`
 
 - [ ] **Step 1: 添加ASM到父POM dependencyManagement**
 
@@ -71,9 +71,9 @@ dbmmap/
 </dependency>
 ```
 
-- [ ] **Step 2: 添加ASM到dbmmap-core依赖**
+- [ ] **Step 2: 添加ASM到jrdb-core依赖**
 
-在`dbmmap-core/pom.xml`的`<dependencies>`中添加：
+在`jrdb-core/pom.xml`的`<dependencies>`中添加：
 
 ```xml
 <dependency>
@@ -89,24 +89,24 @@ dbmmap/
 - [ ] **Step 3: 创建type和mapping目录**
 
 ```bash
-mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/type/handlers
-mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/mapping
-mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/asm
-mkdir -p dbmmap-core/src/test/java/com/dbmmap/core/type
-mkdir -p dbmmap-core/src/test/java/com/dbmmap/core/mapping
-mkdir -p dbmmap-core/src/test/java/com/dbmmap/core/asm
+mkdir -p jrdb-core/src/main/java/com/jrdb/core/type/handlers
+mkdir -p jrdb-core/src/main/java/com/jrdb/core/mapping
+mkdir -p jrdb-core/src/main/java/com/jrdb/core/asm
+mkdir -p jrdb-core/src/test/java/com/jrdb/core/type
+mkdir -p jrdb-core/src/test/java/com/jrdb/core/mapping
+mkdir -p jrdb-core/src/test/java/com/jrdb/core/asm
 ```
 
 - [ ] **Step 4: 验证依赖**
 
 ```bash
-cd dbmmap-core && mvn dependency:tree | grep asm
+cd jrdb-core && mvn dependency:tree | grep asm
 ```
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add pom.xml dbmmap-core/pom.xml
+git add pom.xml jrdb-core/pom.xml
 git commit -m "feat: add ASM dependency for dynamic code generation"
 ```
 
@@ -115,14 +115,14 @@ git commit -m "feat: add ASM dependency for dynamic code generation"
 ## Task 2: TypeHandler接口和注册器
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/TypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/TypeHandlerRegistry.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/type/TypeHandlerRegistryTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/TypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/TypeHandlerRegistry.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/type/TypeHandlerRegistryTest.java`
 
 - [ ] **Step 1: 编写TypeHandler接口**
 
 ```java
-package cn.itcraft.dbmmap.core.type;
+package cn.itcraft.jrdb.core.type;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -158,7 +158,7 @@ public interface TypeHandler<T> {
 - [ ] **Step 2: 编写TypeHandlerRegistry**
 
 ```java
-package cn.itcraft.dbmmap.core.type;
+package cn.itcraft.jrdb.core.type;
 
 import java.math.BigDecimal;
 import java.sql.Types;
@@ -209,7 +209,7 @@ public class TypeHandlerRegistry {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.type;
+package cn.itcraft.jrdb.core.type;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -253,13 +253,13 @@ class TypeHandlerRegistryTest {
 - [ ] **Step 4: 运行测试**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=TypeHandlerRegistryTest
+cd jrdb-core && mvn test -Dtest=TypeHandlerRegistryTest
 ```
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/type/ dbmmap-core/src/test/java/com/dbmmap/core/type/
+git add jrdb-core/src/main/java/com/jrdb/core/type/ jrdb-core/src/test/java/com/jrdb/core/type/
 git commit -m "feat(type): add TypeHandler interface and registry"
 ```
 
@@ -268,18 +268,18 @@ git commit -m "feat(type): add TypeHandler interface and registry"
 ## Task 3: 基础类型Handler实现
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/IntegerTypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/LongTypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/StringTypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/BooleanTypeHandler.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/type/handlers/TypeHandlersTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/IntegerTypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/LongTypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/StringTypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/BooleanTypeHandler.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/type/handlers/TypeHandlersTest.java`
 
 - [ ] **Step 1: 实现IntegerTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -318,9 +318,9 @@ public class IntegerTypeHandler implements TypeHandler<Integer> {
 - [ ] **Step 2: 实现LongTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -359,9 +359,9 @@ public class LongTypeHandler implements TypeHandler<Long> {
 - [ ] **Step 3: 实现StringTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -398,9 +398,9 @@ public class StringTypeHandler implements TypeHandler<String> {
 - [ ] **Step 4: 实现BooleanTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -439,9 +439,9 @@ public class BooleanTypeHandler implements TypeHandler<Boolean> {
 - [ ] **Step 5: 编写综合测试**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -533,13 +533,13 @@ private void registerBuiltInHandlers() {
 - [ ] **Step 7: 运行测试**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=TypeHandlersTest,TypeHandlerRegistryTest
+cd jrdb-core && mvn test -Dtest=TypeHandlersTest,TypeHandlerRegistryTest
 ```
 
 - [ ] **Step 8: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/type/ dbmmap-core/src/test/java/com/dbmmap/core/type/
+git add jrdb-core/src/main/java/com/jrdb/core/type/ jrdb-core/src/test/java/com/jrdb/core/type/
 git commit -m "feat(type): add built-in type handlers (Integer, Long, String, Boolean)"
 ```
 
@@ -548,17 +548,17 @@ git commit -m "feat(type): add built-in type handlers (Integer, Long, String, Bo
 ## Task 4: 扩展类型Handler (Date, BigDecimal, Enum)
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/DateTypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/BigDecimalTypeHandler.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/type/handlers/EnumTypeHandler.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/type/handlers/ExtendedTypeHandlersTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/DateTypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/BigDecimalTypeHandler.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/type/handlers/EnumTypeHandler.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/type/handlers/ExtendedTypeHandlersTest.java`
 
 - [ ] **Step 1: 实现DateTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -599,9 +599,9 @@ public class DateTypeHandler implements TypeHandler<Date> {
 - [ ] **Step 2: 实现BigDecimalTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -639,9 +639,9 @@ public class BigDecimalTypeHandler implements TypeHandler<BigDecimal> {
 - [ ] **Step 3: 实现EnumTypeHandler**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -686,9 +686,9 @@ public class EnumTypeHandler<E extends Enum<E>> implements TypeHandler<E> {
 - [ ] **Step 4: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.type.handlers;
+package cn.itcraft.jrdb.core.type.handlers;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -767,7 +767,7 @@ register(BigDecimal.class, new BigDecimalTypeHandler());
 - [ ] **Step 6: 运行测试并提交**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=ExtendedTypeHandlersTest
+cd jrdb-core && mvn test -Dtest=ExtendedTypeHandlersTest
 git add . && git commit -m "feat(type): add extended type handlers (Date, BigDecimal, Enum)"
 ```
 
@@ -776,14 +776,14 @@ git add . && git commit -m "feat(type): add extended type handlers (Date, BigDec
 ## Task 5: NameStrategy命名策略
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/mapping/NameStrategy.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/mapping/DefaultNameStrategy.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/mapping/NameStrategyTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/mapping/NameStrategy.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/mapping/DefaultNameStrategy.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/mapping/NameStrategyTest.java`
 
 - [ ] **Step 1: 实现NameStrategy接口**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 /**
  * 命名策略接口，处理列名到字段名的转换
@@ -810,7 +810,7 @@ public interface NameStrategy {
 - [ ] **Step 2: 实现DefaultNameStrategy**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 /**
  * 默认命名策略：下划线转驼峰
@@ -877,7 +877,7 @@ public class DefaultNameStrategy implements NameStrategy {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 import org.junit.jupiter.api.Test;
 
@@ -926,7 +926,7 @@ class NameStrategyTest {
 - [ ] **Step 4: 运行测试并提交**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=NameStrategyTest
+cd jrdb-core && mvn test -Dtest=NameStrategyTest
 git add . && git commit -m "feat(mapping): add NameStrategy with default underscore-to-camel conversion"
 ```
 
@@ -935,16 +935,16 @@ git add . && git commit -m "feat(mapping): add NameStrategy with default undersc
 ## Task 6: MappingField和MappingConfig
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/mapping/MappingField.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/mapping/MappingConfig.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/mapping/MappingConfigTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/mapping/MappingField.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/mapping/MappingConfig.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/mapping/MappingConfigTest.java`
 
 - [ ] **Step 1: 实现MappingField**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
-import cn.itcraft.dbmmap.core.type.TypeHandler;
+import cn.itcraft.jrdb.core.type.TypeHandler;
 
 /**
  * 映射字段配置
@@ -985,9 +985,9 @@ public class MappingField {
 - [ ] **Step 2: 实现MappingConfig**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
-import cn.itcraft.dbmmap.core.type.TypeHandlerRegistry;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1063,7 +1063,7 @@ public class MappingConfig {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 import org.junit.jupiter.api.Test;
 
@@ -1120,7 +1120,7 @@ class MappingConfigTest {
 - [ ] **Step 4: 运行测试并提交**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=MappingConfigTest
+cd jrdb-core && mvn test -Dtest=MappingConfigTest
 git add . && git commit -m "feat(mapping): add MappingField and MappingConfig for field mapping"
 ```
 
@@ -1129,14 +1129,14 @@ git add . && git commit -m "feat(mapping): add MappingField and MappingConfig fo
 ## Task 7: ASM动态代码生成
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/asm/MapperClassGenerator.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/asm/MapperClassLoader.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/asm/MapperClassGeneratorTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/asm/MapperClassGenerator.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/asm/MapperClassLoader.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/asm/MapperClassGeneratorTest.java`
 
 - [ ] **Step 1: 实现MapperClassLoader**
 
 ```java
-package cn.itcraft.dbmmap.core.asm;
+package cn.itcraft.jrdb.core.asm;
 
 /**
  * 自定义类加载器，加载ASM生成的类
@@ -1156,10 +1156,10 @@ public class MapperClassLoader extends ClassLoader {
 - [ ] **Step 2: 实现MapperClassGenerator**
 
 ```java
-package cn.itcraft.dbmmap.core.asm;
+package cn.itcraft.jrdb.core.asm;
 
-import cn.itcraft.dbmmap.core.mapping.MappingConfig;
-import cn.itcraft.dbmmap.core.mapping.MappingField;
+import cn.itcraft.jrdb.core.mapping.MappingConfig;
+import cn.itcraft.jrdb.core.mapping.MappingField;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -1184,7 +1184,7 @@ public class MapperClassGenerator implements Opcodes {
         
         // 定义类
         cw.visit(V1_8, ACC_PUBLIC, className, null, "java/lang/Object", 
-            new String[]{"com/dbmmap/core/mapping/EntityMapper"});
+            new String[]{"com/jrdb/core/mapping/EntityMapper"});
         
         // 添加默认构造方法
         generateConstructor(cw);
@@ -1332,7 +1332,7 @@ public class MapperClassGenerator implements Opcodes {
 - [ ] **Step 3: 创建EntityMapper接口**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -1357,10 +1357,10 @@ public interface EntityMapper<T> {
 - [ ] **Step 4: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.asm;
+package cn.itcraft.jrdb.core.asm;
 
-import cn.itcraft.dbmmap.core.mapping.EntityMapper;
-import cn.itcraft.dbmmap.core.mapping.MappingConfig;
+import cn.itcraft.jrdb.core.mapping.EntityMapper;
+import cn.itcraft.jrdb.core.mapping.MappingConfig;
 import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
@@ -1409,7 +1409,7 @@ class MapperClassGeneratorTest {
 - [ ] **Step 5: 运行测试并提交**
 
 ```bash
-cd dbmmap-core && mvn test -Dtest=MapperClassGeneratorTest
+cd jrdb-core && mvn test -Dtest=MapperClassGeneratorTest
 git add . && git commit -m "feat(asm): add ASM-based mapper class generator"
 ```
 
@@ -1418,16 +1418,16 @@ git add . && git commit -m "feat(asm): add ASM-based mapper class generator"
 ## Task 8: MapperRegistry整合
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/mapping/MapperRegistry.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/mapping/MapperRegistryTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/mapping/MapperRegistry.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/mapping/MapperRegistryTest.java`
 
 - [ ] **Step 1: 实现MapperRegistry**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
-import cn.itcraft.dbmmap.core.asm.MapperClassLoader;
-import cn.itcraft.dbmmap.core.asm.MapperClassGenerator;
+import cn.itcraft.jrdb.core.asm.MapperClassLoader;
+import cn.itcraft.jrdb.core.asm.MapperClassGenerator;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1487,7 +1487,7 @@ public class MapperRegistry {
 - [ ] **Step 2: 编写测试**
 
 ```java
-package cn.itcraft.dbmmap.core.mapping;
+package cn.itcraft.jrdb.core.mapping;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1540,7 +1540,7 @@ class MapperRegistryTest {
 - [ ] **Step 3: 运行全部测试**
 
 ```bash
-cd dbmmap-core && mvn test
+cd jrdb-core && mvn test
 ```
 
 - [ ] **Step 4: 提交Phase 2完成**

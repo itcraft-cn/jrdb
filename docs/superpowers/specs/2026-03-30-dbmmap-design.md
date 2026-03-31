@@ -1,4 +1,4 @@
-# dbmmap 设计文档
+# jrdb 设计文档
 
 > 数据库内存映射框架 - 高性能堆外内存存储
 
@@ -10,7 +10,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                      dbmmap                             │
+│                      jrdb                             │
 ├─────────────────────────────────────────────────────────┤
 │  API Layer                                              │
 │  ├── Query API (getRecord/getInt/getColumn/迭代器)      │
@@ -50,11 +50,11 @@
 
 | 模块 | 职责 |
 |------|------|
-| dbmmap-core | 核心：内存池、存储、查询API |
-| dbmmap-mapping | 映射：ASM、Mapper、TypeHandler |
-| dbmmap-sql | SQL构建：Builder、Template、DSL |
-| dbmmap-transaction | 事务：独立事务API |
-| dbmmap-config | 配置：XML解析、配置对象 |
+| jrdb-core | 核心：内存池、存储、查询API |
+| jrdb-mapping | 映射：ASM、Mapper、TypeHandler |
+| jrdb-sql | SQL构建：Builder、Template、DSL |
+| jrdb-transaction | 事务：独立事务API |
+| jrdb-config | 配置：XML解析、配置对象 |
 
 ## 核心设计
 
@@ -208,27 +208,27 @@ session.query(sql, result -> {
 ## 项目结构
 
 ```
-dbmmap/
-├── dbmmap-core/           # 核心模块
+jrdb/
+├── jrdb-core/           # 核心模块
 │   ├── memory/            # 内存池
 │   ├── storage/           # 存储层
 │   ├── session/           # 会话管理
 │   └── query/             # 查询API
-├── dbmmap-mapping/        # 映射模块
+├── jrdb-mapping/        # 映射模块
 │   ├── mapper/            # Mapper接口
 │   ├── type/              # 类型处理
 │   ├── name/              # 命名策略
 │   └── asm/               # ASM生成
-├── dbmmap-sql/            # SQL构建模块
+├── jrdb-sql/            # SQL构建模块
 │   ├── builder/           # 字符串构建
 │   ├── template/          # 模板引擎
 │   └── dsl/               # DSL构建
-├── dbmmap-transaction/    # 事务模块
+├── jrdb-transaction/    # 事务模块
 │   └── tx/                # 事务API
-├── dbmmap-config/         # 配置模块
+├── jrdb-config/         # 配置模块
 │   ├── xml/               # XML解析
 │   └── config/            # 配置对象
-└── dbmmap-all/            # 聚合模块
+└── jrdb-all/            # 聚合模块
 ```
 
 ## 里程碑

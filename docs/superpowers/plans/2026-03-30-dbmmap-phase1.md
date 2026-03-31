@@ -1,8 +1,8 @@
-# dbmmap Phase 1 实现计划
+# jrdb Phase 1 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 实现dbmmap核心基础设施 - 内存池管理、行存储、基础查询API、Session管理
+**Goal:** 实现jrdb核心基础设施 - 内存池管理、行存储、基础查询API、Session管理
 
 **Architecture:** 基于sun.misc.Unsafe实现堆外内存池，栈式分配+位图标记；行存格式紧凑排列；查询结果必须显式释放内存；JDBC透传。
 
@@ -13,12 +13,12 @@
 ## 文件结构
 
 ```
-dbmmap/
+jrdb/
 ├── pom.xml                          # 父POM
-├── dbmmap-core/
+├── jrdb-core/
 │   ├── pom.xml
 │   └── src/
-│       ├── main/java/com/dbmmap/core/
+│       ├── main/java/com/jrdb/core/
 │       │   ├── memory/
 │       │   │   ├── MemoryPool.java
 │       │   │   ├── MemoryPoolConfig.java
@@ -40,17 +40,17 @@ dbmmap/
 │       │   │   ├── SessionFactory.java
 │       │   │   └── SessionConfig.java
 │       │   └── config/
-│       │       ├── DbMmapConfig.java
+│       │       ├── JrdbConfig.java
 │       │       └── OverflowStrategy.java
-│       └── test/java/com/dbmmap/core/
+│       └── test/java/com/jrdb/core/
 │           ├── memory/
 │           ├── storage/
 │           ├── query/
 │           └── session/
-├── dbmmap-mapping/                   # Phase 2
-├── dbmmap-sql/                       # Phase 3
-├── dbmmap-transaction/               # Phase 4
-└── dbmmap-config/                    # Phase 4
+├── jrdb-mapping/                   # Phase 2
+├── jrdb-sql/                       # Phase 3
+├── jrdb-transaction/               # Phase 4
+└── jrdb-config/                    # Phase 4
 ```
 
 ---
@@ -59,7 +59,7 @@ dbmmap/
 
 **Files:**
 - Create: `pom.xml`
-- Create: `dbmmap-core/pom.xml`
+- Create: `jrdb-core/pom.xml`
 - Create: `.gitignore`
 
 - [ ] **Step 1: 创建父POM**
@@ -71,12 +71,12 @@ dbmmap/
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cn.itcraft.dbmmap</groupId>
-    <artifactId>dbmmap</artifactId>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>dbmmap</name>
+    <name>jrdb</name>
     <description>Database Memory Mapping Framework - High Performance Off-Heap Storage</description>
 
     <properties>
@@ -88,7 +88,7 @@ dbmmap/
     </properties>
 
     <modules>
-        <module>dbmmap-core</module>
+        <module>jrdb-core</module>
     </modules>
 
     <dependencyManagement>
@@ -129,7 +129,7 @@ dbmmap/
 </project>
 ```
 
-- [ ] **Step 2: 创建dbmmap-core模块POM**
+- [ ] **Step 2: 创建jrdb-core模块POM**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -139,13 +139,13 @@ dbmmap/
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cn.itcraft.dbmmap</groupId>
-        <artifactId>dbmmap</artifactId>
+        <groupId>cn.itcraft.jrdb</groupId>
+        <artifactId>jrdb</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>dbmmap-core</artifactId>
-    <name>dbmmap-core</name>
+    <artifactId>jrdb-core</artifactId>
+    <name>jrdb-core</name>
     <description>Core module: memory pool, storage, query API</description>
 
     <dependencies>
@@ -194,18 +194,18 @@ MEMORY.md
 
 - [ ] **Step 4: 创建目录结构**
 
-Run: `mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/{memory,storage,query,session,config} dbmmap-core/src/test/java/com/dbmmap/core/{memory,storage,query,session}`
+Run: `mkdir -p jrdb-core/src/main/java/com/jrdb/core/{memory,storage,query,session,config} jrdb-core/src/test/java/com/jrdb/core/{memory,storage,query,session}`
 
 - [ ] **Step 5: 验证项目结构**
 
-Run: `mvn -v && ls -la dbmmap-core/src/main/java/com/dbmmap/core/`
+Run: `mvn -v && ls -la jrdb-core/src/main/java/com/jrdb/core/`
 Expected: Maven版本信息和5个目录(config, memory, query, session, storage)
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add pom.xml dbmmap-core/pom.xml .gitignore
-git commit -m "feat: initialize dbmmap project structure"
+git add pom.xml jrdb-core/pom.xml .gitignore
+git commit -m "feat: initialize jrdb project structure"
 ```
 
 ---
@@ -213,13 +213,13 @@ git commit -m "feat: initialize dbmmap project structure"
 ## Task 2: UnsafeProvider - Unsafe访问提供者
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/memory/UnsafeProvider.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/memory/UnsafeProviderTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/memory/UnsafeProvider.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/memory/UnsafeProviderTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import org.junit.jupiter.api.Test;
 import sun.misc.Unsafe;
@@ -245,13 +245,13 @@ class UnsafeProviderTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=UnsafeProviderTest`
+Run: `cd jrdb-core && mvn test -Dtest=UnsafeProviderTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现UnsafeProvider**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import sun.misc.Unsafe;
 import java.lang.reflect.Field;
@@ -280,13 +280,13 @@ public final class UnsafeProvider {
 
 - [ ] **Step 4: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=UnsafeProviderTest`
+Run: `cd jrdb-core && mvn test -Dtest=UnsafeProviderTest`
 Expected: PASS - 2 tests
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/memory/UnsafeProvider.java dbmmap-core/src/test/java/com/dbmmap/core/memory/UnsafeProviderTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/memory/UnsafeProvider.java jrdb-core/src/test/java/com/jrdb/core/memory/UnsafeProviderTest.java
 git commit -m "feat(core): add UnsafeProvider for off-heap memory access"
 ```
 
@@ -295,13 +295,13 @@ git commit -m "feat(core): add UnsafeProvider for off-heap memory access"
 ## Task 3: MemoryPoolConfig - 内存池配置
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryPoolConfig.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/memory/MemoryPoolConfigTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/memory/MemoryPoolConfig.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/memory/MemoryPoolConfigTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import org.junit.jupiter.api.Test;
 
@@ -363,13 +363,13 @@ class MemoryPoolConfigTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=MemoryPoolConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=MemoryPoolConfigTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现MemoryPoolConfig**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 public class MemoryPoolConfig {
     
@@ -436,13 +436,13 @@ public class MemoryPoolConfig {
 
 - [ ] **Step 4: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=MemoryPoolConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=MemoryPoolConfigTest`
 Expected: PASS - 6 tests
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryPoolConfig.java dbmmap-core/src/test/java/com/dbmmap/core/memory/MemoryPoolConfigTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/memory/MemoryPoolConfig.java jrdb-core/src/test/java/com/jrdb/core/memory/MemoryPoolConfigTest.java
 git commit -m "feat(core): add MemoryPoolConfig with builder pattern"
 ```
 
@@ -451,13 +451,13 @@ git commit -m "feat(core): add MemoryPoolConfig with builder pattern"
 ## Task 4: SlotAllocator - 槽位分配器
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/memory/SlotAllocator.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/memory/SlotAllocatorTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/memory/SlotAllocator.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/memory/SlotAllocatorTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -534,13 +534,13 @@ class SlotAllocatorTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=SlotAllocatorTest`
+Run: `cd jrdb-core && mvn test -Dtest=SlotAllocatorTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现SlotAllocator**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 public class SlotAllocator {
     
@@ -624,13 +624,13 @@ public class SlotAllocator {
 
 - [ ] **Step 4: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=SlotAllocatorTest`
+Run: `cd jrdb-core && mvn test -Dtest=SlotAllocatorTest`
 Expected: PASS - 8 tests
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/memory/SlotAllocator.java dbmmap-core/src/test/java/com/dbmmap/core/memory/SlotAllocatorTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/memory/SlotAllocator.java jrdb-core/src/test/java/com/jrdb/core/memory/SlotAllocatorTest.java
 git commit -m "feat(core): add SlotAllocator with bitmap marking"
 ```
 
@@ -639,14 +639,14 @@ git commit -m "feat(core): add SlotAllocator with bitmap marking"
 ## Task 5: MemoryPool - 内存池核心
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryPool.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryBlock.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/memory/MemoryPoolTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/memory/MemoryPool.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/memory/MemoryBlock.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/memory/MemoryPoolTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -755,13 +755,13 @@ class MemoryPoolTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=MemoryPoolTest`
+Run: `cd jrdb-core && mvn test -Dtest=MemoryPoolTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现MemoryBlock**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import sun.misc.Unsafe;
 
@@ -874,7 +874,7 @@ public class MemoryBlock {
 - [ ] **Step 4: 实现MemoryPool**
 
 ```java
-package cn.itcraft.dbmmap.core.memory;
+package cn.itcraft.jrdb.core.memory;
 
 import sun.misc.Unsafe;
 
@@ -947,40 +947,40 @@ public class MemoryPool {
 
 - [ ] **Step 5: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=MemoryPoolTest`
+Run: `cd jrdb-core && mvn test -Dtest=MemoryPoolTest`
 Expected: PASS - 10 tests
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryPool.java dbmmap-core/src/main/java/com/dbmmap/core/memory/MemoryBlock.java dbmmap-core/src/test/java/com/dbmmap/core/memory/MemoryPoolTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/memory/MemoryPool.java jrdb-core/src/main/java/com/jrdb/core/memory/MemoryBlock.java jrdb-core/src/test/java/com/jrdb/core/memory/MemoryPoolTest.java
 git commit -m "feat(core): add MemoryPool with off-heap allocation"
 ```
 
 ---
 
-## Task 6: DbMmapConfig - 全局配置
+## Task 6: JrdbConfig - 全局配置
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/config/OverflowStrategy.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/config/DbMmapConfig.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/config/DbMmapConfigTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/config/OverflowStrategy.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/config/JrdbConfig.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/config/JrdbConfigTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.config;
+package cn.itcraft.jrdb.core.config;
 
-import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class DbMmapConfigTest {
+class JrdbConfigTest {
 
     @Test
     void shouldCreateWithDefaults() {
-        DbMmapConfig config = DbMmapConfig.builder().build();
+        JrdbConfig config = JrdbConfig.builder().build();
         assertNotNull(config.getMemoryPoolConfig());
         assertEquals(OverflowStrategy.ERROR, config.getOverflowStrategy());
     }
@@ -992,7 +992,7 @@ class DbMmapConfigTest {
                 .queryCacheSize(32L * 1024 * 1024)
                 .build();
         
-        DbMmapConfig config = DbMmapConfig.builder()
+        JrdbConfig config = JrdbConfig.builder()
                 .memoryPoolConfig(memConfig)
                 .overflowStrategy(OverflowStrategy.TRUNCATE)
                 .build();
@@ -1004,7 +1004,7 @@ class DbMmapConfigTest {
     @Test
     void shouldValidateMemoryPoolConfig() {
         assertThrows(IllegalArgumentException.class, () ->
-            DbMmapConfig.builder().memoryPoolConfig(null).build()
+            JrdbConfig.builder().memoryPoolConfig(null).build()
         );
     }
 }
@@ -1012,13 +1012,13 @@ class DbMmapConfigTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=DbMmapConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=JrdbConfigTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现OverflowStrategy**
 
 ```java
-package cn.itcraft.dbmmap.core.config;
+package cn.itcraft.jrdb.core.config;
 
 public enum OverflowStrategy {
     ERROR,
@@ -1026,19 +1026,19 @@ public enum OverflowStrategy {
 }
 ```
 
-- [ ] **Step 4: 实现DbMmapConfig**
+- [ ] **Step 4: 实现JrdbConfig**
 
 ```java
-package cn.itcraft.dbmmap.core.config;
+package cn.itcraft.jrdb.core.config;
 
-import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 
-public class DbMmapConfig {
+public class JrdbConfig {
     
     private final MemoryPoolConfig memoryPoolConfig;
     private final OverflowStrategy overflowStrategy;
     
-    private DbMmapConfig(Builder builder) {
+    private JrdbConfig(Builder builder) {
         this.memoryPoolConfig = builder.memoryPoolConfig;
         this.overflowStrategy = builder.overflowStrategy;
         validate();
@@ -1076,8 +1076,8 @@ public class DbMmapConfig {
             return this;
         }
         
-        public DbMmapConfig build() {
-            return new DbMmapConfig(this);
+        public JrdbConfig build() {
+            return new JrdbConfig(this);
         }
     }
 }
@@ -1085,14 +1085,14 @@ public class DbMmapConfig {
 
 - [ ] **Step 5: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=DbMmapConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=JrdbConfigTest`
 Expected: PASS - 3 tests
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/config/OverflowStrategy.java dbmmap-core/src/main/java/com/dbmmap/core/config/DbMmapConfig.java dbmmap-core/src/test/java/com/dbmmap/core/config/DbMmapConfigTest.java
-git commit -m "feat(core): add DbMmapConfig and OverflowStrategy"
+git add jrdb-core/src/main/java/com/jrdb/core/config/OverflowStrategy.java jrdb-core/src/main/java/com/jrdb/core/config/JrdbConfig.java jrdb-core/src/test/java/com/jrdb/core/config/JrdbConfigTest.java
+git commit -m "feat(core): add JrdbConfig and OverflowStrategy"
 ```
 
 ---
@@ -1100,13 +1100,13 @@ git commit -m "feat(core): add DbMmapConfig and OverflowStrategy"
 ## Task 7: StoreConfig - 存储配置
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/storage/StoreConfig.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/storage/StoreConfigTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/storage/StoreConfig.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/storage/StoreConfigTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
 import org.junit.jupiter.api.Test;
 
@@ -1132,13 +1132,13 @@ class StoreConfigTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=StoreConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=StoreConfigTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现StoreType枚举**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
 public enum StoreType {
     ROW,
@@ -1150,7 +1150,7 @@ public enum StoreType {
 - [ ] **Step 4: 实现StoreConfig**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
 public class StoreConfig {
     
@@ -1185,13 +1185,13 @@ public class StoreConfig {
 
 - [ ] **Step 5: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=StoreConfigTest`
+Run: `cd jrdb-core && mvn test -Dtest=StoreConfigTest`
 Expected: PASS - 2 tests
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/storage/StoreType.java dbmmap-core/src/main/java/com/dbmmap/core/storage/StoreConfig.java dbmmap-core/src/test/java/com/dbmmap/core/storage/StoreConfigTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/storage/StoreType.java jrdb-core/src/main/java/com/jrdb/core/storage/StoreConfig.java jrdb-core/src/test/java/com/jrdb/core/storage/StoreConfigTest.java
 git commit -m "feat(core): add StoreConfig and StoreType"
 ```
 
@@ -1200,18 +1200,18 @@ git commit -m "feat(core): add StoreConfig and StoreType"
 ## Task 8: RowStore - 行存储实现
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/storage/ColumnMeta.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/storage/RowStore.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/storage/RowStoreTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/storage/ColumnMeta.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/storage/RowStore.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/storage/RowStoreTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1301,13 +1301,13 @@ class RowStoreTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=RowStoreTest`
+Run: `cd jrdb-core && mvn test -Dtest=RowStoreTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现ColumnMeta**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
 public class ColumnMeta {
     
@@ -1338,9 +1338,9 @@ public class ColumnMeta {
 - [ ] **Step 4: 实现RowStore**
 
 ```java
-package cn.itcraft.dbmmap.core.storage;
+package cn.itcraft.jrdb.core.storage;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
@@ -1447,13 +1447,13 @@ import java.util.Arrays;
 
 - [ ] **Step 6: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=RowStoreTest`
+Run: `cd jrdb-core && mvn test -Dtest=RowStoreTest`
 Expected: PASS - 4 tests
 
 - [ ] **Step 7: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/storage/ColumnMeta.java dbmmap-core/src/main/java/com/dbmmap/core/storage/RowStore.java dbmmap-core/src/test/java/com/dbmmap/core/storage/RowStoreTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/storage/ColumnMeta.java jrdb-core/src/main/java/com/jrdb/core/storage/RowStore.java jrdb-core/src/test/java/com/jrdb/core/storage/RowStoreTest.java
 git commit -m "feat(core): add RowStore for row-based storage"
 ```
 
@@ -1462,20 +1462,20 @@ git commit -m "feat(core): add RowStore for row-based storage"
 ## Task 9: QueryResult - 查询结果API
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/query/QueryResult.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/query/QueryResultImpl.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/query/QueryResultTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/query/QueryResult.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/query/QueryResultImpl.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/query/QueryResultTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.query;
+package cn.itcraft.jrdb.core.query;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
-import cn.itcraft.dbmmap.core.storage.ColumnMeta;
-import cn.itcraft.dbmmap.core.storage.RowStore;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.storage.ColumnMeta;
+import cn.itcraft.jrdb.core.storage.RowStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1575,13 +1575,13 @@ class QueryResultTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=QueryResultTest`
+Run: `cd jrdb-core && mvn test -Dtest=QueryResultTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现QueryResult接口**
 
 ```java
-package cn.itcraft.dbmmap.core.query;
+package cn.itcraft.jrdb.core.query;
 
 public interface QueryResult extends AutoCloseable {
     
@@ -1621,11 +1621,11 @@ public interface QueryResult extends AutoCloseable {
 - [ ] **Step 4: 实现QueryResultImpl**
 
 ```java
-package cn.itcraft.dbmmap.core.query;
+package cn.itcraft.jrdb.core.query;
 
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.storage.RowStore;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.storage.RowStore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -1773,13 +1773,13 @@ public class QueryResultImpl implements QueryResult {
 
 - [ ] **Step 5: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=QueryResultTest`
+Run: `cd jrdb-core && mvn test -Dtest=QueryResultTest`
 Expected: PASS - 7 tests
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/query/QueryResult.java dbmmap-core/src/main/java/com/dbmmap/core/query/QueryResultImpl.java dbmmap-core/src/test/java/com/dbmmap/core/query/QueryResultTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/query/QueryResult.java jrdb-core/src/main/java/com/jrdb/core/query/QueryResultImpl.java jrdb-core/src/test/java/com/jrdb/core/query/QueryResultTest.java
 git commit -m "feat(core): add QueryResult API with row iteration"
 ```
 
@@ -1788,18 +1788,18 @@ git commit -m "feat(core): add QueryResult API with row iteration"
 ## Task 10: Session - 会话管理
 
 **Files:**
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/session/Session.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/session/SessionImpl.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/session/SessionFactory.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/session/SessionTest.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/session/Session.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/session/SessionImpl.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/session/SessionFactory.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/session/SessionTest.java`
 
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package cn.itcraft.dbmmap.core.session;
+package cn.itcraft.jrdb.core.session;
 
-import cn.itcraft.dbmmap.core.config.DbMmapConfig;
-import cn.itcraft.dbmmap.core.query.QueryResult;
+import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.query.QueryResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1813,7 +1813,7 @@ class SessionTest {
 
     @BeforeEach
     void setUp() {
-        DbMmapConfig config = DbMmapConfig.builder().build();
+        JrdbConfig config = JrdbConfig.builder().build();
         factory = new SessionFactory(config);
         session = factory.openSession();
     }
@@ -1855,16 +1855,16 @@ class SessionTest {
 
 - [ ] **Step 2: 运行测试验证失败**
 
-Run: `cd dbmmap-core && mvn test -Dtest=SessionTest`
+Run: `cd jrdb-core && mvn test -Dtest=SessionTest`
 Expected: FAIL - class not found
 
 - [ ] **Step 3: 实现Session接口**
 
 ```java
-package cn.itcraft.dbmmap.core.session;
+package cn.itcraft.jrdb.core.session;
 
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.query.QueryResult;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.query.QueryResult;
 
 import java.sql.Connection;
 import java.util.function.Function;
@@ -1890,27 +1890,27 @@ public interface Session extends AutoCloseable {
 - [ ] **Step 4: 实现SessionFactory**
 
 ```java
-package cn.itcraft.dbmmap.core.session;
+package cn.itcraft.jrdb.core.session;
 
-import cn.itcraft.dbmmap.core.config.DbMmapConfig;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 
 import javax.sql.DataSource;
 
 public class SessionFactory {
     
-    private final DbMmapConfig config;
+    private final JrdbConfig config;
     private final MemoryPool memoryPool;
     private volatile boolean closed;
     
-    public SessionFactory(DbMmapConfig config) {
+    public SessionFactory(JrdbConfig config) {
         this.config = config;
         this.memoryPool = new MemoryPool(config.getMemoryPoolConfig());
         this.closed = false;
     }
     
-    public SessionFactory(DbMmapConfig config, DataSource dataSource) {
+    public SessionFactory(JrdbConfig config, DataSource dataSource) {
         this(config);
     }
     
@@ -1938,15 +1938,15 @@ public class SessionFactory {
 - [ ] **Step 5: 实现SessionImpl**
 
 ```java
-package cn.itcraft.dbmmap.core.session;
+package cn.itcraft.jrdb.core.session;
 
-import cn.itcraft.dbmmap.core.config.DbMmapConfig;
-import cn.itcraft.dbmmap.core.memory.MemoryBlock;
-import cn.itcraft.dbmmap.core.memory.MemoryPool;
-import cn.itcraft.dbmmap.core.query.QueryResult;
-import cn.itcraft.dbmmap.core.query.QueryResultImpl;
-import cn.itcraft.dbmmap.core.storage.ColumnMeta;
-import cn.itcraft.dbmmap.core.storage.RowStore;
+import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.memory.MemoryBlock;
+import cn.itcraft.jrdb.core.memory.MemoryPool;
+import cn.itcraft.jrdb.core.query.QueryResult;
+import cn.itcraft.jrdb.core.query.QueryResultImpl;
+import cn.itcraft.jrdb.core.storage.ColumnMeta;
+import cn.itcraft.jrdb.core.storage.RowStore;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -1956,10 +1956,10 @@ import java.util.function.Function;
 public class SessionImpl implements Session {
     
     private final MemoryPool memoryPool;
-    private final DbMmapConfig config;
+    private final JrdbConfig config;
     private volatile boolean closed;
     
-    SessionImpl(MemoryPool memoryPool, DbMmapConfig config) {
+    SessionImpl(MemoryPool memoryPool, JrdbConfig config) {
         this.memoryPool = memoryPool;
         this.config = config;
         this.closed = false;
@@ -2029,13 +2029,13 @@ public class SessionImpl implements Session {
 
 - [ ] **Step 6: 运行测试验证通过**
 
-Run: `cd dbmmap-core && mvn test -Dtest=SessionTest`
+Run: `cd jrdb-core && mvn test -Dtest=SessionTest`
 Expected: PASS - 4 tests
 
 - [ ] **Step 7: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/session/Session.java dbmmap-core/src/main/java/com/dbmmap/core/session/SessionImpl.java dbmmap-core/src/main/java/com/dbmmap/core/session/SessionFactory.java dbmmap-core/src/test/java/com/dbmmap/core/session/SessionTest.java
+git add jrdb-core/src/main/java/com/jrdb/core/session/Session.java jrdb-core/src/main/java/com/jrdb/core/session/SessionImpl.java jrdb-core/src/main/java/com/jrdb/core/session/SessionFactory.java jrdb-core/src/test/java/com/jrdb/core/session/SessionTest.java
 git commit -m "feat(core): add Session and SessionFactory for resource management"
 ```
 
@@ -2044,21 +2044,21 @@ git commit -m "feat(core): add Session and SessionFactory for resource managemen
 ## Task 11: 集成现有JDBC批处理文件
 
 **Files:**
-- Move: `BatchOperator.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/BatchOperator.java`
-- Move: `JdbcSqlBox.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcSqlBox.java`
-- Move: `JdbcBatchOperator.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcBatchOperator.java`
-- Move: `JdbcHelper.java` → `dbmmap-core/src/main/java/com/dbmmap/core/jdbc/JdbcHelper.java`
-- Create: `dbmmap-core/src/main/java/com/dbmmap/core/util/CheckThrowUtil.java`
-- Create: `dbmmap-core/src/test/java/com/dbmmap/core/jdbc/JdbcHelperTest.java`
+- Move: `BatchOperator.java` → `jrdb-core/src/main/java/com/jrdb/core/jdbc/BatchOperator.java`
+- Move: `JdbcSqlBox.java` → `jrdb-core/src/main/java/com/jrdb/core/jdbc/JdbcSqlBox.java`
+- Move: `JdbcBatchOperator.java` → `jrdb-core/src/main/java/com/jrdb/core/jdbc/JdbcBatchOperator.java`
+- Move: `JdbcHelper.java` → `jrdb-core/src/main/java/com/jrdb/core/jdbc/JdbcHelper.java`
+- Create: `jrdb-core/src/main/java/com/jrdb/core/util/CheckThrowUtil.java`
+- Create: `jrdb-core/src/test/java/com/jrdb/core/jdbc/JdbcHelperTest.java`
 
 - [ ] **Step 1: 创建jdbc目录**
 
-Run: `mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/jdbc dbmmap-core/src/main/java/com/dbmmap/core/util dbmmap-core/src/test/java/com/dbmmap/core/jdbc`
+Run: `mkdir -p jrdb-core/src/main/java/com/jrdb/core/jdbc jrdb-core/src/main/java/com/jrdb/core/util jrdb-core/src/test/java/com/jrdb/core/jdbc`
 
 - [ ] **Step 2: 实现CheckThrowUtil（替代demo.commons依赖）**
 
 ```java
-package cn.itcraft.dbmmap.core.util;
+package cn.itcraft.jrdb.core.util;
 
 public final class CheckThrowUtil {
     
@@ -2077,7 +2077,7 @@ public final class CheckThrowUtil {
 修改包名和import：
 
 ```java
-package cn.itcraft.dbmmap.core.jdbc;
+package cn.itcraft.jrdb.core.jdbc;
 
 import java.util.List;
 
@@ -2093,9 +2093,9 @@ public interface BatchOperator {
 修改包名和import：
 
 ```java
-package cn.itcraft.dbmmap.core.jdbc;
+package cn.itcraft.jrdb.core.jdbc;
 
-import static cn.itcraft.dbmmap.core.util.CheckThrowUtil.ifMatchThrow;
+import static cn.itcraft.jrdb.core.util.CheckThrowUtil.ifMatchThrow;
 
 public interface JdbcSqlBox<T> {
     String sqlTemplate();
@@ -2117,7 +2117,7 @@ public interface JdbcSqlBox<T> {
 修改包名和import：
 
 ```java
-package cn.itcraft.dbmmap.core.jdbc;
+package cn.itcraft.jrdb.core.jdbc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2181,7 +2181,7 @@ public class JdbcBatchOperator implements BatchOperator {
 修改包名：
 
 ```java
-package cn.itcraft.dbmmap.core.jdbc;
+package cn.itcraft.jrdb.core.jdbc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2266,7 +2266,7 @@ final class JdbcHelper {
 }
 ```
 
-- [ ] **Step 7: 添加slf4j依赖到dbmmap-core/pom.xml**
+- [ ] **Step 7: 添加slf4j依赖到jrdb-core/pom.xml**
 
 在dependencies中添加：
 
@@ -2287,7 +2287,7 @@ final class JdbcHelper {
 - [ ] **Step 8: 编写JdbcHelper单元测试**
 
 ```java
-package cn.itcraft.dbmmap.core.jdbc;
+package cn.itcraft.jrdb.core.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -2348,7 +2348,7 @@ class JdbcHelperTest {
 
 - [ ] **Step 9: 运行测试验证**
 
-Run: `cd dbmmap-core && mvn test -Dtest=JdbcHelperTest`
+Run: `cd jrdb-core && mvn test -Dtest=JdbcHelperTest`
 Expected: PASS - 4 tests
 
 - [ ] **Step 10: 删除根目录旧文件**
@@ -2358,7 +2358,7 @@ Run: `rm BatchOperator.java JdbcSqlBox.java JdbcBatchOperator.java JdbcHelper.ja
 - [ ] **Step 11: 提交**
 
 ```bash
-git add dbmmap-core/src/main/java/com/dbmmap/core/jdbc/ dbmmap-core/src/main/java/com/dbmmap/core/util/ dbmmap-core/src/test/java/com/dbmmap/core/jdbc/ dbmmap-core/pom.xml
+git add jrdb-core/src/main/java/com/jrdb/core/jdbc/ jrdb-core/src/main/java/com/jrdb/core/util/ jrdb-core/src/test/java/com/jrdb/core/jdbc/ jrdb-core/pom.xml
 git commit -m "feat(core): integrate JDBC batch operator utilities"
 ```
 
@@ -2371,12 +2371,12 @@ git commit -m "feat(core): integrate JDBC batch operator utilities"
 
 - [ ] **Step 1: 运行所有测试**
 
-Run: `cd dbmmap-core && mvn test`
+Run: `cd jrdb-core && mvn test`
 Expected: All tests pass
 
 - [ ] **Step 2: 检查测试覆盖率**
 
-Run: `cd dbmmap-core && mvn test -q`
+Run: `cd jrdb-core && mvn test -q`
 Expected: Build success
 
 ---
@@ -2388,7 +2388,7 @@ Expected: Build success
 
 - [ ] **Step 1: 最终验证**
 
-Run: `cd dbmmap-core && mvn clean test`
+Run: `cd jrdb-core && mvn clean test`
 Expected: BUILD SUCCESS
 
 - [ ] **Step 2: 提交Phase 1完成**

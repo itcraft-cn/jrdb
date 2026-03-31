@@ -62,7 +62,7 @@
 
 ```java
 // 场景1：配置 L2 缓存
-DbMmapConfig config = DbMmapConfig.builder()
+JrdbConfig config = JrdbConfig.builder()
     .cacheLevel(CacheLevel.L2)
     .resultCacheSize(1000)
     .resultCacheExpireSeconds(300)

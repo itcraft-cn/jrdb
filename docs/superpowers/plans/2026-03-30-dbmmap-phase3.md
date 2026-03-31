@@ -1,8 +1,8 @@
-# dbmmap Phase 3 实现计划
+# jrdb Phase 3 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan.
 
-**Goal:** 实现dbmmap SQL构建能力 - 字符串构建器、模板引擎、DSL构建器
+**Goal:** 实现jrdb SQL构建能力 - 字符串构建器、模板引擎、DSL构建器
 
 **Architecture:** SqlBuilder链式API；SqlTemplate模板解析（支持#{}和${}占位符）；SqlDsl流式API构建SELECT/INSERT/UPDATE/DELETE。
 
@@ -13,7 +13,7 @@
 ## 文件结构
 
 ```
-dbmmap-core/src/main/java/com/dbmmap/core/sql/
+jrdb-core/src/main/java/com/jrdb/core/sql/
 ├── SqlBuilder.java              # 字符串构建器
 ├── SqlTemplate.java             # 模板引擎
 ├── SqlDsl.java                  # DSL入口
@@ -24,7 +24,7 @@ dbmmap-core/src/main/java/com/dbmmap/core/sql/
 │   └── DeleteBuilder.java       # DELETE构建器
 └── SqlSegment.java              # SQL片段
 
-dbmmap-core/src/test/java/com/dbmmap/core/sql/
+jrdb-core/src/test/java/com/jrdb/core/sql/
 ├── SqlBuilderTest.java
 ├── SqlTemplateTest.java
 └── SqlDslTest.java
@@ -35,8 +35,8 @@ dbmmap-core/src/test/java/com/dbmmap/core/sql/
 ## Task 1: SqlBuilder字符串构建器
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/SqlBuilder.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/SqlBuilderTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/SqlBuilder.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/SqlBuilderTest.java`
 
 **SqlBuilder API:**
 ```java
@@ -63,9 +63,9 @@ Object[] params = builder.getParams();
 ## Task 2: SqlTemplate模板引擎
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/SqlTemplate.java`
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/BoundSql.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/SqlTemplateTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/SqlTemplate.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/BoundSql.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/SqlTemplateTest.java`
 
 **模板语法:**
 - `#{param}` - 参数占位符，生成?并收集参数
@@ -98,8 +98,8 @@ BoundSql boundSql = SqlTemplate.process(template, params);
 ## Task 3: SelectBuilder DSL
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/dsl/SelectBuilder.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/SelectBuilderTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/dsl/SelectBuilder.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/SelectBuilderTest.java`
 
 **API:**
 ```java
@@ -130,8 +130,8 @@ BoundSql sql = SqlDsl.select("id", "name", "age")
 ## Task 4: InsertBuilder DSL
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/dsl/InsertBuilder.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/InsertBuilderTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/dsl/InsertBuilder.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/InsertBuilderTest.java`
 
 **API:**
 ```java
@@ -158,8 +158,8 @@ BoundSql sql = SqlDsl.insertInto("users")
 ## Task 5: UpdateBuilder DSL
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/dsl/UpdateBuilder.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/UpdateBuilderTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/dsl/UpdateBuilder.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/UpdateBuilderTest.java`
 
 **API:**
 ```java
@@ -176,8 +176,8 @@ BoundSql sql = SqlDsl.update("users")
 ## Task 6: DeleteBuilder DSL
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/dsl/DeleteBuilder.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/DeleteBuilderTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/dsl/DeleteBuilder.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/DeleteBuilderTest.java`
 
 **API:**
 ```java
@@ -192,9 +192,9 @@ BoundSql sql = SqlDsl.deleteFrom("users")
 ## Task 7: SqlDsl入口和SqlSegment
 
 **Files:**
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/SqlDsl.java`
-- `dbmmap-core/src/main/java/com/dbmmap/core/sql/SqlSegment.java`
-- `dbmmap-core/src/test/java/com/dbmmap/core/sql/SqlDslTest.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/SqlDsl.java`
+- `jrdb-core/src/main/java/com/jrdb/core/sql/SqlSegment.java`
+- `jrdb-core/src/test/java/com/jrdb/core/sql/SqlDslTest.java`
 
 **SqlDsl:**
 ```java

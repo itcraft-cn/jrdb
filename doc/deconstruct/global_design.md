@@ -1,8 +1,8 @@
-# dbmmap 全局设计文档
+# jrdb 全局设计文档
 
 ## 项目概述
 
-dbmmap 是一个高性能数据库映射框架，核心特点是使用堆外内存（Off-Heap Memory）存储查询结果，通过 `sun.misc.Unsafe` 直接操作内存，避免 GC 压力，提供极致的查询性能。
+jrdb 是一个高性能数据库映射框架，核心特点是使用堆外内存（Off-Heap Memory）存储查询结果，通过 `sun.misc.Unsafe` 直接操作内存，避免 GC 压力，提供极致的查询性能。
 
 ## 架构总览
 
@@ -72,7 +72,7 @@ flowchart TB
 | mapping | 实体映射 | MapperRegistry, EntityMapper, MapperClassGenerator |
 | sql | SQL 构建 | SqlDsl, BoundSql, SqlTemplate |
 | cache | 查询缓存 | QueryResultCache, CachedQueryResult |
-| config | 配置管理 | DbMmapConfig, CacheLevel |
+| config | 配置管理 | JrdbConfig, CacheLevel |
 | transaction | 事务管理 | TransactionManager, Transaction |
 | type | 类型处理 | TypeHandler, TypeHandlerRegistry |
 
@@ -81,7 +81,7 @@ flowchart TB
 | 模块 | 职责 |
 |------|------|
 | jdbc | JDBC 辅助工具 |
-| dbmmap-spring-boot-starter | Spring Boot 自动配置 |
+| jrdb-spring-boot-starter | Spring Boot 自动配置 |
 
 ## 数据流架构
 
@@ -239,7 +239,7 @@ public enum OverflowStrategy {
 
 ## 与主流框架对比
 
-| 特性 | dbmmap | MyBatis | Hibernate |
+| 特性 | jrdb | MyBatis | Hibernate |
 |------|--------|---------|-----------|
 | 内存模型 | 堆外内存 | 堆内存 | 堆内存 |
 | GC 影响 | 低 | 中 | 高 |
