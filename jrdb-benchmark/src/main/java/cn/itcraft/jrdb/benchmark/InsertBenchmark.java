@@ -91,7 +91,7 @@ public class InsertBenchmark {
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
             JrdbConfig config = JrdbConfig.builder()
-                    .cacheLevel(CacheLevel.NONE)
+                    .cacheLevel(CacheLevel.L1)
                     .build();
             session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
             dataSource = shared.dataSource;
