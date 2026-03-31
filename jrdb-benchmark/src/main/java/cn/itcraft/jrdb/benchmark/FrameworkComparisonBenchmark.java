@@ -4,10 +4,12 @@ import cn.itcraft.jrdb.benchmark.entity.User;
 import cn.itcraft.jrdb.benchmark.entity.UserEntity;
 import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import cn.itcraft.jrdb.core.query.QueryResult;
 import cn.itcraft.jrdb.core.session.SessionImpl;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.SqlSession;
@@ -41,6 +43,7 @@ public class FrameworkComparisonBenchmark {
     public static class SharedState {
         DataSource dataSource;
         MemoryPool memoryPool;
+        MapperRegistry mapperRegistry;
 
         @Setup(Level.Trial)
         public void setup() throws SQLException {
@@ -68,6 +71,9 @@ public class FrameworkComparisonBenchmark {
                 .queryCacheSize(4 * 1024 * 1024)
                 .build();
             memoryPool = new MemoryPool(poolConfig);
+
+            TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
+            mapperRegistry = new MapperRegistry(typeHandlerRegistry);
         }
 
         @TearDown(Level.Trial)
@@ -85,7 +91,7 @@ public class FrameworkComparisonBenchmark {
             JrdbConfig config = JrdbConfig.builder()
                 .cacheLevel(CacheLevel.NONE)
                 .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
 
         @TearDown(Level.Trial)
@@ -104,7 +110,7 @@ public class FrameworkComparisonBenchmark {
                 .cacheLevel(CacheLevel.L1)
                 .statementCacheSize(256)
                 .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
 
         @TearDown(Level.Trial)
@@ -125,7 +131,7 @@ public class FrameworkComparisonBenchmark {
                 .resultCacheSize(1000)
                 .resultCacheExpireSeconds(300)
                 .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
 
         @TearDown(Level.Trial)

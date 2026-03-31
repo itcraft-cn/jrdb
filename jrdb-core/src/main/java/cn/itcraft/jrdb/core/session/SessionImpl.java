@@ -7,6 +7,7 @@ import cn.itcraft.jrdb.core.config.JrdbConfig;
 import cn.itcraft.jrdb.core.handler.RowHandler;
 import cn.itcraft.jrdb.core.handler.RowMeta;
 import cn.itcraft.jrdb.core.mapping.EntityMapper;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryBlock;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.query.QueryResult;
@@ -137,6 +138,11 @@ public class SessionImpl implements Session {
     private final QueryAction queryAction;
 
     /**
+     * 实体映射器注册表，用于获取ASM生成的映射器。
+     */
+    private final MapperRegistry mapperRegistry;
+
+    /**
      * 线程本地行缓冲区，用于流式行处理时存储单行数据。
      */
     private final ThreadLocal<byte[]> rowBuffer;
@@ -161,12 +167,14 @@ public class SessionImpl implements Session {
      *   <li>L2：在L1基础上增加结果缓存</li>
      * </ul>
      *
-     * @param memoryPool 内存池，用于分配堆外内存，不能为null
-     * @param config     jrdb配置对象，不能为null
-     * @param dataSource 数据源，用于获取数据库连接，不能为null
+     * @param memoryPool     内存池，用于分配堆外内存，不能为null
+     * @param config         jrdb配置对象，不能为null
+     * @param dataSource     数据源，用于获取数据库连接，不能为null
+     * @param mapperRegistry 实体映射器注册表，不能为null
      * @throws NullPointerException 如果任一参数为null
      */
-    public SessionImpl(MemoryPool memoryPool, JrdbConfig config, DataSource dataSource) {
+    public SessionImpl(MemoryPool memoryPool, JrdbConfig config, 
+                       DataSource dataSource, MapperRegistry mapperRegistry) {
         if (memoryPool == null) {
             throw new NullPointerException("memoryPool cannot be null");
         }
@@ -176,9 +184,13 @@ public class SessionImpl implements Session {
         if (dataSource == null) {
             throw new NullPointerException("dataSource cannot be null");
         }
+        if (mapperRegistry == null) {
+            throw new NullPointerException("mapperRegistry cannot be null");
+        }
         this.memoryPool = memoryPool;
         this.config = config;
         this.dataSource = dataSource;
+        this.mapperRegistry = mapperRegistry;
 
         if (config.isL1CacheEnabled()) {
             this.statementCache = createLruCache(config.getStatementCacheSize());
@@ -254,6 +266,74 @@ public class SessionImpl implements Session {
             throw new IllegalStateException("Session is closed");
         }
         return queryAction.query(sql, params);
+    }
+
+    @Override
+    public <T> T queryForObject(String sql, Class<T> entityClass, Object... params) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (entityClass == null) {
+            throw new NullPointerException("entityClass cannot be null");
+        }
+
+        EntityMapper<T> mapper = mapperRegistry.getMapper(entityClass);
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = getOrCreateStatement(sql, conn);
+            setParameters(ps, params);
+
+            ResultSet rs = ps.executeQuery();
+            T result = null;
+            if (rs.next()) {
+                result = mapper.mapFromResultSet(rs);
+            }
+            rs.close();
+
+            if (!config.isL1CacheEnabled()) {
+                ps.close();
+            }
+
+            return result;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Query for object failed: " + sql, e);
+        }
+    }
+
+    @Override
+    public <T> List<T> queryForList(String sql, Class<T> entityClass, Object... params) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (entityClass == null) {
+            throw new NullPointerException("entityClass cannot be null");
+        }
+
+        EntityMapper<T> mapper = mapperRegistry.getMapper(entityClass);
+        List<T> results = new ArrayList<>();
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = getOrCreateStatement(sql, conn);
+            setParameters(ps, params);
+
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                results.add(mapper.mapFromResultSet(rs));
+            }
+            rs.close();
+
+            if (!config.isL1CacheEnabled()) {
+                ps.close();
+            }
+
+            return results;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Query for list failed: " + sql, e);
+        }
     }
 
     /**

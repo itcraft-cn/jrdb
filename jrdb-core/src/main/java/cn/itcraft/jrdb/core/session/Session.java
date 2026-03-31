@@ -14,6 +14,7 @@ import java.util.function.Function;
  * <p>Session是jrdb框架的主要入口点，支持：
  * <ul>
  *   <li>SQL查询 - 返回QueryResult对象</li>
+ *   <li>实体查询 - 通过ASM映射返回实体对象</li>
  *   <li>流式查询 - 通过RowHandler处理原始字节数据</li>
  *   <li>更新操作 - INSERT/UPDATE/DELETE</li>
  *   <li>批量操作 - 批量执行同一SQL</li>
@@ -22,15 +23,18 @@ import java.util.function.Function;
  * <p>使用示例：
  * <pre>{@code
  * try (Session session = sessionFactory.openSession()) {
+ *     // 原始查询
  *     QueryResult result = session.query("SELECT * FROM users WHERE id = ?", 1L);
- *     if (result.next()) {
- *         String name = result.getString("NAME");
- *     }
+ *     
+ *     // ASM实体查询
+ *     User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+ *     List<User> users = session.queryForList("SELECT * FROM users", User.class);
  * }
  * }</pre>
  *
  * @see QueryResult
  * @see RowHandler
+ * @see EntityMapper
  */
 public interface Session extends AutoCloseable {
 
@@ -62,6 +66,33 @@ public interface Session extends AutoCloseable {
      * @return handler处理后的结果
      */
     <T> T query(String sql, Function<QueryResult, T> handler);
+
+    /**
+     * 查询单个实体对象（ASM映射）。
+     *
+     * <p>使用ASM动态生成的映射器将ResultSet转换为实体对象。
+     * 如果查询结果为空，返回null。
+     *
+     * @param sql         SQL语句
+     * @param entityClass 实体类
+     * @param params      参数值数组
+     * @param <T>         实体类型
+     * @return 实体对象，如果无结果则返回null
+     */
+    <T> T queryForObject(String sql, Class<T> entityClass, Object... params);
+
+    /**
+     * 查询实体列表（ASM映射）。
+     *
+     * <p>使用ASM动态生成的映射器将ResultSet转换为实体列表。
+     *
+     * @param sql         SQL语句
+     * @param entityClass 实体类
+     * @param params      参数值数组
+     * @param <T>         实体类型
+     * @return 实体列表，不会返回null
+     */
+    <T> List<T> queryForList(String sql, Class<T> entityClass, Object... params);
 
     /**
      * 使用RowHandler流式处理查询结果。

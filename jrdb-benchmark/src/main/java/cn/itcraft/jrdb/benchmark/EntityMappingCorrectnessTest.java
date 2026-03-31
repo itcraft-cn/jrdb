@@ -31,11 +31,13 @@ public class EntityMappingCorrectnessTest {
 
     public static void main(String[] args) throws SQLException {
         DataSource dataSource = createDataSource();
+        TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
+        MapperRegistry mapperRegistry = new MapperRegistry(typeHandlerRegistry);
         
         System.out.println("=== 正确性验证 ===\n");
         
-        testJrdbRaw(dataSource);
-        testJrdbAsm(dataSource);
+        testJrdbRaw(dataSource, mapperRegistry);
+        testJrdbAsm(dataSource, mapperRegistry);
         testJdbcManual(dataSource);
         testMyBatis(dataSource);
         testHibernate();
@@ -63,7 +65,7 @@ public class EntityMappingCorrectnessTest {
         return ds;
     }
 
-    static void testJrdbRaw(DataSource dataSource) throws SQLException {
+    static void testJrdbRaw(DataSource dataSource, MapperRegistry mapperRegistry) throws SQLException {
         System.out.println("1. jrdb_raw 测试:");
         
         MemoryPoolConfig poolConfig = MemoryPoolConfig.builder()
@@ -76,7 +78,7 @@ public class EntityMappingCorrectnessTest {
             .cacheLevel(CacheLevel.L1)
             .build();
         
-        try (SessionImpl session = new SessionImpl(memoryPool, config, dataSource)) {
+        try (SessionImpl session = new SessionImpl(memoryPool, config, dataSource, mapperRegistry)) {
             try (QueryResult result = session.query("SELECT id, name, age, email, status FROM users WHERE id = ?", 1L)) {
                 if (result != null && result.next()) {
                     long id = result.getLong("ID");
@@ -111,11 +113,9 @@ public class EntityMappingCorrectnessTest {
         System.out.println();
     }
 
-    static void testJrdbAsm(DataSource dataSource) throws SQLException {
+    static void testJrdbAsm(DataSource dataSource, MapperRegistry mapperRegistry) throws SQLException {
         System.out.println("2. jrdb_asm 测试:");
         
-        TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
-        MapperRegistry mapperRegistry = new MapperRegistry(typeHandlerRegistry);
         EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
 
         try (Connection conn = dataSource.getConnection();

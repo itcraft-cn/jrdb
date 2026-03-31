@@ -1,8 +1,10 @@
 package cn.itcraft.jrdb.core.session;
 
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 
 import javax.sql.DataSource;
 
@@ -12,18 +14,19 @@ import javax.sql.DataSource;
  * <p>{@code SessionFactory} 是 jrdb 框架的核心入口点，负责：
  * <ul>
  *   <li>管理内存池的生命周期</li>
+ *   <li>管理实体映射器注册表</li>
  *   <li>创建 {@link Session} 实例</li>
  *   <li>持有数据源引用</li>
  * </ul>
  *
  * <p>使用示例：
  * <pre>{@code
- * JrdbConfig config = new JrdbConfig();
+ * JrdbConfig config = JrdbConfig.builder().build();
  * DataSource dataSource = ...;
  * SessionFactory factory = new SessionFactory(config, dataSource);
- * Session session = factory.openSession();
- * // 使用 session...
- * session.close();
+ * try (Session session = factory.openSession()) {
+ *     User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+ * }
  * factory.close();
  * }</pre>
  *
@@ -33,12 +36,14 @@ import javax.sql.DataSource;
  * @see Session
  * @see JrdbConfig
  * @see MemoryPool
+ * @see MapperRegistry
  */
 public class SessionFactory {
 
     private final JrdbConfig config;
     private final MemoryPool memoryPool;
     private final DataSource dataSource;
+    private final MapperRegistry mapperRegistry;
     private volatile boolean closed;
 
     /**
@@ -56,7 +61,7 @@ public class SessionFactory {
     /**
      * 使用指定配置和数据源构造会话工厂。
      *
-     * @param config jrdb 配置，不能为null
+     * @param config     jrdb 配置，不能为null
      * @param dataSource 数据源，可为null但会导致 openSession 抛出异常
      * @throws NullPointerException 如果 config 为 null
      */
@@ -68,6 +73,7 @@ public class SessionFactory {
         this.dataSource = dataSource;
         MemoryPoolConfig poolConfig = config.getMemoryPoolConfig();
         this.memoryPool = new MemoryPool(poolConfig);
+        this.mapperRegistry = new MapperRegistry(new TypeHandlerRegistry());
         this.closed = false;
     }
 
@@ -87,7 +93,18 @@ public class SessionFactory {
         if (dataSource == null) {
             throw new IllegalStateException("DataSource not configured");
         }
-        return new SessionImpl(memoryPool, config, dataSource);
+        return new SessionImpl(memoryPool, config, dataSource, mapperRegistry);
+    }
+
+    /**
+     * 获取实体映射器注册表。
+     *
+     * <p>可通过此方法注册自定义映射配置。
+     *
+     * @return 映射器注册表实例
+     */
+    public MapperRegistry getMapperRegistry() {
+        return mapperRegistry;
     }
 
     /**

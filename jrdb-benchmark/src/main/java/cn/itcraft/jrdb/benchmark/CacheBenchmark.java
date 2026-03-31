@@ -2,10 +2,12 @@ package cn.itcraft.jrdb.benchmark;
 
 import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import cn.itcraft.jrdb.core.query.QueryResult;
 import cn.itcraft.jrdb.core.session.SessionImpl;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -29,12 +31,14 @@ public class CacheBenchmark {
     private SessionImpl sessionL2;
     private MemoryPool memoryPool;
     private DataSource dataSource;
+    private MapperRegistry mapperRegistry;
 
     @Setup(Level.Trial)
     public void setup() throws SQLException {
         dataSource = createDataSource();
         initDatabase();
         memoryPool = createMemoryPool();
+        mapperRegistry = new MapperRegistry(new TypeHandlerRegistry());
 
         JrdbConfig configNone = JrdbConfig.builder()
             .cacheLevel(CacheLevel.NONE)
@@ -52,9 +56,9 @@ public class CacheBenchmark {
             .resultCacheExpireSeconds(300)
             .build();
 
-        sessionNone = new SessionImpl(memoryPool, configNone, dataSource);
-        sessionL1 = new SessionImpl(memoryPool, configL1, dataSource);
-        sessionL2 = new SessionImpl(memoryPool, configL2, dataSource);
+        sessionNone = new SessionImpl(memoryPool, configNone, dataSource, mapperRegistry);
+        sessionL1 = new SessionImpl(memoryPool, configL1, dataSource, mapperRegistry);
+        sessionL2 = new SessionImpl(memoryPool, configL2, dataSource, mapperRegistry);
     }
 
     @TearDown(Level.Trial)

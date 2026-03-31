@@ -96,7 +96,7 @@ public class EntityMappingBenchmark {
                 .cacheLevel(CacheLevel.L1)
                 .statementCacheSize(256)
                 .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
 
         @TearDown(Level.Trial)

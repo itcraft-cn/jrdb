@@ -2,10 +2,12 @@ package cn.itcraft.jrdb.benchmark;
 
 import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import cn.itcraft.jrdb.core.query.QueryResult;
 import cn.itcraft.jrdb.core.session.SessionImpl;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -32,6 +34,7 @@ public class RowHandlerBenchmark {
     public static class SharedState {
         DataSource dataSource;
         MemoryPool memoryPool;
+        MapperRegistry mapperRegistry;
 
         @Setup(Level.Trial)
         public void setup() throws SQLException {
@@ -59,6 +62,7 @@ public class RowHandlerBenchmark {
                     .queryCacheSize(4 * 1024 * 1024)
                     .build();
             memoryPool = new MemoryPool(poolConfig);
+            mapperRegistry = new MapperRegistry(new TypeHandlerRegistry());
         }
 
         @TearDown(Level.Trial)
@@ -76,7 +80,7 @@ public class RowHandlerBenchmark {
             JrdbConfig config = JrdbConfig.builder()
                     .cacheLevel(CacheLevel.NONE)
                     .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
 
         @TearDown(Level.Trial)

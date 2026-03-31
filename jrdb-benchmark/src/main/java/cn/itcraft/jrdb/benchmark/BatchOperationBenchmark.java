@@ -132,7 +132,7 @@ public class BatchOperationBenchmark {
             JrdbConfig config = JrdbConfig.builder()
                     .cacheLevel(CacheLevel.NONE)
                     .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
             dataSource = shared.dataSource;
         }
 
@@ -162,7 +162,7 @@ public class BatchOperationBenchmark {
             JrdbConfig config = JrdbConfig.builder()
                     .cacheLevel(CacheLevel.NONE)
                     .build();
-            session = new SessionImpl(shared.memoryPool, config, shared.dataSource);
+            session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
             dataSource = shared.dataSource;
         }
 

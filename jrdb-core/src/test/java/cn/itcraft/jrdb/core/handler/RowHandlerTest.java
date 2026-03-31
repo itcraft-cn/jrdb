@@ -2,9 +2,11 @@ package cn.itcraft.jrdb.core.handler;
 
 import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.mapping.MapperRegistry;
 import cn.itcraft.jrdb.core.memory.MemoryPool;
 import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
 import cn.itcraft.jrdb.core.session.SessionImpl;
+import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +55,8 @@ class RowHandlerTest {
         JrdbConfig config = JrdbConfig.builder()
                 .cacheLevel(CacheLevel.NONE)
                 .build();
-        session = new SessionImpl(memoryPool, config, dataSource);
+        MapperRegistry mapperRegistry = new MapperRegistry(new TypeHandlerRegistry());
+        session = new SessionImpl(memoryPool, config, dataSource, mapperRegistry);
     }
 
     @AfterEach
