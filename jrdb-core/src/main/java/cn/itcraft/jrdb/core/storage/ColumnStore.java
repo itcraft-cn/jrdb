@@ -5,13 +5,18 @@ import cn.itcraft.jrdb.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
- * Column-oriented storage that organizes data by columns rather than rows.
- * Format: [col1_all_rows][col2_all_rows]...
- * Optimized for analytical queries and aggregations.
- * <p>
- * Supports both column-oriented and row-oriented memory layouts:
- * - Column format: [col0: all rows][col1: all rows]...
- * - Row format: [row0: all cols][row1: all cols]...
+ * 列式存储，按列组织数据而非按行。
+ *
+ * <p><b>⚠️ 实验性 API</b> - 当前版本未集成到查询流程，仅供高级用户手动使用。
+ *
+ * <p>格式: [col1_all_rows][col2_all_rows]...
+ * 适用于分析型查询和聚合操作。
+ *
+ * <p>支持两种内存布局：
+ * <ul>
+ *   <li>列格式: [col0: all rows][col1: all rows]...</li>
+ *   <li>行格式: [row0: all cols][row1: all cols]...</li>
+ * </ul>
  */
 public class ColumnStore {
 

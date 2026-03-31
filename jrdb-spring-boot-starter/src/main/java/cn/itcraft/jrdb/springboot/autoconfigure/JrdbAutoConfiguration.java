@@ -53,6 +53,7 @@ public class JrdbAutoConfiguration {
     @ConditionalOnMissingBean
     public JrdbConfig dbMmapConfig(JrdbProperties properties) {
         return JrdbConfig.builder()
+            .overflowStrategy(properties.getOverflowStrategy())
             .cacheLevel(properties.getCache().getLevel())
             .statementCacheSize(properties.getCache().getStatementCacheSize())
             .resultCacheSize(properties.getCache().getResultCacheSize())

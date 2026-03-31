@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.dbmmap.springboot.autoconfigure.DbMmapAutoConfiguration
+cn.itcraft.jrdb.springboot.autoconfigure.JrdbAutoConfiguration

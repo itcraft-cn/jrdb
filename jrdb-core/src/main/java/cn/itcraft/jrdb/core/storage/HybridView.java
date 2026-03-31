@@ -5,8 +5,11 @@ import cn.itcraft.jrdb.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
- * Hybrid view that allows switching between row and column storage modes.
- * Data is stored in memory block and can be accessed via RowStore or ColumnStore.
+ * 混合视图，允许在行式存储和列式存储模式间切换。
+ *
+ * <p><b>⚠️ 实验性 API</b> - 当前版本未集成到查询流程，仅供高级用户手动使用。
+ *
+ * <p>数据存储在内存块中，可通过 RowStore 或 ColumnStore 访问。
  */
 public class HybridView {
 

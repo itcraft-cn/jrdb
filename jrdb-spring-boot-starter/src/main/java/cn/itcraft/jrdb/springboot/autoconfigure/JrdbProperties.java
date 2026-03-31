@@ -1,6 +1,7 @@
 package cn.itcraft.jrdb.springboot.autoconfigure;
 
 import cn.itcraft.jrdb.core.config.CacheLevel;
+import cn.itcraft.jrdb.core.config.OverflowStrategy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "jrdb")
@@ -8,12 +9,17 @@ public class JrdbProperties {
 
     private boolean enabled = true;
 
+    private OverflowStrategy overflowStrategy = OverflowStrategy.ERROR;
+
     private MemoryPool memoryPool = new MemoryPool();
 
     private Cache cache = new Cache();
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public OverflowStrategy getOverflowStrategy() { return overflowStrategy; }
+    public void setOverflowStrategy(OverflowStrategy overflowStrategy) { this.overflowStrategy = overflowStrategy; }
 
     public MemoryPool getMemoryPool() { return memoryPool; }
     public void setMemoryPool(MemoryPool memoryPool) { this.memoryPool = memoryPool; }
