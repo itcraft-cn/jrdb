@@ -1060,9 +1060,17 @@ public class SessionImpl implements Session {
     }
 
     @Override
-    public Long insert(String sql, Object... params) {
+    public int delete(String sql, Object... params) {
+        return update(sql, params);
+    }
+
+    @Override
+    public <T> T insert(String sql, Class<T> keyType, Object... params) {
         if (closed) {
             throw new IllegalStateException("Session is closed");
+        }
+        if (keyType == null) {
+            throw new NullPointerException("keyType cannot be null");
         }
         try {
             Connection conn = getConnection();
@@ -1075,10 +1083,10 @@ public class SessionImpl implements Session {
                 return null;
             }
 
-            Long generatedKey = null;
+            T generatedKey = null;
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (rs.next()) {
-                    generatedKey = rs.getLong(1);
+                    generatedKey = extractKey(rs, keyType);
                 }
             }
 
@@ -1092,6 +1100,32 @@ public class SessionImpl implements Session {
         } catch (SQLException e) {
             throw new RuntimeException("Insert execution failed: " + sql, e);
         }
+    }
+
+    @Override
+    public int insert(String sql, Object... params) {
+        return update(sql, params);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T extractKey(ResultSet rs, Class<T> keyType) throws SQLException {
+        Object key = rs.getObject(1);
+        if (key == null) {
+            return null;
+        }
+        if (keyType.isInstance(key)) {
+            return (T) key;
+        }
+        if (keyType == Long.class || keyType == long.class) {
+            return (T) Long.valueOf(rs.getLong(1));
+        }
+        if (keyType == Integer.class || keyType == int.class) {
+            return (T) Integer.valueOf(rs.getInt(1));
+        }
+        if (keyType == String.class) {
+            return (T) rs.getString(1);
+        }
+        return (T) key;
     }
 
     /**
@@ -1208,6 +1242,74 @@ public class SessionImpl implements Session {
         } catch (SQLException e) {
             throw new RuntimeException("Batch execution failed: " + sql, e);
         }
+    }
+
+    @Override
+    public int[] batchDelete(String sql, List<Object[]> paramsList) {
+        return batchUpdate(sql, paramsList);
+    }
+
+    @Override
+    public <T> List<T> batchInsert(String sql, Class<T> keyType, List<Object[]> paramsList) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (keyType == null) {
+            throw new NullPointerException("keyType cannot be null");
+        }
+        if (paramsList == null || paramsList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<T> keys = new ArrayList<>(paramsList.size());
+
+        try {
+            Connection conn = getConnection();
+            PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            int batchCount = 0;
+            for (Object[] params : paramsList) {
+                setParameters(ps, params);
+                ps.addBatch();
+                batchCount++;
+
+                if (batchCount >= DEFAULT_BATCH_SIZE) {
+                    ps.executeBatch();
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        while (rs.next()) {
+                            keys.add(extractKey(rs, keyType));
+                        }
+                    }
+                    ps.clearBatch();
+                    batchCount = 0;
+                }
+            }
+
+            if (batchCount > 0) {
+                ps.executeBatch();
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    while (rs.next()) {
+                        keys.add(extractKey(rs, keyType));
+                    }
+                }
+            }
+
+            ps.close();
+
+            if (resultCache != null) {
+                resultCache.invalidateAll();
+            }
+
+            return keys;
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Batch insert failed: " + sql, e);
+        }
+    }
+
+    @Override
+    public int[] batchInsert(String sql, List<Object[]> paramsList) {
+        return batchUpdate(sql, paramsList);
     }
 
     /**

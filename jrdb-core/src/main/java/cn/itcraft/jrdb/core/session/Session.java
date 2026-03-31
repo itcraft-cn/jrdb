@@ -134,15 +134,42 @@ public interface Session extends AutoCloseable {
     int update(String sql, Object... params);
 
     /**
+     * 执行DELETE操作。
+     *
+     * <p>等价于 update(sql, params)，语义更清晰。
+     *
+     * @param sql    DELETE语句
+     * @param params 参数值数组（可空）
+     * @return 影响的行数
+     */
+    int delete(String sql, Object... params);
+
+    // ==================== Insert ====================
+
+    /**
      * 执行INSERT操作并返回生成的主键。
      *
      * <p>适用于单条INSERT，返回自增主键值。
+     * 主键类型由调用方指定，支持 Long、Integer、String 等类型。
+     *
+     * @param sql        INSERT语句
+     * @param keyType    主键类型
+     * @param params     参数值数组（可空）
+     * @param <T>        主键类型
+     * @return 生成的主键值，如果没有则返回null
+     */
+    <T> T insert(String sql, Class<T> keyType, Object... params);
+
+    /**
+     * 执行INSERT操作，不返回主键。
+     *
+     * <p>等价于 update(sql, params)，适用于不需要主键的场景。
      *
      * @param sql    INSERT语句
      * @param params 参数值数组（可空）
-     * @return 生成的主键值，如果没有则返回null
+     * @return 影响的行数
      */
-    Long insert(String sql, Object... params);
+    int insert(String sql, Object... params);
 
     // ==================== Batch ====================
 
@@ -157,6 +184,42 @@ public interface Session extends AutoCloseable {
      * @return 每次执行影响的行数数组
      */
     int[] batchUpdate(String sql, List<Object[]> paramsList);
+
+    /**
+     * 批量执行DELETE操作。
+     *
+     * <p>等价于 batchUpdate(sql, paramsList)，语义更清晰。
+     *
+     * @param sql        DELETE语句
+     * @param paramsList 参数列表，每个元素对应一次执行
+     * @return 每次执行影响的行数数组
+     */
+    int[] batchDelete(String sql, List<Object[]> paramsList);
+
+    /**
+     * 批量INSERT，返回生成的主键列表。
+     *
+     * <p>使用PreparedStatement的addBatch/executeBatch实现。
+     * 主键类型由调用方指定，支持 Long、Integer、String 等类型。
+     *
+     * @param sql        INSERT语句
+     * @param keyType    主键类型
+     * @param paramsList 参数列表，每个元素对应一次执行
+     * @param <T>        主键类型
+     * @return 生成的主键列表
+     */
+    <T> List<T> batchInsert(String sql, Class<T> keyType, List<Object[]> paramsList);
+
+    /**
+     * 批量INSERT，不返回主键。
+     *
+     * <p>等价于 batchUpdate(sql, paramsList)，适用于不需要主键的场景。
+     *
+     * @param sql        INSERT语句
+     * @param paramsList 参数列表，每个元素对应一次执行
+     * @return 每次执行影响的行数数组
+     */
+    int[] batchInsert(String sql, List<Object[]> paramsList);
 
     /**
      * 批量执行同一SQL语句（实体映射方式）。
