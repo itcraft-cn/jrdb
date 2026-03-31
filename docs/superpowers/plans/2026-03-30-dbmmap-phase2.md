@@ -122,7 +122,7 @@ git commit -m "feat: add ASM dependency for dynamic code generation"
 - [ ] **Step 1: 编写TypeHandler接口**
 
 ```java
-package com.dbmmap.core.type;
+package cn.itcraft.dbmmap.core.type;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -158,7 +158,7 @@ public interface TypeHandler<T> {
 - [ ] **Step 2: 编写TypeHandlerRegistry**
 
 ```java
-package com.dbmmap.core.type;
+package cn.itcraft.dbmmap.core.type;
 
 import java.math.BigDecimal;
 import java.sql.Types;
@@ -209,7 +209,7 @@ public class TypeHandlerRegistry {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package com.dbmmap.core.type;
+package cn.itcraft.dbmmap.core.type;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -277,9 +277,9 @@ git commit -m "feat(type): add TypeHandler interface and registry"
 - [ ] **Step 1: 实现IntegerTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -318,9 +318,9 @@ public class IntegerTypeHandler implements TypeHandler<Integer> {
 - [ ] **Step 2: 实现LongTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -359,9 +359,9 @@ public class LongTypeHandler implements TypeHandler<Long> {
 - [ ] **Step 3: 实现StringTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -398,9 +398,9 @@ public class StringTypeHandler implements TypeHandler<String> {
 - [ ] **Step 4: 实现BooleanTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -439,9 +439,9 @@ public class BooleanTypeHandler implements TypeHandler<Boolean> {
 - [ ] **Step 5: 编写综合测试**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -556,9 +556,9 @@ git commit -m "feat(type): add built-in type handlers (Integer, Long, String, Bo
 - [ ] **Step 1: 实现DateTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -599,9 +599,9 @@ public class DateTypeHandler implements TypeHandler<Date> {
 - [ ] **Step 2: 实现BigDecimalTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -639,9 +639,9 @@ public class BigDecimalTypeHandler implements TypeHandler<BigDecimal> {
 - [ ] **Step 3: 实现EnumTypeHandler**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -686,9 +686,9 @@ public class EnumTypeHandler<E extends Enum<E>> implements TypeHandler<E> {
 - [ ] **Step 4: 编写测试**
 
 ```java
-package com.dbmmap.core.type.handlers;
+package cn.itcraft.dbmmap.core.type.handlers;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -783,7 +783,7 @@ git add . && git commit -m "feat(type): add extended type handlers (Date, BigDec
 - [ ] **Step 1: 实现NameStrategy接口**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 /**
  * 命名策略接口，处理列名到字段名的转换
@@ -810,7 +810,7 @@ public interface NameStrategy {
 - [ ] **Step 2: 实现DefaultNameStrategy**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 /**
  * 默认命名策略：下划线转驼峰
@@ -877,7 +877,7 @@ public class DefaultNameStrategy implements NameStrategy {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 import org.junit.jupiter.api.Test;
 
@@ -942,9 +942,9 @@ git add . && git commit -m "feat(mapping): add NameStrategy with default undersc
 - [ ] **Step 1: 实现MappingField**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
-import com.dbmmap.core.type.TypeHandler;
+import cn.itcraft.dbmmap.core.type.TypeHandler;
 
 /**
  * 映射字段配置
@@ -985,9 +985,9 @@ public class MappingField {
 - [ ] **Step 2: 实现MappingConfig**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
-import com.dbmmap.core.type.TypeHandlerRegistry;
+import cn.itcraft.dbmmap.core.type.TypeHandlerRegistry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1063,7 +1063,7 @@ public class MappingConfig {
 - [ ] **Step 3: 编写测试**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 import org.junit.jupiter.api.Test;
 
@@ -1136,7 +1136,7 @@ git add . && git commit -m "feat(mapping): add MappingField and MappingConfig fo
 - [ ] **Step 1: 实现MapperClassLoader**
 
 ```java
-package com.dbmmap.core.asm;
+package cn.itcraft.dbmmap.core.asm;
 
 /**
  * 自定义类加载器，加载ASM生成的类
@@ -1156,10 +1156,10 @@ public class MapperClassLoader extends ClassLoader {
 - [ ] **Step 2: 实现MapperClassGenerator**
 
 ```java
-package com.dbmmap.core.asm;
+package cn.itcraft.dbmmap.core.asm;
 
-import com.dbmmap.core.mapping.MappingConfig;
-import com.dbmmap.core.mapping.MappingField;
+import cn.itcraft.dbmmap.core.mapping.MappingConfig;
+import cn.itcraft.dbmmap.core.mapping.MappingField;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -1332,7 +1332,7 @@ public class MapperClassGenerator implements Opcodes {
 - [ ] **Step 3: 创建EntityMapper接口**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -1357,10 +1357,10 @@ public interface EntityMapper<T> {
 - [ ] **Step 4: 编写测试**
 
 ```java
-package com.dbmmap.core.asm;
+package cn.itcraft.dbmmap.core.asm;
 
-import com.dbmmap.core.mapping.EntityMapper;
-import com.dbmmap.core.mapping.MappingConfig;
+import cn.itcraft.dbmmap.core.mapping.EntityMapper;
+import cn.itcraft.dbmmap.core.mapping.MappingConfig;
 import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
@@ -1424,10 +1424,10 @@ git add . && git commit -m "feat(asm): add ASM-based mapper class generator"
 - [ ] **Step 1: 实现MapperRegistry**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
-import com.dbmmap.core.asm.MapperClassLoader;
-import com.dbmmap.core.asm.MapperClassGenerator;
+import cn.itcraft.dbmmap.core.asm.MapperClassLoader;
+import cn.itcraft.dbmmap.core.asm.MapperClassGenerator;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1487,7 +1487,7 @@ public class MapperRegistry {
 - [ ] **Step 2: 编写测试**
 
 ```java
-package com.dbmmap.core.mapping;
+package cn.itcraft.dbmmap.core.mapping;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

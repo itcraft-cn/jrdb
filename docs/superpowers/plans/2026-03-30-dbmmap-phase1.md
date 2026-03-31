@@ -71,7 +71,7 @@ dbmmap/
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.dbmmap</groupId>
+    <groupId>cn.itcraft.dbmmap</groupId>
     <artifactId>dbmmap</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -139,7 +139,7 @@ dbmmap/
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dbmmap</groupId>
+        <groupId>cn.itcraft.dbmmap</groupId>
         <artifactId>dbmmap</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -219,7 +219,7 @@ git commit -m "feat: initialize dbmmap project structure"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import org.junit.jupiter.api.Test;
 import sun.misc.Unsafe;
@@ -251,7 +251,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现UnsafeProvider**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import sun.misc.Unsafe;
 import java.lang.reflect.Field;
@@ -301,7 +301,7 @@ git commit -m "feat(core): add UnsafeProvider for off-heap memory access"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import org.junit.jupiter.api.Test;
 
@@ -369,7 +369,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现MemoryPoolConfig**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 public class MemoryPoolConfig {
     
@@ -457,7 +457,7 @@ git commit -m "feat(core): add MemoryPoolConfig with builder pattern"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -540,7 +540,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现SlotAllocator**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 public class SlotAllocator {
     
@@ -646,7 +646,7 @@ git commit -m "feat(core): add SlotAllocator with bitmap marking"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -761,7 +761,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现MemoryBlock**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import sun.misc.Unsafe;
 
@@ -874,7 +874,7 @@ public class MemoryBlock {
 - [ ] **Step 4: 实现MemoryPool**
 
 ```java
-package com.dbmmap.core.memory;
+package cn.itcraft.dbmmap.core.memory;
 
 import sun.misc.Unsafe;
 
@@ -969,9 +969,9 @@ git commit -m "feat(core): add MemoryPool with off-heap allocation"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.config;
+package cn.itcraft.dbmmap.core.config;
 
-import com.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -1018,7 +1018,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现OverflowStrategy**
 
 ```java
-package com.dbmmap.core.config;
+package cn.itcraft.dbmmap.core.config;
 
 public enum OverflowStrategy {
     ERROR,
@@ -1029,9 +1029,9 @@ public enum OverflowStrategy {
 - [ ] **Step 4: 实现DbMmapConfig**
 
 ```java
-package com.dbmmap.core.config;
+package cn.itcraft.dbmmap.core.config;
 
-import com.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
 
 public class DbMmapConfig {
     
@@ -1106,7 +1106,7 @@ git commit -m "feat(core): add DbMmapConfig and OverflowStrategy"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
 import org.junit.jupiter.api.Test;
 
@@ -1138,7 +1138,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现StoreType枚举**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
 public enum StoreType {
     ROW,
@@ -1150,7 +1150,7 @@ public enum StoreType {
 - [ ] **Step 4: 实现StoreConfig**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
 public class StoreConfig {
     
@@ -1207,11 +1207,11 @@ git commit -m "feat(core): add StoreConfig and StoreType"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
-import com.dbmmap.core.memory.MemoryBlock;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1307,7 +1307,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现ColumnMeta**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
 public class ColumnMeta {
     
@@ -1338,9 +1338,9 @@ public class ColumnMeta {
 - [ ] **Step 4: 实现RowStore**
 
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
-import com.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
@@ -1469,13 +1469,13 @@ git commit -m "feat(core): add RowStore for row-based storage"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.query;
+package cn.itcraft.dbmmap.core.query;
 
-import com.dbmmap.core.memory.MemoryBlock;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.memory.MemoryPoolConfig;
-import com.dbmmap.core.storage.ColumnMeta;
-import com.dbmmap.core.storage.RowStore;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.dbmmap.core.storage.ColumnMeta;
+import cn.itcraft.dbmmap.core.storage.RowStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1581,7 +1581,7 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现QueryResult接口**
 
 ```java
-package com.dbmmap.core.query;
+package cn.itcraft.dbmmap.core.query;
 
 public interface QueryResult extends AutoCloseable {
     
@@ -1621,11 +1621,11 @@ public interface QueryResult extends AutoCloseable {
 - [ ] **Step 4: 实现QueryResultImpl**
 
 ```java
-package com.dbmmap.core.query;
+package cn.itcraft.dbmmap.core.query;
 
-import com.dbmmap.core.memory.MemoryBlock;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.storage.RowStore;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.storage.RowStore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -1796,10 +1796,10 @@ git commit -m "feat(core): add QueryResult API with row iteration"
 - [ ] **Step 1: 编写失败的测试**
 
 ```java
-package com.dbmmap.core.session;
+package cn.itcraft.dbmmap.core.session;
 
-import com.dbmmap.core.config.DbMmapConfig;
-import com.dbmmap.core.query.QueryResult;
+import cn.itcraft.dbmmap.core.config.DbMmapConfig;
+import cn.itcraft.dbmmap.core.query.QueryResult;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1861,10 +1861,10 @@ Expected: FAIL - class not found
 - [ ] **Step 3: 实现Session接口**
 
 ```java
-package com.dbmmap.core.session;
+package cn.itcraft.dbmmap.core.session;
 
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.query.QueryResult;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.query.QueryResult;
 
 import java.sql.Connection;
 import java.util.function.Function;
@@ -1890,11 +1890,11 @@ public interface Session extends AutoCloseable {
 - [ ] **Step 4: 实现SessionFactory**
 
 ```java
-package com.dbmmap.core.session;
+package cn.itcraft.dbmmap.core.session;
 
-import com.dbmmap.core.config.DbMmapConfig;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.memory.MemoryPoolConfig;
+import cn.itcraft.dbmmap.core.config.DbMmapConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.memory.MemoryPoolConfig;
 
 import javax.sql.DataSource;
 
@@ -1938,15 +1938,15 @@ public class SessionFactory {
 - [ ] **Step 5: 实现SessionImpl**
 
 ```java
-package com.dbmmap.core.session;
+package cn.itcraft.dbmmap.core.session;
 
-import com.dbmmap.core.config.DbMmapConfig;
-import com.dbmmap.core.memory.MemoryBlock;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.query.QueryResult;
-import com.dbmmap.core.query.QueryResultImpl;
-import com.dbmmap.core.storage.ColumnMeta;
-import com.dbmmap.core.storage.RowStore;
+import cn.itcraft.dbmmap.core.config.DbMmapConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.query.QueryResult;
+import cn.itcraft.dbmmap.core.query.QueryResultImpl;
+import cn.itcraft.dbmmap.core.storage.ColumnMeta;
+import cn.itcraft.dbmmap.core.storage.RowStore;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -2058,7 +2058,7 @@ Run: `mkdir -p dbmmap-core/src/main/java/com/dbmmap/core/jdbc dbmmap-core/src/ma
 - [ ] **Step 2: 实现CheckThrowUtil（替代demo.commons依赖）**
 
 ```java
-package com.dbmmap.core.util;
+package cn.itcraft.dbmmap.core.util;
 
 public final class CheckThrowUtil {
     
@@ -2077,7 +2077,7 @@ public final class CheckThrowUtil {
 修改包名和import：
 
 ```java
-package com.dbmmap.core.jdbc;
+package cn.itcraft.dbmmap.core.jdbc;
 
 import java.util.List;
 
@@ -2093,9 +2093,9 @@ public interface BatchOperator {
 修改包名和import：
 
 ```java
-package com.dbmmap.core.jdbc;
+package cn.itcraft.dbmmap.core.jdbc;
 
-import static com.dbmmap.core.util.CheckThrowUtil.ifMatchThrow;
+import static cn.itcraft.dbmmap.core.util.CheckThrowUtil.ifMatchThrow;
 
 public interface JdbcSqlBox<T> {
     String sqlTemplate();
@@ -2117,7 +2117,7 @@ public interface JdbcSqlBox<T> {
 修改包名和import：
 
 ```java
-package com.dbmmap.core.jdbc;
+package cn.itcraft.dbmmap.core.jdbc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2181,7 +2181,7 @@ public class JdbcBatchOperator implements BatchOperator {
 修改包名：
 
 ```java
-package com.dbmmap.core.jdbc;
+package cn.itcraft.dbmmap.core.jdbc;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -2287,7 +2287,7 @@ final class JdbcHelper {
 - [ ] **Step 8: 编写JdbcHelper单元测试**
 
 ```java
-package com.dbmmap.core.jdbc;
+package cn.itcraft.dbmmap.core.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

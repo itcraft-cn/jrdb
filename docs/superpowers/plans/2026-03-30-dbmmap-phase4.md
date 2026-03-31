@@ -38,9 +38,9 @@ dbmmap-core/src/main/java/com/dbmmap/core/
 
 **ColumnStore.java:**
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
-import com.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
@@ -159,9 +159,9 @@ public class ColumnStore {
 
 **HybridView.java:**
 ```java
-package com.dbmmap.core.storage;
+package cn.itcraft.dbmmap.core.storage;
 
-import com.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
 import java.util.List;
 
 /**
@@ -232,7 +232,7 @@ public class HybridView {
 
 **Transaction.java:**
 ```java
-package com.dbmmap.core.transaction;
+package cn.itcraft.dbmmap.core.transaction;
 
 import java.sql.Connection;
 
@@ -270,7 +270,7 @@ public interface Transaction {
 
 **TransactionImpl.java:**
 ```java
-package com.dbmmap.core.transaction;
+package cn.itcraft.dbmmap.core.transaction;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -349,7 +349,7 @@ public class TransactionImpl implements Transaction {
 
 **TransactionManager.java:**
 ```java
-package com.dbmmap.core.transaction;
+package cn.itcraft.dbmmap.core.transaction;
 
 import javax.sql.DataSource;
 import java.util.function.Function;
@@ -417,10 +417,10 @@ public class TransactionManager {
 
 **QueryExecutor.java:**
 ```java
-package com.dbmmap.core.executor;
+package cn.itcraft.dbmmap.core.executor;
 
-import com.dbmmap.core.query.QueryResult;
-import com.dbmmap.core.sql.BoundSql;
+import cn.itcraft.dbmmap.core.query.QueryResult;
+import cn.itcraft.dbmmap.core.sql.BoundSql;
 
 /**
  * 查询执行器接口
@@ -446,17 +446,17 @@ public interface QueryExecutor {
 
 **JdbcQueryExecutor.java:**
 ```java
-package com.dbmmap.core.executor;
+package cn.itcraft.dbmmap.core.executor;
 
-import com.dbmmap.core.config.DbMmapConfig;
-import com.dbmmap.core.memory.MemoryBlock;
-import com.dbmmap.core.memory.MemoryPool;
-import com.dbmmap.core.query.QueryResult;
-import com.dbmmap.core.query.QueryResultImpl;
-import com.dbmmap.core.sql.BoundSql;
-import com.dbmmap.core.storage.ColumnMeta;
-import com.dbmmap.core.storage.RowStore;
-import com.dbmmap.core.transaction.Transaction;
+import cn.itcraft.dbmmap.core.config.DbMmapConfig;
+import cn.itcraft.dbmmap.core.memory.MemoryBlock;
+import cn.itcraft.dbmmap.core.memory.MemoryPool;
+import cn.itcraft.dbmmap.core.query.QueryResult;
+import cn.itcraft.dbmmap.core.query.QueryResultImpl;
+import cn.itcraft.dbmmap.core.sql.BoundSql;
+import cn.itcraft.dbmmap.core.storage.ColumnMeta;
+import cn.itcraft.dbmmap.core.storage.RowStore;
+import cn.itcraft.dbmmap.core.transaction.Transaction;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -634,7 +634,7 @@ public class JdbcQueryExecutor implements QueryExecutor {
 
 **JdbcConfig.java:**
 ```java
-package com.dbmmap.core.config;
+package cn.itcraft.dbmmap.core.config;
 
 import javax.sql.DataSource;
 

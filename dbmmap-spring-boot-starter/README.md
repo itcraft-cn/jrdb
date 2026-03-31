@@ -6,7 +6,7 @@ Spring Boot集成模块，提供自动配置、Repository支持和ASM实体映�
 
 ```xml
 <dependency>
-    <groupId>com.dbmmap</groupId>
+    <groupId>cn.itcraft.dbmmap</groupId>
     <artifactId>dbmmap-spring-boot-starter</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
@@ -87,9 +87,9 @@ public class User {
 ```java
 package com.example.repository;
 
-import com.dbmmap.springboot.repository.DbMmapRepository;
-import com.dbmmap.springboot.repository.Query;
-import com.dbmmap.springboot.repository.Update;
+import cn.itcraft.dbmmap.springboot.repository.DbMmapRepository;
+import cn.itcraft.dbmmap.springboot.repository.Query;
+import cn.itcraft.dbmmap.springboot.repository.Update;
 import com.example.entity.User;
 import java.util.List;
 

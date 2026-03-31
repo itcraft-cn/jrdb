@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dbmmap</groupId>
+        <groupId>cn.itcraft.dbmmap</groupId>
         <artifactId>dbmmap</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -23,7 +23,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.dbmmap</groupId>
+            <groupId>cn.itcraft.dbmmap</groupId>
             <artifactId>dbmmap-core</artifactId>
             <version>${project.version}</version>
         </dependency>

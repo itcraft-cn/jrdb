@@ -70,7 +70,7 @@
 
 ```xml
 <dependency>
-    <groupId>com.dbmmap</groupId>
+    <groupId>cn.itcraft.dbmmap</groupId>
     <artifactId>dbmmap-core</artifactId>
     <version>1.0.0</version>
 </dependency>
@@ -339,7 +339,7 @@ private void appendValue(StringBuilder sb, byte[] rawRow, RowMeta meta, int colI
 
 ```xml
 <dependency>
-    <groupId>com.dbmmap</groupId>
+    <groupId>cn.itcraft.dbmmap</groupId>
     <artifactId>dbmmap-spring-boot-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
