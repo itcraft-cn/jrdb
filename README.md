@@ -156,53 +156,75 @@ List<User> users = session.queryForList(
 
 ## 批量操作
 
-### 单条 Insert（返回主键）
+### Insert 操作
 
 ```java
-// 插入并返回生成的主键
+// 单条插入，返回主键（泛型支持 Long/Integer/String 等）
 Long id = session.insert(
     "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    "Alice", 25, "alice@test.com"
+    Long.class, "Alice", 25, "alice@test.com"
+);
+
+// 单条插入，只判断成功
+boolean success = session.insert(
+    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
+    "Bob", 30, "bob@test.com"
+);
+
+// 批量插入，返回主键列表
+List<Object[]> paramsList = new ArrayList<>();
+for (int i = 0; i < 100; i++) {
+    paramsList.add(new Object[]{"user_" + i, 20 + i, "user_" + i + "@test.com"});
+}
+List<Long> ids = session.batchInsert(
+    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
+    Long.class, paramsList
+);
+
+// 批量插入，返回成功条数
+int count = session.batchInsert(
+    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
+    paramsList
 );
 ```
 
-### 批量 Insert/Update/Delete
+### Update/Delete 操作
 
 ```java
-// Raw 方式 - 直接传参
-List<Object[]> paramsList = new ArrayList<>();
-for (int i = 0; i < 100; i++) {
-    paramsList.add(new Object[]{"user_" + i, 20 + i, "user_" + i + "@test.com", "active"});
-}
-int[] results = session.batchUpdate(
-    "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)", 
-    paramsList
-);
+// 单条更新
+int rows = session.update("UPDATE users SET age = ? WHERE id = ?", 30, 1L);
 
-// ASM 方式 - 实体映射
-List<User> users = new ArrayList<>();
-for (int i = 0; i < 100; i++) {
-    users.add(new User(null, "user_" + i, 20 + i, "user_" + i + "@test.com", "active"));
-}
-EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
-int[] results = session.batchUpdate(
-    "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)",
-    users, mapper
-);
+// 单条删除
+int rows = session.delete("DELETE FROM users WHERE id = ?", 1L);
 
 // 批量更新
 List<Object[]> updateParams = new ArrayList<>();
 for (long id : ids) {
     updateParams.add(new Object[]{"updated", 30, id});
 }
-session.batchUpdate("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
+int[] results = session.batchUpdate("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
 
 // 批量删除
 List<Object[]> deleteParams = new ArrayList<>();
 for (long id : ids) {
     deleteParams.add(new Object[]{id});
 }
-session.batchUpdate("DELETE FROM users WHERE id = ?", deleteParams);
+int[] results = session.batchDelete("DELETE FROM users WHERE id = ?", deleteParams);
+```
+
+### 实体映射方式
+
+```java
+// ASM 方式 - 实体映射批量插入
+List<User> users = new ArrayList<>();
+for (int i = 0; i < 100; i++) {
+    users.add(new User(null, "user_" + i, 20 + i, "user_" + i + "@test.com"));
+}
+EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
+int[] results = session.batchUpdate(
+    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
+    users, mapper
+);
 ```
 
 ### 性能对比 (100条/批, 单线程)
@@ -391,6 +413,19 @@ public int updateUser(Long id, String name, int age) {
         name, age, id
     );
 }
+
+// 插入返回主键
+public Long createUser(String name, int age) {
+    return jrdbTemplate.getSession().insert(
+        "INSERT INTO users (name, age) VALUES (?, ?)",
+        Long.class, name, age
+    );
+}
+
+// 删除
+public int deleteUser(Long id) {
+    return jrdbTemplate.delete("DELETE FROM users WHERE id = ?", id);
+}
 ```
 
 ## 架构设计
@@ -399,7 +434,9 @@ public int updateUser(Long id, String name, int age) {
 ┌─────────────────────────────────────────────────────────────┐
 │                        Session API                           │
 ├─────────────────────────────────────────────────────────────┤
-│  query()         queryWithHandler()         update()        │
+│  query()    queryForObject()    insert()    delete()        │
+│  queryForList()   queryWithHandler()   update()             │
+│  batchInsert()    batchUpdate()    batchDelete()            │
 └────────┬──────────────────┬──────────────────────┬──────────┘
          │                  │                      │
          ▼                  ▼                      ▼
@@ -417,6 +454,27 @@ public int updateUser(Long id, String name, int age) {
 │                   堆外内存 (Off-Heap)                        │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## API 速览
+
+| 方法 | 返回值 | 说明 |
+|------|--------|------|
+| **查询** |||
+| `query(sql, params)` | `QueryResult` | Raw API，返回堆外内存结果 |
+| `queryForObject(sql, entityClass, params)` | `<T> T` | ASM API，返回单个实体 |
+| `queryForList(sql, entityClass, params)` | `<T> List<T>` | ASM API，返回实体列表 |
+| `queryWithHandler(sql, handler, params)` | `void` | Streaming API，流式处理 |
+| **插入** |||
+| `insert(sql, keyType, params)` | `<T> T` | 插入返回主键 |
+| `insert(sql, params)` | `boolean` | 插入返回是否成功 |
+| `batchInsert(sql, keyType, paramsList)` | `<T> List<T>` | 批量插入返回主键列表 |
+| `batchInsert(sql, paramsList)` | `int` | 批量插入返回成功条数 |
+| **更新** |||
+| `update(sql, params)` | `int` | 更新返回影响行数 |
+| `batchUpdate(sql, paramsList)` | `int[]` | 批量更新 |
+| **删除** |||
+| `delete(sql, params)` | `int` | 删除返回影响行数 |
+| `batchDelete(sql, paramsList)` | `int[]` | 批量删除 |
 
 ## 模块说明
 
