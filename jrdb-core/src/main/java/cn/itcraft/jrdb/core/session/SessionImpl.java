@@ -3,7 +3,6 @@ package cn.itcraft.jrdb.core.session;
 import cn.itcraft.jrdb.core.cache.CachedQueryResult;
 import cn.itcraft.jrdb.core.cache.CachedQueryResultAdapter;
 import cn.itcraft.jrdb.core.cache.QueryResultCache;
-import cn.itcraft.jrdb.core.config.CacheLevel;
 import cn.itcraft.jrdb.core.config.JrdbConfig;
 import cn.itcraft.jrdb.core.handler.RowHandler;
 import cn.itcraft.jrdb.core.handler.RowMeta;
@@ -133,11 +132,6 @@ public class SessionImpl implements Session {
     private final QueryResultCache resultCache;
 
     /**
-     * 当前会话的缓存级别。
-     */
-    private final CacheLevel cacheLevel;
-
-    /**
      * 查询执行策略，根据缓存级别选择直接查询或缓存查询。
      */
     private final QueryAction queryAction;
@@ -185,17 +179,16 @@ public class SessionImpl implements Session {
         this.memoryPool = memoryPool;
         this.config = config;
         this.dataSource = dataSource;
-        this.cacheLevel = config.getCacheLevel();
 
-        if (cacheLevel == CacheLevel.NONE) {
-            this.statementCache = null;
-            this.metaCache = null;
-        } else {
+        if (config.isL1CacheEnabled()) {
             this.statementCache = createLruCache(config.getStatementCacheSize());
             this.metaCache = createLruCache(config.getStatementCacheSize());
+        } else {
+            this.statementCache = null;
+            this.metaCache = null;
         }
 
-        if (cacheLevel == CacheLevel.L2) {
+        if (config.isL2CacheEnabled()) {
             this.resultCache = new QueryResultCache(
                     config.getResultCacheSize(),
                     config.getResultCacheExpireSeconds()
@@ -361,7 +354,7 @@ public class SessionImpl implements Session {
 
             rs.close();
 
-            if (cacheLevel == CacheLevel.NONE) {
+            if (!config.isL1CacheEnabled()) {
                 ps.close();
             }
 
@@ -440,7 +433,7 @@ public class SessionImpl implements Session {
      * @throws SQLException 如果创建Statement失败
      */
     private PreparedStatement getOrCreateStatement(String sql, Connection conn) throws SQLException {
-        if (cacheLevel == CacheLevel.NONE) {
+        if (!config.isL1CacheEnabled()) {
             return conn.prepareStatement(sql);
         }
 
@@ -466,7 +459,7 @@ public class SessionImpl implements Session {
      * @throws SQLException 如果提取元数据失败
      */
     private QueryMeta getOrCreateMeta(String sql, ResultSet rs) throws SQLException {
-        if (cacheLevel == CacheLevel.NONE) {
+        if (!config.isL1CacheEnabled()) {
             return createQueryMeta(rs);
         }
 
@@ -734,7 +727,7 @@ public class SessionImpl implements Session {
             }
 
             rs.close();
-            if (cacheLevel == CacheLevel.NONE) {
+            if (!config.isL1CacheEnabled()) {
                 ps.close();
             }
 
