@@ -88,54 +88,70 @@
 ### 基本使用
 
 ```java
-// 1. 创建内存池
-MemoryPoolConfig poolConfig = MemoryPoolConfig.builder()
-    .preAllocMemSize(64 * 1024 * 1024)  // 64MB
-    .queryCacheSize(4 * 1024 * 1024)     // 4MB
-    .build();
-MemoryPool memoryPool = new MemoryPool(poolConfig);
+import cn.itcraft.jrdb.core.config.CacheLevel;
+import cn.itcraft.jrdb.core.config.JrdbConfig;
+import cn.itcraft.jrdb.core.config.OverflowStrategy;
+import cn.itcraft.jrdb.core.query.QueryResult;
+import cn.itcraft.jrdb.core.session.Session;
+import cn.itcraft.jrdb.core.session.SessionFactory;
 
-// 2. 创建配置
+// 1. 创建配置
 JrdbConfig config = JrdbConfig.builder()
-    .cacheLevel(CacheLevel.L1)           // L1缓存
+    .cacheLevel(CacheLevel.L1)
     .statementCacheSize(256)
+    .overflowStrategy(OverflowStrategy.ERROR)
     .build();
 
-// 3. 创建 Session
-Session session = new SessionImpl(memoryPool, config, dataSource);
+// 2. 创建 SessionFactory
+SessionFactory factory = new SessionFactory(config, dataSource);
 
-// 4. 执行查询
-try (QueryResult result = session.query("SELECT id, name, age FROM users WHERE id = ?", 1L)) {
-    if (result.next()) {
-        long id = result.getLong("ID");
-        String name = result.getString("NAME");
-        int age = result.getInt("AGE");
+// 3. 打开 Session
+try (Session session = factory.openSession()) {
+    // Raw API - 返回 QueryResult
+    try (QueryResult result = session.query("SELECT id, name, age FROM users WHERE id = ?", 1L)) {
+        if (result.next()) {
+            long id = result.getLong(1);
+            String name = result.getString(2);
+            int age = result.getInt(3);
+        }
     }
+    
+    // ASM API - 直接返回实体
+    User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+    
+    // Streaming API - 流式处理
+    session.queryWithHandler("SELECT * FROM users", (rawRow, meta) -> {
+        long id = meta.extractLong(rawRow, 0);
+        String name = meta.extractString(rawRow, 1);
+    });
 }
+
+// 4. 关闭工厂
+factory.close();
 ```
 
 ### ASM 实体映射
 
 ```java
-// 1. 注册 Mapper
-TypeHandlerRegistry typeHandlerRegistry = new TypeHandlerRegistry();
-MapperRegistry mapperRegistry = new MapperRegistry(typeHandlerRegistry);
-EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
-
-// 2. 使用 Mapper 映射
-try (ResultSet rs = preparedStatement.executeQuery()) {
-    if (rs.next()) {
-        User user = mapper.mapFromResultSet(rs);
-    }
+// 定义实体类
+public class User {
+    private Long id;
+    private String name;
+    private Integer age;
+    // getter/setter
 }
 
-// 3. 批量映射
-List<User> users = new ArrayList<>();
-try (ResultSet rs = preparedStatement.executeQuery()) {
-    while (rs.next()) {
-        users.add(mapper.mapFromResultSet(rs));
-    }
-}
+// 使用 ASM API 查询单条
+User user = session.queryForObject(
+    "SELECT id, name, age FROM users WHERE id = ?", 
+    User.class, 1L
+);
+
+// 查询列表
+List<User> users = session.queryForList(
+    "SELECT id, name, age FROM users WHERE age > ?", 
+    User.class, 18
+);
 ```
 
 ## 批量操作
@@ -158,7 +174,7 @@ List<Object[]> paramsList = new ArrayList<>();
 for (int i = 0; i < 100; i++) {
     paramsList.add(new Object[]{"user_" + i, 20 + i, "user_" + i + "@test.com", "active"});
 }
-int[] results = session.batchExecute(
+int[] results = session.batchUpdate(
     "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)", 
     paramsList
 );
@@ -169,7 +185,7 @@ for (int i = 0; i < 100; i++) {
     users.add(new User(null, "user_" + i, 20 + i, "user_" + i + "@test.com", "active"));
 }
 EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
-int[] results = session.batchExecute(
+int[] results = session.batchUpdate(
     "INSERT INTO users (name, age, email, status) VALUES (?, ?, ?, ?)",
     users, mapper
 );
@@ -179,14 +195,14 @@ List<Object[]> updateParams = new ArrayList<>();
 for (long id : ids) {
     updateParams.add(new Object[]{"updated", 30, id});
 }
-session.batchExecute("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
+session.batchUpdate("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
 
 // 批量删除
 List<Object[]> deleteParams = new ArrayList<>();
 for (long id : ids) {
     deleteParams.add(new Object[]{id});
 }
-session.batchExecute("DELETE FROM users WHERE id = ?", deleteParams);
+session.batchUpdate("DELETE FROM users WHERE id = ?", deleteParams);
 ```
 
 ### 性能对比 (100条/批, 单线程)
@@ -350,20 +366,30 @@ jrdb:
 
 ```java
 @Autowired
-private Session session;
+private JrdbTemplate jrdbTemplate;
 
-public List<User> getUsers() {
-    return session.query("SELECT * FROM users", result -> {
-        List<User> users = new ArrayList<>();
-        while (result.next()) {
-            users.add(new User(
-                result.getLong("ID"),
-                result.getString("NAME"),
-                result.getInt("AGE")
-            ));
-        }
-        return users;
-    });
+// 查询单条
+public User getUser(Long id) {
+    return jrdbTemplate.queryForObject(
+        "SELECT id, name, age FROM users WHERE id = ?", 
+        User.class, id
+    );
+}
+
+// 查询列表
+public List<User> getUsers(int minAge) {
+    return jrdbTemplate.queryForList(
+        "SELECT id, name, age FROM users WHERE age > ?", 
+        User.class, minAge
+    );
+}
+
+// 更新
+public int updateUser(Long id, String name, int age) {
+    return jrdbTemplate.update(
+        "UPDATE users SET name = ?, age = ? WHERE id = ?", 
+        name, age, id
+    );
 }
 ```
 
