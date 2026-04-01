@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-cn.itcraft.jrdb.springboot.autoconfigure.JrdbAutoConfiguration
+cn.itcraft.jrdb.springboot.autoconfigure.JrdbAutoConfiguration,\
+cn.itcraft.jrdb.springboot.autoconfigure.JrdbR2dbcAutoConfiguration
