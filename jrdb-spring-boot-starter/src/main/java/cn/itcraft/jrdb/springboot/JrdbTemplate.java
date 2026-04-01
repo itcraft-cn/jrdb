@@ -1,10 +1,10 @@
 package cn.itcraft.jrdb.springboot;
 
-import cn.itcraft.jrdb.core.handler.RowHandler;
-import cn.itcraft.jrdb.core.mapping.EntityMapper;
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.query.QueryResult;
-import cn.itcraft.jrdb.core.session.Session;
+import cn.itcraft.jrdb.jdbc.handler.RowHandler;
+import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.query.QueryResult;
+import cn.itcraft.jrdb.jdbc.session.Session;
 
 import java.util.List;
 import java.util.function.Function;

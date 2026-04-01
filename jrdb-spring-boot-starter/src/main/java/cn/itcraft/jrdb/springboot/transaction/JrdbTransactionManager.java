@@ -1,6 +1,6 @@
 package cn.itcraft.jrdb.springboot.transaction;
 
-import cn.itcraft.jrdb.core.session.Session;
+import cn.itcraft.jrdb.jdbc.session.Session;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;

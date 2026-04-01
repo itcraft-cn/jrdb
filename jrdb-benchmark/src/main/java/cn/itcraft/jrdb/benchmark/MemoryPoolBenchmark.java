@@ -1,8 +1,8 @@
 package cn.itcraft.jrdb.benchmark;
 
-import cn.itcraft.jrdb.core.memory.MemoryBlock;
-import cn.itcraft.jrdb.core.memory.MemoryPool;
-import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.jdbc.memory.MemoryBlock;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPool;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 

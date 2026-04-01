@@ -1,12 +1,12 @@
 package cn.itcraft.jrdb.springboot.autoconfigure;
 
-import cn.itcraft.jrdb.core.config.JrdbConfig;
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.memory.MemoryPool;
-import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
-import cn.itcraft.jrdb.core.session.Session;
-import cn.itcraft.jrdb.core.session.SessionImpl;
-import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
+import cn.itcraft.jrdb.jdbc.config.JrdbConfig;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPool;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.jdbc.session.Session;
+import cn.itcraft.jrdb.jdbc.session.SessionImpl;
+import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
 import cn.itcraft.jrdb.springboot.JrdbTemplate;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;

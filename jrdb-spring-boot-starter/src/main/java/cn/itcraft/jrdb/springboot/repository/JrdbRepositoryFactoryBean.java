@@ -1,9 +1,9 @@
 package cn.itcraft.jrdb.springboot.repository;
 
-import cn.itcraft.jrdb.core.mapping.EntityMapper;
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.query.QueryResult;
-import cn.itcraft.jrdb.core.session.Session;
+import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.query.QueryResult;
+import cn.itcraft.jrdb.jdbc.session.Session;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 

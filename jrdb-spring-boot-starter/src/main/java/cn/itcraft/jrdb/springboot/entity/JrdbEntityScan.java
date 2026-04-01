@@ -1,7 +1,7 @@
 package cn.itcraft.jrdb.springboot.entity;
 
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;

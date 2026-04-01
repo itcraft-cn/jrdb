@@ -16,7 +16,7 @@
 
     <properties>
         <jmh.version>1.37</jmh.version>
-        <h2.version>2.2.224</h2.version>
+        <h2.version>2.1.214</h2.version>
         <mybatis.version>3.5.13</mybatis.version>
         <hibernate.version>5.6.15.Final</hibernate.version>
     </properties>
@@ -24,7 +24,7 @@
     <dependencies>
         <dependency>
             <groupId>cn.itcraft.jrdb</groupId>
-            <artifactId>jrdb-core</artifactId>
+            <artifactId>jrdb-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
 

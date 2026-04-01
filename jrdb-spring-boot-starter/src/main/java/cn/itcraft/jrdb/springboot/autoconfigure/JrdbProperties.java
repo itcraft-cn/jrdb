@@ -1,7 +1,7 @@
 package cn.itcraft.jrdb.springboot.autoconfigure;
 
-import cn.itcraft.jrdb.core.config.CacheLevel;
-import cn.itcraft.jrdb.core.config.OverflowStrategy;
+import cn.itcraft.jrdb.jdbc.config.CacheLevel;
+import cn.itcraft.jrdb.jdbc.config.OverflowStrategy;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "jrdb")

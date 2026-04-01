@@ -1,9 +1,9 @@
 package cn.itcraft.jrdb.benchmark;
 
 import cn.itcraft.jrdb.benchmark.entity.User;
-import cn.itcraft.jrdb.core.mapping.EntityMapper;
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
+import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 
 import javax.sql.DataSource;

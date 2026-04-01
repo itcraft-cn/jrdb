@@ -1,12 +1,12 @@
 package cn.itcraft.jrdb.benchmark;
 
-import cn.itcraft.jrdb.core.config.JrdbConfig;
-import cn.itcraft.jrdb.core.mapping.MapperRegistry;
-import cn.itcraft.jrdb.core.memory.MemoryPool;
-import cn.itcraft.jrdb.core.memory.MemoryPoolConfig;
-import cn.itcraft.jrdb.core.query.QueryResult;
-import cn.itcraft.jrdb.core.session.SessionImpl;
-import cn.itcraft.jrdb.core.type.TypeHandlerRegistry;
+import cn.itcraft.jrdb.jdbc.config.JrdbConfig;
+import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPool;
+import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
+import cn.itcraft.jrdb.jdbc.query.QueryResult;
+import cn.itcraft.jrdb.jdbc.session.SessionImpl;
+import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
