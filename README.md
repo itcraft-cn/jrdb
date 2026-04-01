@@ -10,7 +10,7 @@ Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis 
 - **R**apid - Extreme query performance
 - **D**ata**B**ase - Database operation framework
 
-**Positioning: Balanced read/write ORM framework, leading query performance, competitive write performance**
+**jrdb = 极致性能项目的简单CRUD利器**
 
 ## Modules
 
