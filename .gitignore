@@ -22,3 +22,5 @@ Thumbs.db
 
 # Memory file
 MEMORY.md
+
+dependency-reduced-pom.xml
