@@ -12,7 +12,19 @@
 
 **定位：读写均衡型 ORM 框架，查询性能领先，写入不弱于主流框架**
 
+## 模块说明
+
+| 模块 | 说明 |
+|------|------|
+| **jrdb-jdbc** | 同步 JDBC 实现，追求极致性能 |
+| **jrdb-r2dbc** | 响应式 R2DBC 实现，融入响应式生态 |
+| **jrdb-common** | 公共模块 |
+| **jrdb-benchmark** | JMH 性能基准测试 |
+| **jrdb-spring-boot-starter** | Spring Boot 自动配置 |
+
 ## 特性
+
+### jrdb-jdbc (同步)
 
 - **堆外内存存储** - 使用 Unsafe 直接操作堆外内存，避免 GC 压力
 - **ASM 动态映射** - 运行时生成字节码，实体映射性能接近原生 JDBC
@@ -20,469 +32,149 @@
 - **多级缓存** - 支持 L1(Statement缓存)/L2(结果缓存)
 - **Spring Boot 集成** - 提供 Starter 自动配置
 
+### jrdb-r2dbc (响应式)
+
+- **响应式 API** - 返回 `CompletableFuture`，融入响应式生态
+- **连接池支持** - 基于 r2dbc-pool，高效连接复用
+- **ASM 实体映射** - 与 JDBC 版本相同的映射性能
+- **批量操作支持** - 批量插入/更新/删除
+
 ## 性能基准
 
-### 查询性能 (NoCache, 单线程)
+### jrdb-jdbc vs MyBatis/Hibernate
 
-#### 单条查询
+#### 查询性能 (NoCache, 单线程)
 
-| 框架 | ops/s | vs MyBatis | vs Hibernate |
-|------|-------|------------|--------------|
-| **jrdb_asm** | **2,178,743** | **+8.3x** | +11.7x |
-| **jrdb** | **1,583,364** | **+6.0x** | +8.5x |
-| myBatis | 261,793 | baseline | - |
-| hibernate | 185,584 | - | baseline |
+| 框架 | 单条查询 ops/s | 批量查询 ops/s |
+|------|---------------|---------------|
+| **jrdb_asm** | **2,178,743** (+8.3x) | **228,209** (+10.0x) |
+| **jrdb** | **1,583,364** (+6.0x) | **156,855** (+6.8x) |
+| myBatis | 261,793 | 22,906 |
+| hibernate | 185,584 | 23,709 |
 
-#### 批量查询
+### jrdb-jdbc vs jrdb-r2dbc
 
-| 框架 | ops/s | vs MyBatis | vs Hibernate |
-|------|-------|------------|--------------|
-| **jrdb_asm** | **228,209** | **+10.0x** | +9.6x |
-| **jrdb** | **156,855** | **+6.8x** | +6.6x |
-| myBatis | 22,906 | baseline | - |
-| hibernate | 23,709 | - | baseline |
+| 方式 | 吞吐量 (ops/s) | 说明 |
+|------|---------------|------|
+| jdbc_raw | ~14,000 | 同步阻塞，直接调用 |
+| jdbc_asm | ~14,000 | ASM 映射，接近原生 |
+| r2dbc_raw | ~4,000 | 响应式，框架开销 |
+| r2dbc_asm | ~3,500 | 响应式 + ASM 映射 |
 
-### 写入性能 (L1 Cache, 单线程)
+**结论：R2DBC 比 JDBC 慢约 3.5x，这是响应式框架的必然开销。**
 
-#### 单条 Insert
-
-| 框架 | ops/s | vs MyBatis | vs JDBC |
-|------|-------|------------|---------|
-| jdbc_manual | 808,158 | +32% | baseline |
-| **jrdb_asm** | **791,949** | **+29%** | -2% |
-| **jrdb_raw** | **700,300** | **+14%** | -13% |
-| myBatis | 611,578 | baseline | - |
-| hibernate | 368,968 | -40% | - |
-
-#### 批量操作 (100条/批)
-
-| 操作 | jrdb_raw | JDBC | MyBatis | Hibernate |
-|------|----------|------|---------|-----------|
-| batchInsert | 6,039 | 6,718 | 8,350 | 6,432 |
-| batchUpdate | **5,450** | 5,702 | 5,109 | 3,142 |
-| batchDelete | 5,633 | 5,830 | 5,982 | 4,158 |
-
-### 定位总结
-
-| 场景 | jrdb 优势 | 说明 |
-|------|-------------|------|
-| **SELECT 单条** | ✅ **6-8x MyBatis** | 堆外内存 + ASM 映射 |
-| **SELECT 批量** | ✅ **7-10x MyBatis** | 零拷贝 + 紧凑存储 |
-| **INSERT** | ✅ **+14% MyBatis** | PS复用 + 类型优化 |
-| **UPDATE/DELETE** | ✅ **≈MyBatis** | JDBC 批量操作 |
-
-**定位：读写均衡型框架，查询性能领先，写入不弱于主流 ORM**
+**适用场景：**
+- **jrdb-jdbc**：同步场景，追求极致性能
+- **jrdb-r2dbc**：异步非阻塞场景，高并发、IO 密集型，与 Spring WebFlux 配合
 
 ## 快速开始
 
-### Maven 依赖
+### jrdb-jdbc
 
 ```xml
 <dependency>
     <groupId>cn.itcraft.jrdb</groupId>
-    <artifactId>jrdb-core</artifactId>
+    <artifactId>jrdb-jdbc</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
 
-### 基本使用
-
 ```java
-import cn.itcraft.jrdb.core.config.CacheLevel;
-import cn.itcraft.jrdb.core.config.JrdbConfig;
-import cn.itcraft.jrdb.core.config.OverflowStrategy;
-import cn.itcraft.jrdb.core.query.QueryResult;
-import cn.itcraft.jrdb.core.session.Session;
-import cn.itcraft.jrdb.core.session.SessionFactory;
+import cn.itcraft.jrdb.jdbc.config.JrdbConfig;
+import cn.itcraft.jrdb.jdbc.session.Session;
+import cn.itcraft.jrdb.jdbc.session.SessionFactory;
 
-// 1. 创建配置
-JrdbConfig config = JrdbConfig.builder()
-    .cacheLevel(CacheLevel.L1)
-    .statementCacheSize(256)
-    .overflowStrategy(OverflowStrategy.ERROR)
-    .build();
-
-// 2. 创建 SessionFactory
+// 创建 SessionFactory
+JrdbConfig config = JrdbConfig.builder().build();
 SessionFactory factory = new SessionFactory(config, dataSource);
 
-// 3. 打开 Session
 try (Session session = factory.openSession()) {
     // Raw API - 返回 QueryResult
-    try (QueryResult result = session.query("SELECT id, name, age FROM users WHERE id = ?", 1L)) {
+    try (QueryResult result = session.query("SELECT * FROM users WHERE id = ?", 1L)) {
         if (result.next()) {
             long id = result.getLong(1);
-            String name = result.getString(2);
-            int age = result.getInt(3);
         }
     }
     
     // ASM API - 直接返回实体
     User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+    List<User> users = session.queryForList("SELECT * FROM users", User.class);
     
-    // Streaming API - 流式处理
-    session.queryWithHandler("SELECT * FROM users", (rawRow, meta) -> {
-        long id = meta.extractLong(rawRow, 0);
-        String name = meta.extractString(rawRow, 1);
-    });
-}
-
-// 4. 关闭工厂
-factory.close();
-```
-
-### ASM 实体映射
-
-```java
-// 定义实体类
-public class User {
-    private Long id;
-    private String name;
-    private Integer age;
-    // getter/setter
-}
-
-// 使用 ASM API 查询单条
-User user = session.queryForObject(
-    "SELECT id, name, age FROM users WHERE id = ?", 
-    User.class, 1L
-);
-
-// 查询列表
-List<User> users = session.queryForList(
-    "SELECT id, name, age FROM users WHERE age > ?", 
-    User.class, 18
-);
-```
-
-## 批量操作
-
-### Insert 操作
-
-```java
-// 单条插入，返回主键（泛型支持 Long/Integer/String 等）
-Long id = session.insert(
-    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    Long.class, "Alice", 25, "alice@test.com"
-);
-
-// 单条插入，只判断成功
-boolean success = session.insert(
-    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    "Bob", 30, "bob@test.com"
-);
-
-// 批量插入，返回主键列表
-List<Object[]> paramsList = new ArrayList<>();
-for (int i = 0; i < 100; i++) {
-    paramsList.add(new Object[]{"user_" + i, 20 + i, "user_" + i + "@test.com"});
-}
-List<Long> ids = session.batchInsert(
-    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    Long.class, paramsList
-);
-
-// 批量插入，返回成功条数
-int count = session.batchInsert(
-    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    paramsList
-);
-```
-
-### Update/Delete 操作
-
-```java
-// 单条更新
-int rows = session.update("UPDATE users SET age = ? WHERE id = ?", 30, 1L);
-
-// 单条删除
-int rows = session.delete("DELETE FROM users WHERE id = ?", 1L);
-
-// 批量更新
-List<Object[]> updateParams = new ArrayList<>();
-for (long id : ids) {
-    updateParams.add(new Object[]{"updated", 30, id});
-}
-int[] results = session.batchUpdate("UPDATE users SET name = ?, age = ? WHERE id = ?", updateParams);
-
-// 批量删除
-List<Object[]> deleteParams = new ArrayList<>();
-for (long id : ids) {
-    deleteParams.add(new Object[]{id});
-}
-int[] results = session.batchDelete("DELETE FROM users WHERE id = ?", deleteParams);
-```
-
-### 实体映射方式
-
-```java
-// ASM 方式 - 实体映射批量插入
-List<User> users = new ArrayList<>();
-for (int i = 0; i < 100; i++) {
-    users.add(new User(null, "user_" + i, 20 + i, "user_" + i + "@test.com"));
-}
-EntityMapper<User> mapper = mapperRegistry.getMapper(User.class);
-int[] results = session.batchUpdate(
-    "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
-    users, mapper
-);
-```
-
-### 性能对比 (100条/批, 单线程)
-
-| 操作 | jrdb_raw | JDBC | MyBatis | Hibernate |
-|------|----------|------|---------|-----------|
-| batchInsert | 6,039 | 6,718 | 8,350 | 6,432 |
-| batchUpdate | **5,450** | 5,702 | 5,109 | 3,142 |
-| batchDelete | 5,633 | 5,830 | 5,982 | 4,158 |
-
-## RowHandler 流式处理
-
-### 使用场景
-
-RowHandler 适合**流式处理**场景，避免创建中间对象：
-
-| 场景 | 传统方式 | RowHandler方式 |
-|------|----------|----------------|
-| 数据库导出CSV | ResultSet→Object→String→write | ResultSet→raw→直接write |
-| ETL 数据转换 | 多次对象创建/转换 | 零对象创建 |
-| 报表生成 | List<Object>占用内存 | 流式处理，内存恒定 |
-| 数据同步 | 高GC压力 | 极低GC压力 |
-
-### 性能对比
-
-| 方式 | ops/s | vs rawQuery | 说明 |
-|------|-------|-------------|------|
-| jrdb_rowHandler | **226K** | +93% | 零对象创建 |
-| jrdb_rawQuery | 117K | baseline | QueryResult对象 |
-| jdbc_manual | 330K | +182% | 原生JDBC |
-
-### 使用方法
-
-```java
-// 定义 RowHandler
-session.queryWithHandler("SELECT id, name, age FROM users", (rawRow, meta) -> {
-    // rawRow: 原始字节数组，按列顺序存储
-    // meta: 行元信息，包含列定义和偏移量
-    
-    // 使用 RowMeta 便捷方法提取数据
-    long id = meta.extractLong(rawRow, 0);
-    String name = meta.extractString(rawRow, 1);
-    int age = meta.extractInt(rawRow, 2);
-    
-    // 直接写入输出流，零拷贝
-    outputStream.write(rawRow, 0, meta.getRowSize());
-});
-
-// 带参数查询
-session.queryWithHandler(
-    "SELECT id, name, age FROM users WHERE age > ?", 
-    (rawRow, meta) -> { /* 处理 */ },
-    18  // 参数
-);
-```
-
-### 工具方法 (RowMeta API)
-
-```java
-session.queryWithHandler("SELECT id, name, age FROM users", (rawRow, meta) -> {
-    // 使用 RowMeta 提供的便捷方法
-    long id = meta.extractLong(rawRow, 0);
-    String name = meta.extractString(rawRow, 1);
-    int age = meta.extractInt(rawRow, 2);
-    double salary = meta.extractDouble(rawRow, 3);
-    boolean active = meta.extractBoolean(rawRow, 4);
-    
-    // 或根据列类型自动提取
-    Object value = meta.extractValue(rawRow, 0);
-});
-```
-
-### 数据格式
-
-RowHandler 返回的 `byte[]` 按列顺序存储：
-
-| 列类型 | 存储大小 | 格式 |
-|--------|----------|------|
-| INT/TINYINT/SMALLINT | 4字节 | 大端序 |
-| BIGINT | 8字节 | 大端序 |
-| DOUBLE/FLOAT/DECIMAL | 8字节 | IEEE 754 |
-| BOOLEAN | 1字节 | 0/1 |
-| TIMESTAMP/DATE | 8字节 | epoch millis |
-| VARCHAR | 4+N字节 | 长度(4B)+UTF8字节 |
-
-### 导出示例：CSV导出
-
-```java
-public void exportToCsv(Session session, String sql, OutputStream out) throws IOException {
-    StringBuilder sb = new StringBuilder();
-    
-    session.queryWithHandler(sql, (rawRow, meta) -> {
-        sb.setLength(0);
-        int colCount = meta.getColumnCount();
-        
-        for (int i = 0; i < colCount; i++) {
-            if (i > 0) sb.append(',');
-            appendValue(sb, rawRow, meta, i);
-        }
-        sb.append('\n');
-        
-        try {
-            out.write(sb.toString().getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    });
-}
-
-private void appendValue(StringBuilder sb, byte[] rawRow, RowMeta meta, int colIndex) {
-    ColumnMeta col = meta.getColumn(colIndex);
-    
-    switch (col.getSqlType()) {
-        case Types.INTEGER:
-        case Types.TINYINT:
-        case Types.SMALLINT:
-            sb.append(meta.extractInt(rawRow, colIndex));
-            break;
-        case Types.BIGINT:
-            sb.append(meta.extractLong(rawRow, colIndex));
-            break;
-        case Types.DOUBLE:
-        case Types.FLOAT:
-            sb.append(meta.extractDouble(rawRow, colIndex));
-            break;
-        case Types.VARCHAR:
-        case Types.CHAR:
-            String str = meta.extractString(rawRow, colIndex);
-            if (str != null) {
-                sb.append('"').append(str.replace("\"", "\"\"")).append('"');
-            }
-            break;
-        // ... 其他类型
-    }
+    // 插入返回主键
+    Long id = session.insert("INSERT INTO users (name) VALUES (?)", Long.class, "Alice");
 }
 ```
 
-## Spring Boot 集成
+### jrdb-r2dbc
 
 ```xml
 <dependency>
     <groupId>cn.itcraft.jrdb</groupId>
-    <artifactId>jrdb-spring-boot-starter</artifactId>
+    <artifactId>jrdb-r2dbc</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
 
-```yaml
-jrdb:
-  enabled: true
-  overflow-strategy: ERROR  # ERROR 或 TRUNCATE
-  memory-pool:
-    pre-alloc-mem-size: 64MB
-    query-cache-size: 4MB
-  cache:
-    level: L1
-    statement-cache-size: 256
-    result-cache-size: 1000
-    result-cache-expire-seconds: 300
-```
-
 ```java
-@Autowired
-private JrdbTemplate jrdbTemplate;
+import cn.itcraft.jrdb.r2dbc.session.R2dbcSession;
+import cn.itcraft.jrdb.r2dbc.session.R2dbcSessionImpl;
+import io.r2dbc.pool.ConnectionPool;
+import io.r2dbc.pool.ConnectionPoolConfiguration;
+import java.util.concurrent.CompletableFuture;
 
-// 查询单条
-public User getUser(Long id) {
-    return jrdbTemplate.queryForObject(
-        "SELECT id, name, age FROM users WHERE id = ?", 
-        User.class, id
-    );
-}
+// 创建连接池
+ConnectionPool pool = ConnectionPoolConfiguration.builder(connectionFactory)
+    .maxSize(10)
+    .build();
 
-// 查询列表
-public List<User> getUsers(int minAge) {
-    return jrdbTemplate.queryForList(
-        "SELECT id, name, age FROM users WHERE age > ?", 
-        User.class, minAge
-    );
-}
+// 创建 Session
+R2dbcSession session = new R2dbcSessionImpl(pool);
+
+// 查询 - 返回 CompletableFuture
+CompletableFuture<User> user = session.queryOne("SELECT * FROM users WHERE id = $1", User.class, 1L);
+CompletableFuture<List<User>> users = session.queryList("SELECT * FROM users", User.class);
 
 // 更新
-public int updateUser(Long id, String name, int age) {
-    return jrdbTemplate.update(
-        "UPDATE users SET name = ?, age = ? WHERE id = ?", 
-        name, age, id
-    );
-}
+CompletableFuture<Integer> rows = session.update("UPDATE users SET name = $1 WHERE id = $2", "Bob", 1L);
 
 // 插入返回主键
-public Long createUser(String name, int age) {
-    return jrdbTemplate.getSession().insert(
-        "INSERT INTO users (name, age) VALUES (?, ?)",
-        Long.class, name, age
-    );
-}
+CompletableFuture<Long> id = session.insertWithKey("INSERT INTO users (name) VALUES ($1)", Long.class, "Alice");
 
-// 删除
-public int deleteUser(Long id) {
-    return jrdbTemplate.delete("DELETE FROM users WHERE id = ?", id);
-}
+// 批量操作
+CompletableFuture<int[]> results = session.batch("UPDATE users SET name = $1 WHERE id = $2", paramsList);
+
+// 关闭
+session.close();
+pool.dispose();
 ```
 
-## 架构设计
+## API 对比
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Session API                           │
-├─────────────────────────────────────────────────────────────┤
-│  query()    queryForObject()    insert()    delete()        │
-│  queryForList()   queryWithHandler()   update()             │
-│  batchInsert()    batchUpdate()    batchDelete()            │
-└────────┬──────────────────┬──────────────────────┬──────────┘
-         │                  │                      │
-         ▼                  ▼                      ▼
-┌────────────────┐  ┌────────────────┐  ┌────────────────────┐
-│  QueryResult   │  │  RowHandler    │  │  PreparedStatement │
-│  (对象模式)     │  │  (流式模式)    │  │  (更新操作)        │
-└────────┬───────┘  └────────┬───────┘  └────────────────────┘
-         │                   │
-         ▼                   ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      MemoryPool                              │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
-│  │ Block 0 │  │ Block 1 │  │ Block 2 │  │ Block N │        │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘        │
-│                   堆外内存 (Off-Heap)                        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## API 速览
+### jrdb-jdbc API
 
 | 方法 | 返回值 | 说明 |
 |------|--------|------|
-| **查询** |||
 | `query(sql, params)` | `QueryResult` | Raw API，返回堆外内存结果 |
 | `queryForObject(sql, entityClass, params)` | `<T> T` | ASM API，返回单个实体 |
 | `queryForList(sql, entityClass, params)` | `<T> List<T>` | ASM API，返回实体列表 |
 | `queryWithHandler(sql, handler, params)` | `void` | Streaming API，流式处理 |
-| **插入** |||
 | `insert(sql, keyType, params)` | `<T> T` | 插入返回主键 |
-| `insert(sql, params)` | `boolean` | 插入返回是否成功 |
-| `batchInsert(sql, keyType, paramsList)` | `<T> List<T>` | 批量插入返回主键列表 |
-| `batchInsert(sql, paramsList)` | `int` | 批量插入返回成功条数 |
-| **更新** |||
 | `update(sql, params)` | `int` | 更新返回影响行数 |
-| `batchUpdate(sql, paramsList)` | `int[]` | 批量更新 |
-| **删除** |||
 | `delete(sql, params)` | `int` | 删除返回影响行数 |
-| `batchDelete(sql, paramsList)` | `int[]` | 批量删除 |
 
-## 模块说明
+### jrdb-r2dbc API
 
-| 模块 | 说明 |
-|------|------|
-| jrdb-core | 核心实现：内存管理、查询执行、实体映射 |
-| jrdb-benchmark | JMH 性能基准测试 |
-| jrdb-spring-boot-starter | Spring Boot 自动配置 |
+| 方法 | 返回值 | 说明 |
+|------|--------|------|
+| `queryOne(sql, typeClass, params)` | `CompletableFuture<T>` | 查询单个值 |
+| `queryList(sql, typeClass, params)` | `CompletableFuture<List<T>>` | 查询列表 |
+| `queryOne(sql, mapper, params)` | `CompletableFuture<T>` | 自定义映射查询单个 |
+| `queryList(sql, mapper, params)` | `CompletableFuture<List<T>>` | 自定义映射查询列表 |
+| `update(sql, params)` | `CompletableFuture<Integer>` | 更新 |
+| `insert(sql, params)` | `CompletableFuture<Boolean>` | 插入 |
+| `insertWithKey(sql, keyType, params)` | `CompletableFuture<T>` | 插入返回主键 |
+| `delete(sql, params)` | `CompletableFuture<Integer>` | 删除 |
+| `batch(sql, paramsList)` | `CompletableFuture<int[]>` | 批量操作 |
 
 ## 构建 & 测试
 
@@ -490,13 +182,18 @@ public int deleteUser(Long id) {
 # 编译
 mvn clean compile
 
-# 运行测试
+# 运行所有测试
 mvn test
+
+# 运行指定模块测试
+mvn test -pl jrdb-jdbc
+mvn test -pl jrdb-r2dbc
 
 # 运行基准测试
 cd jrdb-benchmark
-mvn exec:exec -Dexec.executable="java" \
-    -Dexec.args="-cp %classpath org.openjdk.jmh.Main NoCacheComparisonBenchmark -wi 10 -i 5 -t 4 -f 3"
+mvn clean package -DskipTests
+java -cp "target/jrdb-benchmark-1.0.0-SNAPSHOT.jar:target/dependency/*" \
+     org.openjdk.jmh.Main MappingPerformanceBenchmark -wi 3 -i 3 -t 2 -f 1
 ```
 
 ## License
