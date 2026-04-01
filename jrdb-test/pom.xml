@@ -10,9 +10,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jrdb-benchmark</artifactId>
-    <name>jrdb-benchmark</name>
-    <description>Performance benchmark comparing jrdb with MyBatis/Hibernate/JDBC</description>
+    <artifactId>jrdb-test</artifactId>
+    <name>jrdb-test</name>
+    <description>Unit tests and JMH benchmarks for jrdb</description>
 
     <properties>
         <jmh.version>1.37</jmh.version>
@@ -38,18 +38,21 @@
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-h2</artifactId>
             <version>1.0.0.RELEASE</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-pool</artifactId>
             <version>1.0.1.RELEASE</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>cn.itcraft</groupId>
             <artifactId>frogspawn</artifactId>
             <version>0.6</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -70,41 +73,47 @@
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
             <version>${jmh.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>${jmh.version}</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis</artifactId>
             <version>${mybatis.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.36</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>1.7.36</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

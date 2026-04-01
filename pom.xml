@@ -24,7 +24,7 @@
         <module>jrdb-common</module>
         <module>jrdb-jdbc</module>
         <module>jrdb-r2dbc</module>
-        <module>jrdb-benchmark</module>
+        <module>jrdb-test</module>
         <module>jrdb-spring-boot-starter</module>
     </modules>
 
