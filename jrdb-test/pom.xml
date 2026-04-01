@@ -6,7 +6,7 @@
     <parent>
         <groupId>cn.itcraft.jrdb</groupId>
         <artifactId>jrdb-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>        <!-- managed by updgitver -->
+        <version>1.0.0</version><!-- managed by updgitver -->
     </parent>
 
     <artifactId>jrdb-test</artifactId>
