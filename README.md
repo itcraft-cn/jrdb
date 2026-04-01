@@ -1,52 +1,52 @@
 # jrdb
 
-**J**ava **R**apid **D**ata**B**ase - Java 高性能数据库操作框架
+**J**ava **R**apid **D**ata**B**ase - High-performance Java database framework
 
-基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis **6-10倍**，写入性能领先 **14%**。
+Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis by **6-10x**, write performance leads by **14%**.
 
-## 名称由来
+## Name Origin
 
-- **J**ava - 专为 Java 平台设计
-- **R**apid - 极致的查询性能
-- **D**ata**B**ase - 数据库操作框架
+- **J**ava - Designed for Java platform
+- **R**apid - Extreme query performance
+- **D**ata**B**ase - Database operation framework
 
-**定位：读写均衡型 ORM 框架，查询性能领先，写入不弱于主流框架**
+**Positioning: Balanced read/write ORM framework, leading query performance, competitive write performance**
 
-## 模块说明
+## Modules
 
-| 模块 | 说明 |
-|------|------|
-| **jrdb-jdbc** | 同步 JDBC 实现，追求极致性能 |
-| **jrdb-r2dbc** | 响应式 R2DBC 实现，融入响应式生态 |
-| **jrdb-common** | 公共模块 |
-| **jrdb-test** | 单元测试和 JMH 基准测试 |
-| **jrdb-spring-boot-starter** | Spring Boot 自动配置 |
+| Module | Description |
+|--------|-------------|
+| **jrdb-jdbc** | Synchronous JDBC implementation, pursuing extreme performance |
+| **jrdb-r2dbc** | Reactive R2DBC implementation, integrated into reactive ecosystem |
+| **jrdb-common** | Common module |
+| **jrdb-test** | Unit tests and JMH benchmarks |
+| **jrdb-spring-boot-starter** | Spring Boot auto-configuration |
 
-## 特性
+## Features
 
-### jrdb-jdbc (同步)
+### jrdb-jdbc (Synchronous)
 
-- **堆外内存存储** - 使用 Unsafe 直接操作堆外内存，避免 GC 压力
-- **ASM 动态映射** - 运行时生成字节码，实体映射性能接近原生 JDBC
-- **RowHandler 流式处理** - 零对象创建，适合 ETL/数据导出场景
-- **多级缓存** - 支持 L1(Statement缓存)/L2(结果缓存)
-- **Spring Boot 集成** - 提供 Starter 自动配置
+- **Off-heap Memory Storage** - Uses Unsafe for direct off-heap memory operations, avoiding GC pressure
+- **ASM Dynamic Mapping** - Runtime bytecode generation, entity mapping performance close to native JDBC
+- **RowHandler Streaming** - Zero object creation, suitable for ETL/data export scenarios
+- **Multi-level Cache** - Supports L1(Statement cache)/L2(Result cache)
+- **Spring Boot Integration** - Provides Starter auto-configuration
 
-### jrdb-r2dbc (响应式)
+### jrdb-r2dbc (Reactive)
 
-- **响应式 API** - 返回 `CompletableFuture`，融入响应式生态
-- **连接池支持** - 基于 r2dbc-pool，高效连接复用
-- **ASM 实体映射** - 与 JDBC 版本相同的映射性能
-- **批量操作支持** - 批量插入/更新/删除
+- **Reactive API** - Returns `CompletableFuture`, integrated into reactive ecosystem
+- **Connection Pool Support** - Based on r2dbc-pool, efficient connection reuse
+- **ASM Entity Mapping** - Same mapping performance as JDBC version
+- **Batch Operation Support** - Batch insert/update/delete
 
-## 性能基准
+## Performance Benchmarks
 
 ### jrdb-jdbc vs MyBatis/Hibernate
 
-#### 查询性能 (NoCache, 单线程)
+#### Query Performance (NoCache, Single Thread)
 
-| 框架 | 单条查询 ops/s | 批量查询 ops/s |
-|------|---------------|---------------|
+| Framework | Single Query ops/s | Batch Query ops/s |
+|-----------|--------------------|-------------------|
 | **jrdb_asm** | **2,178,743** (+8.3x) | **228,209** (+10.0x) |
 | **jrdb** | **1,583,364** (+6.0x) | **156,855** (+6.8x) |
 | myBatis | 261,793 | 22,906 |
@@ -54,20 +54,20 @@
 
 ### jrdb-jdbc vs jrdb-r2dbc
 
-| 方式 | 吞吐量 (ops/s) | 说明 |
-|------|---------------|------|
-| jdbc_raw | ~14,000 | 同步阻塞，直接调用 |
-| jdbc_asm | ~14,000 | ASM 映射，接近原生 |
-| r2dbc_raw | ~4,000 | 响应式，框架开销 |
-| r2dbc_asm | ~3,500 | 响应式 + ASM 映射 |
+| Method | Throughput (ops/s) | Description |
+|--------|--------------------|-------------|
+| jdbc_raw | ~14,000 | Synchronous blocking, direct call |
+| jdbc_asm | ~14,000 | ASM mapping, close to native |
+| r2dbc_raw | ~4,000 | Reactive, framework overhead |
+| r2dbc_asm | ~3,500 | Reactive + ASM mapping |
 
-**结论：R2DBC 比 JDBC 慢约 3.5x，这是响应式框架的必然开销。**
+**Conclusion: R2DBC is ~3.5x slower than JDBC, which is inevitable overhead of reactive frameworks.**
 
-**适用场景：**
-- **jrdb-jdbc**：同步场景，追求极致性能
-- **jrdb-r2dbc**：异步非阻塞场景，高并发、IO 密集型，与 Spring WebFlux 配合
+**Use Cases:**
+- **jrdb-jdbc**: Synchronous scenarios, pursuing extreme performance
+- **jrdb-r2dbc**: Async non-blocking scenarios, high concurrency, IO-intensive, works with Spring WebFlux
 
-## 快速开始
+## Quick Start
 
 ### jrdb-jdbc
 
@@ -84,23 +84,18 @@ import cn.itcraft.jrdb.jdbc.config.JrdbConfig;
 import cn.itcraft.jrdb.jdbc.session.Session;
 import cn.itcraft.jrdb.jdbc.session.SessionFactory;
 
-// 创建 SessionFactory
 JrdbConfig config = JrdbConfig.builder().build();
 SessionFactory factory = new SessionFactory(config, dataSource);
 
 try (Session session = factory.openSession()) {
-    // Raw API - 返回 QueryResult
-    try (QueryResult result = session.query("SELECT * FROM users WHERE id = ?", 1L)) {
-        if (result.next()) {
-            long id = result.getLong(1);
-        }
+    QueryResult result = session.query("SELECT * FROM users WHERE id = ?", 1L);
+    if (result.next()) {
+        long id = result.getLong(1);
     }
     
-    // ASM API - 直接返回实体
     User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
     List<User> users = session.queryForList("SELECT * FROM users", User.class);
     
-    // 插入返回主键
     Long id = session.insert("INSERT INTO users (name) VALUES (?)", Long.class, "Alice");
 }
 ```
@@ -122,33 +117,26 @@ import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import java.util.concurrent.CompletableFuture;
 
-// 创建连接池
 ConnectionPool pool = ConnectionPoolConfiguration.builder(connectionFactory)
     .maxSize(10)
     .build();
 
-// 创建 Session
 R2dbcSession session = new R2dbcSessionImpl(pool);
 
-// 查询 - 返回 CompletableFuture
 CompletableFuture<User> user = session.queryOne("SELECT * FROM users WHERE id = $1", User.class, 1L);
 CompletableFuture<List<User>> users = session.queryList("SELECT * FROM users", User.class);
 
-// 更新
 CompletableFuture<Integer> rows = session.update("UPDATE users SET name = $1 WHERE id = $2", "Bob", 1L);
 
-// 插入返回主键
 CompletableFuture<Long> id = session.insertWithKey("INSERT INTO users (name) VALUES ($1)", Long.class, "Alice");
 
-// 批量操作
 CompletableFuture<int[]> results = session.batch("UPDATE users SET name = $1 WHERE id = $2", paramsList);
 
-// 关闭
 session.close();
 pool.dispose();
 ```
 
-## Spring Boot 集成
+## Spring Boot Integration
 
 ### jrdb-jdbc Spring Boot
 
@@ -161,7 +149,6 @@ pool.dispose();
 ```
 
 ```yaml
-# application.yml
 spring:
   datasource:
     url: jdbc:mysql://localhost:3306/mydb
@@ -202,7 +189,6 @@ public class UserService {
 ```
 
 ```yaml
-# application.yml
 spring:
   r2dbc:
     url: r2dbc:mysql://localhost:3306/mydb
@@ -247,48 +233,44 @@ public class UserService {
 }
 ```
 
-## API 对比
+## API Reference
 
 ### jrdb-jdbc API
 
-| 方法 | 返回值 | 说明 |
-|------|--------|------|
-| `query(sql, params)` | `QueryResult` | Raw API，返回堆外内存结果 |
-| `queryForObject(sql, entityClass, params)` | `<T> T` | ASM API，返回单个实体 |
-| `queryForList(sql, entityClass, params)` | `<T> List<T>` | ASM API，返回实体列表 |
-| `queryWithHandler(sql, handler, params)` | `void` | Streaming API，流式处理 |
-| `insert(sql, keyType, params)` | `<T> T` | 插入返回主键 |
-| `update(sql, params)` | `int` | 更新返回影响行数 |
-| `delete(sql, params)` | `int` | 删除返回影响行数 |
+| Method | Return | Description |
+|--------|--------|-------------|
+| `query(sql, params)` | `QueryResult` | Raw API, returns off-heap memory result |
+| `queryForObject(sql, entityClass, params)` | `<T> T` | ASM API, returns single entity |
+| `queryForList(sql, entityClass, params)` | `<T> List<T>` | ASM API, returns entity list |
+| `queryWithHandler(sql, handler, params)` | `void` | Streaming API, flow processing |
+| `insert(sql, keyType, params)` | `<T> T` | Insert returning primary key |
+| `update(sql, params)` | `int` | Update returning affected rows |
+| `delete(sql, params)` | `int` | Delete returning affected rows |
 
 ### jrdb-r2dbc API
 
-| 方法 | 返回值 | 说明 |
-|------|--------|------|
-| `queryOne(sql, typeClass, params)` | `CompletableFuture<T>` | 查询单个值 |
-| `queryList(sql, typeClass, params)` | `CompletableFuture<List<T>>` | 查询列表 |
-| `queryOne(sql, mapper, params)` | `CompletableFuture<T>` | 自定义映射查询单个 |
-| `queryList(sql, mapper, params)` | `CompletableFuture<List<T>>` | 自定义映射查询列表 |
-| `update(sql, params)` | `CompletableFuture<Integer>` | 更新 |
-| `insert(sql, params)` | `CompletableFuture<Boolean>` | 插入 |
-| `insertWithKey(sql, keyType, params)` | `CompletableFuture<T>` | 插入返回主键 |
-| `delete(sql, params)` | `CompletableFuture<Integer>` | 删除 |
-| `batch(sql, paramsList)` | `CompletableFuture<int[]>` | 批量操作 |
+| Method | Return | Description |
+|--------|--------|-------------|
+| `queryOne(sql, typeClass, params)` | `CompletableFuture<T>` | Query single value |
+| `queryList(sql, typeClass, params)` | `CompletableFuture<List<T>>` | Query list |
+| `queryOne(sql, mapper, params)` | `CompletableFuture<T>` | Custom mapping query single |
+| `queryList(sql, mapper, params)` | `CompletableFuture<List<T>>` | Custom mapping query list |
+| `update(sql, params)` | `CompletableFuture<Integer>` | Update |
+| `insert(sql, params)` | `CompletableFuture<Boolean>` | Insert |
+| `insertWithKey(sql, keyType, params)` | `CompletableFuture<T>` | Insert returning primary key |
+| `delete(sql, params)` | `CompletableFuture<Integer>` | Delete |
+| `batch(sql, paramsList)` | `CompletableFuture<int[]>` | Batch operations |
 
-## 构建 & 测试
+## Build & Test
 
 ```bash
-# 编译
 mvn clean compile
 
-# 运行所有测试
 mvn test
 
-# 运行指定模块测试
 mvn test -pl jrdb-jdbc
 mvn test -pl jrdb-r2dbc
 
-# 运行基准测试
 cd jrdb-test
 mvn clean package -DskipTests
 java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
