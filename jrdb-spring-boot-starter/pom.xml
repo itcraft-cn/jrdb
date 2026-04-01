@@ -1,22 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>cn.itcraft.jrdb</groupId>
-        <artifactId>jrdb</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>jrdb-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>        <!-- managed by updgitver -->
     </parent>
 
     <artifactId>jrdb-spring-boot-starter</artifactId>
     <name>jrdb-spring-boot-starter</name>
-    <description>Spring Boot Starter for jrdb</description>
+    <description>Java Rapid Database, jrdb, Spring Boot Starter for jrdb</description>
+    <url>https://itcraft.cn/jrdb/</url>
 
-    <properties>
-        <spring-boot.version>2.7.18</spring-boot.version>
-    </properties>
+    <scm>
+        <connection>scm:git:git://github.com/itcraft-cn/jrdb.git</connection>
+        <developerConnection>scm:git:ssh://github.com/itcraft-cn/jrdb.git</developerConnection>
+        <url>https://github.com/itcraft-cn/jrdb/</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Helly Guo</name>
+            <email>hellyguo@foxmail.com</email>
+        </developer>
+    </developers>
 
     <dependencyManagement>
         <dependencies>
@@ -47,7 +63,6 @@
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-pool</artifactId>
-            <version>1.0.1.RELEASE</version>
             <optional>true</optional>
         </dependency>
 
@@ -68,6 +83,6 @@
             <optional>true</optional>
         </dependency>
 
-        
+
     </dependencies>
 </project>

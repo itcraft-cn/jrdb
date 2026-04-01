@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <parent>
-    <artifactId>jrdb</artifactId>
+    <artifactId>jrdb-parent</artifactId>
     <groupId>cn.itcraft.jrdb</groupId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>jrdb-benchmark</artifactId>
-  <name>jrdb-benchmark</name>
-  <description>Performance benchmark comparing jrdb with MyBatis/Hibernate/JDBC</description>
+  <artifactId>jrdb-test</artifactId>
+  <name>jrdb-test</name>
+  <description>Java Rapid Database, jrdb, Unit tests and JMH benchmarks for jrdb</description>
   <build>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>${plugin.compiler}</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <encoding>${project.build.sourceEncoding}</encoding>
           <annotationProcessorPaths>
             <path>
               <groupId>org.openjdk.jmh</groupId>
@@ -28,7 +29,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>${plugin.shade}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -60,24 +61,28 @@
   </build>
   <dependencies>
     <dependency>
+      <groupId>io.r2dbc</groupId>
+      <artifactId>r2dbc-h2</artifactId>
+      <version>1.0.0.RELEASE</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.r2dbc</groupId>
+      <artifactId>r2dbc-pool</artifactId>
+      <version>1.0.1.RELEASE</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.10.0</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>junit-jupiter-api</artifactId>
-          <groupId>org.junit.jupiter</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>junit-jupiter-params</artifactId>
-          <groupId>org.junit.jupiter</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>junit-jupiter-engine</artifactId>
-          <groupId>org.junit.jupiter</groupId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.11.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.projectreactor</groupId>
@@ -87,15 +92,45 @@
     </dependency>
     <dependency>
       <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>1.37</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>1.37</version>
-      <scope>provided</scope>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>2.2.224</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mybatis</groupId>
+      <artifactId>mybatis</artifactId>
+      <version>3.5.13</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hibernate</groupId>
+      <artifactId>hibernate-core</artifactId>
+      <version>5.6.15.Final</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.36</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>1.7.36</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
-  <properties>
-    <jmh.version>1.37</jmh.version>
-    <hibernate.version>5.6.15.Final</hibernate.version>
-    <h2.version>2.1.214</h2.version>
-    <mybatis.version>3.5.13</mybatis.version>
-  </properties>
 </project>

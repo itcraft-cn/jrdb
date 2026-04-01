@@ -1,23 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cn.itcraft.jrdb</groupId>
-    <artifactId>jrdb</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>jrdb-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>    <!-- managed by updgitver -->
     <packaging>pom</packaging>
 
-    <name>jrdb</name>
-    <description>Database Memory Mapping Framework - High Performance Off-Heap Storage</description>
+    <name>jrdb-parent</name>
+    <description>Java Rapid Database, jrdb</description>
+    <url>https://itcraft.cn/jrdb/</url>
+
+    <scm>
+        <connection>scm:git:git://github.com/itcraft-cn/jrdb.git</connection>
+        <developerConnection>scm:git:ssh://github.com/itcraft-cn/jrdb.git</developerConnection>
+        <url>https://github.com/itcraft-cn/jrdb/</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Helly Guo</name>
+            <email>hellyguo@foxmail.com</email>
+        </developer>
+    </developers>
 
     <properties>
+        <plugin.compiler>3.8.1</plugin.compiler>
+        <plugin.surefire>3.1.2</plugin.surefire>
+        <plugin.source>3.2.1</plugin.source>
+        <plugin.javadoc>3.3.2</plugin.javadoc>
+        <plugin.gpg>1.5</plugin.gpg>
+        <plugin.publish>0.7.0</plugin.publish>
+        <plugin.shade>3.5.1</plugin.shade>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <junit.version>5.8.2</junit.version>
+        <asm.version>9.6</asm.version>
+        <guava.version>32.1.3-jre</guava.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <r2dbc.spi.version>1.0.0.RELEASE</r2dbc.spi.version>
+        <r2dbc.pool.version>1.0.1.RELEASE</r2dbc.pool.version>
+        <r2dbc.h2.version>1.0.0.RELEASE</r2dbc.h2.version>
+        <reactor.version>3.5.0</reactor.version>
+        <spring-boot.version>2.7.18</spring-boot.version>
+        <spring.version>5.3.39</spring.version>
+        <junit.version>5.10.0</junit.version>
         <mockito.version>4.11.0</mockito.version>
+        <h2.version>2.2.224</h2.version>
+        <jmh.version>1.37</jmh.version>
+        <mybatis.version>3.5.13</mybatis.version>
+        <hibernate.version>5.6.15.Final</hibernate.version>
     </properties>
 
     <modules>
@@ -31,6 +71,64 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-commons</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-spi</artifactId>
+                <version>${r2dbc.spi.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-pool</artifactId>
+                <version>${r2dbc.pool.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-core</artifactId>
+                <version>${reactor.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${spring-boot.version}</version>
+                <optional>true</optional>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-jdbc</artifactId>
+                <version>${spring.version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
                 <version>${junit.version}</version>
@@ -42,34 +140,171 @@
                 <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
+
             <dependency>
-                <groupId>org.ow2.asm</groupId>
-                <artifactId>asm</artifactId>
-                <version>9.6</version>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.ow2.asm</groupId>
-                <artifactId>asm-commons</artifactId>
-                <version>9.6</version>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- H2 Database for testing -->
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.r2dbc</groupId>
+                <artifactId>r2dbc-h2</artifactId>
+                <version>${r2dbc.h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-test</artifactId>
+                <version>${reactor.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mybatis</groupId>
+                <artifactId>mybatis</artifactId>
+                <version>${mybatis.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${hibernate.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <plugins>
+            <!-- Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>${plugin.compiler}</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- Surefire Plugin for running tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${plugin.surefire}</version>
+            </plugin>
+
+            <!-- Source Plugin for generating source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${plugin.source}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Javadoc Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${plugin.javadoc}</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- GPG Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${plugin.gpg}</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Publish Plugin -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${plugin.publish}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>maven-sonatype-central</publishingServerId>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.1.2</version>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${plugin.shade}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>org.openjdk.jmh.Main</mainClass>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
