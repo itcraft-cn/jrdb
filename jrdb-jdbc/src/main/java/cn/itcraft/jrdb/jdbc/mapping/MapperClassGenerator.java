@@ -40,7 +40,7 @@ public class MapperClassGenerator {
      *
      * <p>生成的类将实现此接口，提供mapFromResultSet和mapToRow方法的实现。</p>
      */
-    private static final String ENTITY_MAPPER_INTERFACE = "cn/itcraft/jrdb/core/mapping/EntityMapper";
+    private static final String ENTITY_MAPPER_INTERFACE = "cn/itcraft/jrdb/jdbc/mapping/EntityMapper";
 
     /**
      * ASM库版本号。

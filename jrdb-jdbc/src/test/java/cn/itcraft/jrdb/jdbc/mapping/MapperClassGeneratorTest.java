@@ -125,7 +125,7 @@ class MapperClassGeneratorTest {
         InterfaceChecker checker = new InterfaceChecker();
         reader.accept(checker, 0);
         
-        assertTrue(checker.interfaces.contains("cn/itcraft/jrdb/core/mapping/EntityMapper"));
+        assertTrue(checker.interfaces.contains("cn/itcraft/jrdb/jdbc/mapping/EntityMapper"));
     }
 
     private MappingConfig createTestConfig() {
