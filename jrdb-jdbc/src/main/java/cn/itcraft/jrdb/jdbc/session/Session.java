@@ -163,7 +163,7 @@ public interface Session extends AutoCloseable {
     /**
      * 执行INSERT操作，不返回主键。
      *
-     * <p>等价于 update(sql, params) > 0，返回是否成功。
+     * <p>等价于 update(sql, params) &gt; 0，返回是否成功。
      *
      * @param sql    INSERT语句
      * @param params 参数值数组（可空）

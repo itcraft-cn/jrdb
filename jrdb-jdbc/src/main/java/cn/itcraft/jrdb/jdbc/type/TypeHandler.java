@@ -26,31 +26,31 @@ import java.sql.SQLException;
  * <p>用户也可以通过实现此接口来自定义类型处理器，以支持特殊的类型转换需求。
  *
  * <p><b>使用示例：</b>
- * <pre>{@code
- * public class MyEnumTypeHandler implements TypeHandler<MyEnum> {
- *     @Override
+ * <pre>
+ * public class MyEnumTypeHandler implements TypeHandler&lt;MyEnum&gt; {
+ *     &#64;Override
  *     public MyEnum getResult(ResultSet rs, String columnName) throws SQLException {
  *         String value = rs.getString(columnName);
  *         return value == null ? null : MyEnum.valueOf(value);
  *     }
  *
- *     @Override
+ *     &#64;Override
  *     public MyEnum getResult(ResultSet rs, int columnIndex) throws SQLException {
  *         String value = rs.getString(columnIndex);
  *         return value == null ? null : MyEnum.valueOf(value);
  *     }
  *
- *     @Override
+ *     &#64;Override
  *     public void setParameter(PreparedStatement ps, int i, MyEnum parameter) throws SQLException {
  *         ps.setString(i, parameter == null ? null : parameter.name());
  *     }
  *
- *     @Override
- *     public Class<MyEnum> getJavaType() {
+ *     &#64;Override
+ *     public Class&lt;MyEnum&gt; getJavaType() {
  *         return MyEnum.class;
  *     }
  * }
- * }</pre>
+ * </pre>
  *
  * @param <T> 此处理器处理的Java类型
  * @author jrdb

@@ -13,6 +13,7 @@ import java.util.List;
  *
  * <p>数据格式：
  * <table border="1">
+ * <caption>列数据存储格式</caption>
  *   <tr><th>列类型</th><th>存储大小</th><th>格式</th></tr>
  *   <tr><td>INT/TINYINT/SMALLINT</td><td>4字节</td><td>大端序</td></tr>
  *   <tr><td>BIGINT</td><td>8字节</td><td>大端序</td></tr>

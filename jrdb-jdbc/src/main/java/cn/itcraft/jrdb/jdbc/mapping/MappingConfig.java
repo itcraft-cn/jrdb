@@ -157,7 +157,7 @@ public class MappingConfig {
      * 添加字段映射（自动转换列名）。
      *
      * <p>根据配置的命名策略自动将字段名转换为列名
-     * （例如：userId -> user_id）。</p>
+     * （例如：userId -&gt; user_id）。</p>
      *
      * @param fieldName Java字段名，不能为null
      * @param javaType Java类型，不能为null

@@ -23,7 +23,7 @@ package cn.itcraft.jrdb.jdbc.query;
  *   <li>支持列别名</li>
  * </ul>
  *
- * @see cn.itcraft.jrdb.jdbc.session.Session#query(String)
+ * @see cn.itcraft.jrdb.jdbc.session.Session#query(String, Object...)
  */
 public interface QueryResult extends AutoCloseable {
 

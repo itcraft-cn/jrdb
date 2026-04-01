@@ -15,7 +15,7 @@ public interface NameStrategy {
     /**
      * Converts a database column name to a Java field name.
      * <p>
-     * Example: "user_id" -> "userId"
+     * Example: "user_id" -&gt; "userId"
      * </p>
      *
      * @param columnName the database column name, may be null
@@ -26,7 +26,7 @@ public interface NameStrategy {
     /**
      * Converts a Java field name to a database column name.
      * <p>
-     * Example: "userId" -> "user_id"
+     * Example: "userId" -&gt; "user_id"
      * </p>
      *
      * @param fieldName the Java field name, may be null
