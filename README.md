@@ -148,6 +148,105 @@ session.close();
 pool.dispose();
 ```
 
+## Spring Boot 集成
+
+### jrdb-jdbc Spring Boot
+
+```xml
+<dependency>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+```yaml
+# application.yml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mydb
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+jrdb:
+  jdbc:
+    enabled: true
+    l1-cache-enabled: true
+    l2-cache-enabled: false
+```
+
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private SessionFactory sessionFactory;
+
+    public User getUser(Long id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, id);
+        }
+    }
+}
+```
+
+### jrdb-r2dbc Spring Boot
+
+```xml
+<dependency>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-spring-boot-starter</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+```yaml
+# application.yml
+spring:
+  r2dbc:
+    url: r2dbc:mysql://localhost:3306/mydb
+    username: root
+    password: password
+
+jrdb:
+  r2dbc:
+    enabled: true
+    initial-pool-size: 5
+    max-pool-size: 10
+    max-life-time-minutes: 30
+    max-idle-time-minutes: 10
+```
+
+```java
+@Service
+public class UserService {
+
+    @Autowired
+    private R2dbcTemplate r2dbcTemplate;
+
+    public CompletableFuture<User> getUser(Long id) {
+        return r2dbcTemplate.queryOne("SELECT * FROM users WHERE id = $1", User.class, id);
+    }
+
+    public CompletableFuture<List<User>> getAllUsers() {
+        return r2dbcTemplate.queryList("SELECT * FROM users", User.class);
+    }
+
+    public CompletableFuture<Integer> updateUser(Long id, String name) {
+        return r2dbcTemplate.update("UPDATE users SET name = $1 WHERE id = $2", name, id);
+    }
+
+    public CompletableFuture<Long> createUser(String name) {
+        return r2dbcTemplate.insertWithKey("INSERT INTO users (name) VALUES ($1)", Long.class, name);
+    }
+
+    public CompletableFuture<int[]> batchUpdateNames(List<Object[]> params) {
+        return r2dbcTemplate.batch("UPDATE users SET name = $1 WHERE id = $2", params);
+    }
+}
+```
+
 ## API 对比
 
 ### jrdb-jdbc API
