@@ -8,6 +8,8 @@ import cn.itcraft.jrdb.r2dbc.mapping.R2dbcMapperRegistry;
 import cn.itcraft.jrdb.r2dbc.session.R2dbcSession;
 import cn.itcraft.jrdb.r2dbc.session.R2dbcSessionImpl;
 import io.r2dbc.h2.H2ConnectionFactory;
+import io.r2dbc.pool.ConnectionPool;
+import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.ConnectionFactory;
 import org.h2.jdbcx.JdbcDataSource;
 import org.openjdk.jmh.annotations.*;
@@ -17,6 +19,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -33,12 +36,14 @@ public class MappingPerformanceBenchmark {
 
     private static final int DATA_SIZE = 1000;
     private static final int OPS_PER_INVOCATION = 100;
+    private static final int POOL_SIZE = 16;
 
     private static JdbcDataSource jdbcDataSource;
     private static MapperRegistry jdbcMapperRegistry;
 
-    private static ConnectionFactory r2dbcConnectionFactory;
+    private static ConnectionPool r2dbcConnectionPool;
     private static R2dbcMapperRegistry r2dbcMapperRegistry;
+    private static R2dbcSession sharedR2dbcSession;
 
     @Setup(Level.Trial)
     public static void setup() throws Exception {
@@ -65,14 +70,25 @@ public class MappingPerformanceBenchmark {
     }
 
     private static void setupR2dbc() throws Exception {
-        r2dbcConnectionFactory = H2ConnectionFactory.inMemory("benchmark_r2dbc");
+        ConnectionFactory h2Factory = H2ConnectionFactory.inMemory("benchmark_r2dbc");
+
+        ConnectionPoolConfiguration poolConfig = ConnectionPoolConfiguration.builder(h2Factory)
+            .initialSize(POOL_SIZE / 2)
+            .maxSize(POOL_SIZE)
+            .maxLifeTime(Duration.ofMinutes(30))
+            .maxIdleTime(Duration.ofMinutes(10))
+            .build();
+
+        r2dbcConnectionPool = new ConnectionPool(poolConfig);
         r2dbcMapperRegistry = new R2dbcMapperRegistry();
 
         initR2dbcData();
+
+        sharedR2dbcSession = new R2dbcSessionImpl(r2dbcConnectionPool);
     }
 
     private static void initR2dbcData() throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
+        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionPool);
         
         session.update("DROP TABLE IF EXISTS users").get();
         session.update("CREATE TABLE users (id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(100), age INT, email VARCHAR(200))").get();
@@ -86,6 +102,16 @@ public class MappingPerformanceBenchmark {
         }
         
         session.close();
+    }
+
+    @TearDown(Level.Trial)
+    public static void tearDown() {
+        if (sharedR2dbcSession != null) {
+            sharedR2dbcSession.close();
+        }
+        if (r2dbcConnectionPool != null) {
+            r2dbcConnectionPool.dispose();
+        }
     }
 
     @Benchmark
@@ -120,11 +146,10 @@ public class MappingPerformanceBenchmark {
     @Benchmark
     @OperationsPerInvocation(OPS_PER_INVOCATION)
     public void r2dbcRaw(Blackhole bh) throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>(OPS_PER_INVOCATION);
         
-        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
         for (int i = 0; i < OPS_PER_INVOCATION; i++) {
-            futures.add(session.queryList("SELECT id, name, age, email FROM users", row -> {
+            futures.add(sharedR2dbcSession.queryList("SELECT id, name, age, email FROM users", row -> {
                 User user = new User();
                 user.setId(row.get("id", Long.class));
                 user.setName(row.get("name", String.class));
@@ -139,19 +164,16 @@ public class MappingPerformanceBenchmark {
                 bh.consume(user);
             }
         }
-        
-        session.close();
     }
 
     @Benchmark
     @OperationsPerInvocation(OPS_PER_INVOCATION)
     public void r2dbcAsm(Blackhole bh) throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
         R2dbcEntityMapper<User> mapper = r2dbcMapperRegistry.getMapper(User.class);
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>(OPS_PER_INVOCATION);
         
-        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
         for (int i = 0; i < OPS_PER_INVOCATION; i++) {
-            futures.add(session.queryList("SELECT id, name, age, email FROM users", mapper::mapFromRow));
+            futures.add(sharedR2dbcSession.queryList("SELECT id, name, age, email FROM users", mapper::mapFromRow));
         }
         
         for (CompletableFuture<List<User>> future : futures) {
@@ -159,8 +181,6 @@ public class MappingPerformanceBenchmark {
                 bh.consume(user);
             }
         }
-        
-        session.close();
     }
 
     public static class User {
