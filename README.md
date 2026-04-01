@@ -281,4 +281,8 @@ java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
 
 ## License
 
-MIT License
+Apache License 2.0
+
+## Built With
+
+This project is built with [opencode](https://github.com/anomalyco/opencode) + [GLM-5](https://github.com/THUDM/GLM-5).
