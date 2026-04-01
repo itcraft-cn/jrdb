@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cn.itcraft.jrdb</groupId>
+        <groupId>cn.itcraft</groupId>
         <artifactId>jrdb-parent</artifactId>
         <version>1.1.0-dev</version><!-- managed by updgitver -->
     </parent>
@@ -48,13 +48,13 @@
 
     <dependencies>
         <dependency>
-            <groupId>cn.itcraft.jrdb</groupId>
+            <groupId>cn.itcraft</groupId>
             <artifactId>jrdb-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>cn.itcraft.jrdb</groupId>
+            <groupId>cn.itcraft</groupId>
             <artifactId>jrdb-r2dbc</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
