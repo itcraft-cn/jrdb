@@ -1,83 +1,74 @@
 package cn.itcraft.jrdb.r2dbc.session;
 
-import cn.itcraft.jrdb.r2dbc.config.R2dbcConfig;
 import cn.itcraft.jrdb.r2dbc.executor.R2dbcExecutor;
-import cn.itcraft.jrdb.r2dbc.future.PooledFuture;
-import cn.itcraft.jrdb.r2dbc.mapping.R2dbcMapperRegistry;
 import io.r2dbc.spi.ConnectionFactory;
+import io.r2dbc.spi.Row;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class R2dbcSessionImpl implements R2dbcSession {
 
     private final R2dbcExecutor executor;
-    private final R2dbcMapperRegistry mapperRegistry;
     private volatile boolean closed;
 
-    public R2dbcSessionImpl(ConnectionFactory connectionFactory, R2dbcConfig config, R2dbcMapperRegistry mapperRegistry) {
-        this.executor = new R2dbcExecutor(connectionFactory, config.getExecutorConfig());
-        this.mapperRegistry = mapperRegistry;
+    public R2dbcSessionImpl(ConnectionFactory connectionFactory) {
+        this.executor = new R2dbcExecutor(connectionFactory);
         this.closed = false;
     }
 
     @Override
-    public PooledFuture queryForObject(String sql, Class<?> typeClass, Object... params) {
+    public <T> CompletableFuture<T> queryOne(String sql, Class<T> typeClass, Object... params) {
         checkClosed();
-        return executor.executeQueryOne(sql, row -> row.get(0, typeClass), params);
+        return executor.queryOne(sql, row -> row.get(0, typeClass), params);
     }
 
     @Override
-    public PooledFuture queryForList(String sql, Class<?> typeClass, Object... params) {
+    public <T> CompletableFuture<List<T>> queryList(String sql, Class<T> typeClass, Object... params) {
         checkClosed();
-        return executor.executeQuery(sql, row -> row.get(0, typeClass), params);
+        return executor.queryList(sql, row -> row.get(0, typeClass), params);
     }
 
     @Override
-    public <T> PooledFuture queryOne(String sql, R2dbcRowMapper<T> mapper, Object... params) {
+    public <T> CompletableFuture<T> queryOne(String sql, RowMapper<T> mapper, Object... params) {
         checkClosed();
-        return executor.executeQueryOne(sql, mapper::map, params);
+        return executor.queryOne(sql, mapper::map, params);
     }
 
     @Override
-    public <T> PooledFuture queryList(String sql, R2dbcRowMapper<T> mapper, Object... params) {
+    public <T> CompletableFuture<List<T>> queryList(String sql, RowMapper<T> mapper, Object... params) {
         checkClosed();
-        return executor.executeQuery(sql, mapper::map, params);
+        return executor.queryList(sql, mapper::map, params);
     }
 
     @Override
-    public PooledFuture update(String sql, Object... params) {
+    public CompletableFuture<Integer> update(String sql, Object... params) {
         checkClosed();
-        return executor.executeUpdate(sql, params);
+        return executor.update(sql, params);
     }
 
     @Override
-    public PooledFuture insert(String sql, Object... params) {
+    public CompletableFuture<Boolean> insert(String sql, Object... params) {
         checkClosed();
-        return executor.executeUpdateBoolean(sql, params);
+        return executor.insert(sql, params);
     }
 
     @Override
-    public PooledFuture insertWithKey(String sql, Class<?> keyType, Object... params) {
+    public <T> CompletableFuture<T> insertWithKey(String sql, Class<T> keyType, Object... params) {
         checkClosed();
-        return executor.executeInsertWithKey(sql, keyType, params);
+        return executor.insertWithKey(sql, keyType, params);
     }
 
     @Override
-    public PooledFuture delete(String sql, Object... params) {
+    public CompletableFuture<Integer> delete(String sql, Object... params) {
         checkClosed();
-        return executor.executeUpdate(sql, params);
+        return executor.update(sql, params);
     }
 
     @Override
-    public PooledFuture batchUpdate(String sql, List<Object[]> paramsList) {
+    public CompletableFuture<int[]> batch(String sql, List<Object[]> paramsList) {
         checkClosed();
-        return executor.executeBatch(sql, paramsList);
-    }
-
-    @Override
-    public PooledFuture batchInsert(String sql, List<Object[]> paramsList) {
-        checkClosed();
-        return executor.executeBatchInsert(sql, paramsList);
+        return executor.batch(sql, paramsList);
     }
 
     private void checkClosed() {

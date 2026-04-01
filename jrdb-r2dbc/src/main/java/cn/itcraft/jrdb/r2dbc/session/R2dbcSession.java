@@ -1,37 +1,36 @@
 package cn.itcraft.jrdb.r2dbc.session;
 
-import cn.itcraft.jrdb.r2dbc.future.PooledFuture;
+import io.r2dbc.spi.Row;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface R2dbcSession extends AutoCloseable {
 
-    PooledFuture queryForObject(String sql, Class<?> typeClass, Object... params);
+    <T> CompletableFuture<T> queryOne(String sql, Class<T> typeClass, Object... params);
 
-    PooledFuture queryForList(String sql, Class<?> typeClass, Object... params);
+    <T> CompletableFuture<List<T>> queryList(String sql, Class<T> typeClass, Object... params);
 
-    <T> PooledFuture queryOne(String sql, R2dbcRowMapper<T> mapper, Object... params);
+    <T> CompletableFuture<T> queryOne(String sql, RowMapper<T> mapper, Object... params);
 
-    <T> PooledFuture queryList(String sql, R2dbcRowMapper<T> mapper, Object... params);
+    <T> CompletableFuture<List<T>> queryList(String sql, RowMapper<T> mapper, Object... params);
 
-    PooledFuture update(String sql, Object... params);
+    CompletableFuture<Integer> update(String sql, Object... params);
 
-    PooledFuture insert(String sql, Object... params);
+    CompletableFuture<Boolean> insert(String sql, Object... params);
 
-    PooledFuture insertWithKey(String sql, Class<?> keyType, Object... params);
+    <T> CompletableFuture<T> insertWithKey(String sql, Class<T> keyType, Object... params);
 
-    PooledFuture delete(String sql, Object... params);
+    CompletableFuture<Integer> delete(String sql, Object... params);
 
-    PooledFuture batchUpdate(String sql, List<Object[]> paramsList);
-
-    PooledFuture batchInsert(String sql, List<Object[]> paramsList);
+    CompletableFuture<int[]> batch(String sql, List<Object[]> paramsList);
 
     boolean isClosed();
 
     void close();
 
     @FunctionalInterface
-    interface R2dbcRowMapper<T> {
-        T map(io.r2dbc.spi.Row row);
+    interface RowMapper<T> {
+        T map(Row row);
     }
 }

@@ -3,9 +3,6 @@ package cn.itcraft.jrdb.benchmark;
 import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
 import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
 import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
-import cn.itcraft.jrdb.r2dbc.config.R2dbcConfig;
-import cn.itcraft.jrdb.r2dbc.config.R2dbcExecutorConfig;
-import cn.itcraft.jrdb.r2dbc.future.PooledFuture;
 import cn.itcraft.jrdb.r2dbc.mapping.R2dbcEntityMapper;
 import cn.itcraft.jrdb.r2dbc.mapping.R2dbcMapperRegistry;
 import cn.itcraft.jrdb.r2dbc.session.R2dbcSession;
@@ -22,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.Throughput)
@@ -41,7 +39,6 @@ public class MappingPerformanceBenchmark {
 
     private static ConnectionFactory r2dbcConnectionFactory;
     private static R2dbcMapperRegistry r2dbcMapperRegistry;
-    private static R2dbcConfig r2dbcConfig;
 
     @Setup(Level.Trial)
     public static void setup() throws Exception {
@@ -69,31 +66,22 @@ public class MappingPerformanceBenchmark {
 
     private static void setupR2dbc() throws Exception {
         r2dbcConnectionFactory = H2ConnectionFactory.inMemory("benchmark_r2dbc");
-
-        r2dbcConfig = R2dbcConfig.builder()
-            .executorConfig(new R2dbcExecutorConfig()
-                .corePoolSize(4)
-                .maxPoolSize(8)
-                .queueCapacity(1000)
-                .rejectionPolicy(R2dbcExecutorConfig.RejectionPolicy.CALLER_RUNS))
-            .build();
-
         r2dbcMapperRegistry = new R2dbcMapperRegistry();
 
         initR2dbcData();
     }
 
     private static void initR2dbcData() throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory, r2dbcConfig, r2dbcMapperRegistry);
+        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
         
         session.update("DROP TABLE IF EXISTS users").get();
         session.update("CREATE TABLE users (id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(100), age INT, email VARCHAR(200))").get();
         
-        List<PooledFuture> futures = new ArrayList<>();
+        List<CompletableFuture<Integer>> futures = new ArrayList<>();
         for (int i = 0; i < DATA_SIZE; i++) {
             futures.add(session.update("INSERT INTO users (name, age, email) VALUES ('user_" + i + "', " + (20 + i % 50) + ", 'user_" + i + "@test.com')"));
         }
-        for (PooledFuture future : futures) {
+        for (CompletableFuture<Integer> future : futures) {
             future.get();
         }
         
@@ -132,9 +120,9 @@ public class MappingPerformanceBenchmark {
     @Benchmark
     @OperationsPerInvocation(OPS_PER_INVOCATION)
     public void r2dbcRaw(Blackhole bh) throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory, r2dbcConfig, r2dbcMapperRegistry);
+        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
         
-        List<PooledFuture> futures = new ArrayList<>();
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
         for (int i = 0; i < OPS_PER_INVOCATION; i++) {
             futures.add(session.queryList("SELECT id, name, age, email FROM users", row -> {
                 User user = new User();
@@ -146,10 +134,8 @@ public class MappingPerformanceBenchmark {
             }));
         }
         
-        for (PooledFuture future : futures) {
-            @SuppressWarnings("unchecked")
-            List<User> users = future.get();
-            for (User user : users) {
+        for (CompletableFuture<List<User>> future : futures) {
+            for (User user : future.get()) {
                 bh.consume(user);
             }
         }
@@ -160,18 +146,16 @@ public class MappingPerformanceBenchmark {
     @Benchmark
     @OperationsPerInvocation(OPS_PER_INVOCATION)
     public void r2dbcAsm(Blackhole bh) throws Exception {
-        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory, r2dbcConfig, r2dbcMapperRegistry);
+        R2dbcSession session = new R2dbcSessionImpl(r2dbcConnectionFactory);
         R2dbcEntityMapper<User> mapper = r2dbcMapperRegistry.getMapper(User.class);
         
-        List<PooledFuture> futures = new ArrayList<>();
+        List<CompletableFuture<List<User>>> futures = new ArrayList<>();
         for (int i = 0; i < OPS_PER_INVOCATION; i++) {
             futures.add(session.queryList("SELECT id, name, age, email FROM users", mapper::mapFromRow));
         }
         
-        for (PooledFuture future : futures) {
-            @SuppressWarnings("unchecked")
-            List<User> users = future.get();
-            for (User user : users) {
+        for (CompletableFuture<List<User>> future : futures) {
+            for (User user : future.get()) {
                 bh.consume(user);
             }
         }
