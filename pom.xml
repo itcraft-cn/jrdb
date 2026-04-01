@@ -61,7 +61,6 @@
     </properties>
 
     <modules>
-        <module>jrdb-common</module>
         <module>jrdb-jdbc</module>
         <module>jrdb-r2dbc</module>
         <module>jrdb-test</module>

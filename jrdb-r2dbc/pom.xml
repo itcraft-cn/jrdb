@@ -36,12 +36,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>cn.itcraft.jrdb</groupId>
-            <artifactId>jrdb-common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-spi</artifactId>
         </dependency>
