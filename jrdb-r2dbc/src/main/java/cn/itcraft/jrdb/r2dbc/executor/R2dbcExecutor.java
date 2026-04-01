@@ -1,7 +1,6 @@
 package cn.itcraft.jrdb.r2dbc.executor;
 
 import io.r2dbc.pool.ConnectionPool;
-import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import io.r2dbc.spi.Row;
@@ -9,45 +8,24 @@ import io.r2dbc.spi.Statement;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class R2dbcExecutor {
 
-    private static final int DEFAULT_POOL_SIZE = 10;
-    private static final Duration DEFAULT_MAX_LIFE_TIME = Duration.ofMinutes(30);
-    private static final Duration DEFAULT_MAX_IDLE_TIME = Duration.ofMinutes(10);
-
-    private final ConnectionPool connectionPool;
+    private final ConnectionFactory connectionFactory;
+    private final boolean ownsPool;
     private volatile boolean closed;
 
     public R2dbcExecutor(ConnectionFactory connectionFactory) {
-        this.connectionPool = createPool(connectionFactory);
-    }
-
-    public R2dbcExecutor(ConnectionFactory connectionFactory, int poolSize) {
-        this.connectionPool = createPool(connectionFactory, poolSize);
-    }
-
-    private ConnectionPool createPool(ConnectionFactory connectionFactory) {
-        return createPool(connectionFactory, DEFAULT_POOL_SIZE);
-    }
-
-    private ConnectionPool createPool(ConnectionFactory connectionFactory, int poolSize) {
-        ConnectionPoolConfiguration config = ConnectionPoolConfiguration.builder(connectionFactory)
-            .initialSize(poolSize / 2)
-            .maxSize(poolSize)
-            .maxLifeTime(DEFAULT_MAX_LIFE_TIME)
-            .maxIdleTime(DEFAULT_MAX_IDLE_TIME)
-            .build();
-        return new ConnectionPool(config);
+        this.connectionFactory = connectionFactory;
+        this.ownsPool = false;
     }
 
     public <T> CompletableFuture<T> queryOne(String sql, Function<Row, T> mapper, Object... params) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMap(conn -> executeQueryOne(conn, sql, mapper, params))
             .subscribe(future::complete, future::completeExceptionally);
         return future;
@@ -55,7 +33,7 @@ public class R2dbcExecutor {
 
     public <T> CompletableFuture<List<T>> queryList(String sql, Function<Row, T> mapper, Object... params) {
         CompletableFuture<List<T>> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMapMany(conn -> executeQueryList(conn, sql, mapper, params))
             .collectList()
             .subscribe(future::complete, future::completeExceptionally);
@@ -64,7 +42,7 @@ public class R2dbcExecutor {
 
     public CompletableFuture<Integer> update(String sql, Object... params) {
         CompletableFuture<Integer> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMap(conn -> executeUpdate(conn, sql, params))
             .subscribe(future::complete, future::completeExceptionally);
         return future;
@@ -72,7 +50,7 @@ public class R2dbcExecutor {
 
     public CompletableFuture<Boolean> insert(String sql, Object... params) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMap(conn -> executeInsert(conn, sql, params))
             .subscribe(future::complete, future::completeExceptionally);
         return future;
@@ -80,7 +58,7 @@ public class R2dbcExecutor {
 
     public <T> CompletableFuture<T> insertWithKey(String sql, Class<T> keyType, Object... params) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMap(conn -> executeInsertWithKey(conn, sql, keyType, params))
             .subscribe(future::complete, future::completeExceptionally);
         return future;
@@ -88,7 +66,7 @@ public class R2dbcExecutor {
 
     public CompletableFuture<int[]> batch(String sql, List<Object[]> paramsList) {
         CompletableFuture<int[]> future = new CompletableFuture<>();
-        Mono.from(connectionPool.create())
+        Mono.from(connectionFactory.create())
             .flatMap(conn -> executeBatch(conn, sql, paramsList))
             .subscribe(future::complete, future::completeExceptionally);
         return future;
@@ -165,7 +143,9 @@ public class R2dbcExecutor {
     public void shutdown() {
         if (!closed) {
             closed = true;
-            connectionPool.dispose();
+            if (ownsPool && connectionFactory instanceof ConnectionPool) {
+                ((ConnectionPool) connectionFactory).dispose();
+            }
         }
     }
 }
