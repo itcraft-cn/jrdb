@@ -25,7 +25,7 @@ jrdb/
 │   ├── mapping/            # ASM 实体映射
 │   └── session/            # 会话管理
 ├── jrdb-common/            # 公共模块
-├── jrdb-benchmark/         # JMH 基准测试
+├── jrdb-test/              # 单元测试和 JMH 基准测试
 └── jrdb-spring-boot-starter/  # Spring Boot 集成
 ```
 
@@ -73,14 +73,14 @@ mvn test -Dtest=*MapperTest
 
 ```bash
 # 编译 benchmark
-cd jrdb-benchmark && mvn clean package -DskipTests
+cd jrdb-test && mvn clean package -DskipTests
 
 # 运行 JDBC vs R2DBC 对比 benchmark
-java -cp "target/jrdb-benchmark-1.0.0-SNAPSHOT.jar:target/dependency/*" \
+java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
      org.openjdk.jmh.Main MappingPerformanceBenchmark -wi 5 -i 3 -t 2 -f 1
 
 # 运行框架对比 benchmark
-java -cp "target/jrdb-benchmark-1.0.0-SNAPSHOT.jar:target/dependency/*" \
+java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
      org.openjdk.jmh.Main FrameworkComparisonBenchmark -wi 10 -i 5 -t 4 -f 3
 ```
 

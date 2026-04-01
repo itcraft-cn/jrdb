@@ -19,7 +19,7 @@
 | **jrdb-jdbc** | 同步 JDBC 实现，追求极致性能 |
 | **jrdb-r2dbc** | 响应式 R2DBC 实现，融入响应式生态 |
 | **jrdb-common** | 公共模块 |
-| **jrdb-benchmark** | JMH 性能基准测试 |
+| **jrdb-test** | 单元测试和 JMH 基准测试 |
 | **jrdb-spring-boot-starter** | Spring Boot 自动配置 |
 
 ## 特性
@@ -190,9 +190,9 @@ mvn test -pl jrdb-jdbc
 mvn test -pl jrdb-r2dbc
 
 # 运行基准测试
-cd jrdb-benchmark
+cd jrdb-test
 mvn clean package -DskipTests
-java -cp "target/jrdb-benchmark-1.0.0-SNAPSHOT.jar:target/dependency/*" \
+java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
      org.openjdk.jmh.Main MappingPerformanceBenchmark -wi 3 -i 3 -t 2 -f 1
 ```
 
