@@ -1,5 +1,7 @@
 # jrdb
 
+[中文版](README_cn.md)
+
 **J**ava **R**apid **D**ata**B**ase - High-performance Java database framework
 
 Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis by **6-10x**, write performance leads by **14%**.

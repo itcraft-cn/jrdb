@@ -1,5 +1,7 @@
 # jrdb
 
+[English Version](README.md)
+
 **J**ava **R**apid **D**ata**B**ase - Java 高性能数据库操作框架
 
 基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis **6-10倍**，写入性能领先 **14%**。
