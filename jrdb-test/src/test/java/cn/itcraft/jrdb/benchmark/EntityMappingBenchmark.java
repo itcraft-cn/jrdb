@@ -93,8 +93,10 @@ public class EntityMappingBenchmark {
         @Setup(Level.Trial)
         public void setup(SharedState shared) {
             JrdbConfig config = JrdbConfig.builder()
-                .cacheLevel(CacheLevel.L1)
+                .cacheLevel(CacheLevel.L2)
                 .statementCacheSize(256)
+                .resultCacheSize(1000)
+                .resultCacheExpireSeconds(300)
                 .build();
             session = new SessionImpl(shared.memoryPool, config, shared.dataSource, shared.mapperRegistry);
         }
@@ -136,7 +138,7 @@ public class EntityMappingBenchmark {
         public void setup(SharedState shared) {
             org.apache.ibatis.session.Configuration config = new org.apache.ibatis.session.Configuration();
             config.setEnvironment(new Environment("benchmark", new JdbcTransactionFactory(), shared.dataSource));
-            config.setCacheEnabled(false);
+            config.setCacheEnabled(true);
             config.setLocalCacheScope(org.apache.ibatis.session.LocalCacheScope.STATEMENT);
             config.addMapper(UserMapper.class);
             SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(config);
