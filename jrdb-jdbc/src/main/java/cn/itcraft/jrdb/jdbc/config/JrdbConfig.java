@@ -48,6 +48,14 @@ public class JrdbConfig {
     private final int resultCacheExpireSeconds;
 
     /**
+     * 是否启用SQL拼接批量操作。
+     * 
+     * <p>启用后，批量insert/update/delete操作将直接拼接SQL执行，
+     * 而非使用PreparedStatement.addBatch()，性能更高。</p>
+     */
+    private final boolean enableSqlCascade;
+
+    /**
      * 私有构造方法，通过Builder构建配置实例。
      *
      * @param builder 构建器实例
@@ -59,6 +67,7 @@ public class JrdbConfig {
         this.statementCacheSize = builder.statementCacheSize;
         this.resultCacheSize = builder.resultCacheSize;
         this.resultCacheExpireSeconds = builder.resultCacheExpireSeconds;
+        this.enableSqlCascade = builder.enableSqlCascade;
         validate();
     }
     
@@ -128,6 +137,13 @@ public class JrdbConfig {
      * @return 结果集缓存过期时间，单位为秒
      */
     public int getResultCacheExpireSeconds() { return resultCacheExpireSeconds; }
+
+    /**
+     * 判断是否启用SQL拼接批量操作。
+     * 
+     * @return 如果启用返回true，否则返回false
+     */
+    public boolean isEnableSqlCascade() { return enableSqlCascade; }
     
     /**
      * 判断是否启用一级缓存。
@@ -202,6 +218,11 @@ public class JrdbConfig {
          * 结果集缓存过期时间，默认为300秒。
          */
         private int resultCacheExpireSeconds = 300;
+
+        /**
+         * 是否启用SQL拼接批量操作，默认为false。
+         */
+        private boolean enableSqlCascade = false;
         
         /**
          * 设置内存池配置。
@@ -266,6 +287,17 @@ public class JrdbConfig {
          */
         public Builder resultCacheExpireSeconds(int resultCacheExpireSeconds) {
             this.resultCacheExpireSeconds = resultCacheExpireSeconds;
+            return this;
+        }
+
+        /**
+         * 设置是否启用SQL拼接批量操作。
+         * 
+         * @param enableSqlCascade true启用，false禁用
+         * @return 当前Builder实例
+         */
+        public Builder enableSqlCascade(boolean enableSqlCascade) {
+            this.enableSqlCascade = enableSqlCascade;
             return this;
         }
         
