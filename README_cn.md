@@ -69,6 +69,31 @@
 - **jrdb-jdbc**：同步场景，追求极致性能
 - **jrdb-r2dbc**：异步非阻塞场景，高并发、IO 密集型，与 Spring WebFlux 配合
 
+### DirectSql 批量操作性能
+
+jrdb 支持直接执行拼接好的 SQL，省去 PreparedStatement 参数绑定开销，批量操作性能提升约 **50%**。
+
+| 操作 | PreparedStatement | DirectSql | 提升 |
+|------|-------------------|-----------|------|
+| **batchInsert** | 9,759 ops/s | 14,674 ops/s | **+50%** |
+| **batchUpdate** | 19,315 ops/s | 29,357 ops/s | **+52%** |
+
+```java
+// PreparedStatement 方式
+session.batchUpdate("INSERT INTO users (name, age) VALUES (?, ?)", paramsList);
+
+// DirectSql 方式
+List<Object[]> rows = List.of(
+    new Object[]{"Alice", 20},
+    new Object[]{"Bob", 25}
+);
+String sql = DirectSqlBuilder.buildInsert("users", new String[]{"name", "age"}, rows);
+session.execute(sql);
+// 生成: INSERT INTO users (name, age) VALUES ('Alice', 20), ('Bob', 25)
+```
+
+**适用场景：数据导入、批量处理等高性能场景。**
+
 ## 快速开始
 
 ### jrdb-jdbc

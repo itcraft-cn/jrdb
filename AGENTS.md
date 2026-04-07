@@ -91,6 +91,7 @@ java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
 1. **ASM API** (主推) - `queryForObject`/`queryForList`，直接返回实体
 2. **Streaming API** (主推) - `queryWithHandler`，零对象创建，ETL 场景
 3. **Raw API** (底层能力) - `query` 返回 QueryResult，精细控制
+4. **DirectSql API** (批量优化) - `execute`/`executeBatch`，批量操作性能 +50%
 
 ### jrdb-r2dbc (响应式)
 
@@ -113,6 +114,15 @@ java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
 - R2DBC：~4,000 ops/s (差距 3.5x)
 
 **结论：R2DBC 慢于 JDBC 是响应式框架的必然开销，价值在于高并发非阻塞场景。**
+
+### DirectSql 批量操作性能
+
+- PreparedStatement batchInsert：9,759 ops/s
+- DirectSql batchInsert：14,674 ops/s (**+50%**)
+- PreparedStatement batchUpdate：19,315 ops/s
+- DirectSql batchUpdate：29,357 ops/s (**+52%**)
+
+**适用场景：数据导入、批量处理。**
 
 ## Code Style Guidelines
 
@@ -169,6 +179,7 @@ java -cp "target/jrdb-test-1.0.0-SNAPSHOT.jar:target/dependency/*" \
 | `MemoryPool` | 堆外内存池管理 |
 | `MapperRegistry` | ASM 映射器注册表 |
 | `EntityMapper<T>` | 实体映射器接口 |
+| `DirectSqlBuilder` | SQL拼接工具类（安全转义参数） |
 
 ### jrdb-r2dbc
 

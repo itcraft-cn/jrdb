@@ -69,6 +69,31 @@ Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis 
 - **jrdb-jdbc**: Synchronous scenarios, pursuing extreme performance
 - **jrdb-r2dbc**: Async non-blocking scenarios, high concurrency, IO-intensive, works with Spring WebFlux
 
+### DirectSql Batch Operations Performance
+
+jrdb supports direct execution of assembled SQL, skipping PreparedStatement parameter binding overhead. Batch operations show ~**50%** performance improvement.
+
+| Operation | PreparedStatement | DirectSql | Improvement |
+|-----------|-------------------|-----------|-------------|
+| **batchInsert** | 9,759 ops/s | 14,674 ops/s | **+50%** |
+| **batchUpdate** | 19,315 ops/s | 29,357 ops/s | **+52%** |
+
+```java
+// PreparedStatement approach
+session.batchUpdate("INSERT INTO users (name, age) VALUES (?, ?)", paramsList);
+
+// DirectSql approach
+List<Object[]> rows = List.of(
+    new Object[]{"Alice", 20},
+    new Object[]{"Bob", 25}
+);
+String sql = DirectSqlBuilder.buildInsert("users", new String[]{"name", "age"}, rows);
+session.execute(sql);
+// Generated: INSERT INTO users (name, age) VALUES ('Alice', 20), ('Bob', 25)
+```
+
+**Use Cases: Data import, batch processing, and other high-performance scenarios.**
+
 ## Quick Start
 
 ### jrdb-jdbc
