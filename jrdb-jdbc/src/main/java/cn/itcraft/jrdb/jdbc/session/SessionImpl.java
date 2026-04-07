@@ -1456,42 +1456,6 @@ public class SessionImpl implements Session {
         }
     }
 
-    @Override
-    public int batchInsertDirect(String table, String[] columns, List<Object[]> rows) {
-        if (closed) {
-            throw new IllegalStateException("Session is closed");
-        }
-        if (rows == null || rows.isEmpty()) {
-            return 0;
-        }
-        String sql = DirectSqlBuilder.buildInsert(table, columns, rows);
-        return execute(sql);
-    }
-
-    @Override
-    public int batchUpdateDirect(String table, String setColumn, String whereColumn, List<Object[]> rows) {
-        if (closed) {
-            throw new IllegalStateException("Session is closed");
-        }
-        if (rows == null || rows.isEmpty()) {
-            return 0;
-        }
-        String sql = DirectSqlBuilder.buildUpdate(table, setColumn, whereColumn, rows);
-        return execute(sql);
-    }
-
-    @Override
-    public int batchDeleteDirect(String table, String column, List<?> values) {
-        if (closed) {
-            throw new IllegalStateException("Session is closed");
-        }
-        if (values == null || values.isEmpty()) {
-            return 0;
-        }
-        String sql = DirectSqlBuilder.buildDelete(table, column, values);
-        return execute(sql);
-    }
-
     /**
      * 查询执行策略接口。
      *

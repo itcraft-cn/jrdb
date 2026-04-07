@@ -6,6 +6,7 @@ import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
 import cn.itcraft.jrdb.jdbc.memory.MemoryPool;
 import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
 import cn.itcraft.jrdb.jdbc.session.SessionImpl;
+import cn.itcraft.jrdb.jdbc.sql.DirectSqlBuilder;
 import cn.itcraft.jrdb.jdbc.type.TypeHandlerRegistry;
 import org.h2.jdbcx.JdbcDataSource;
 import org.openjdk.jmh.annotations.*;
@@ -75,7 +76,7 @@ public class DirectSqlBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class PreparedStatementState {
+    public static class PreparedStatementInsertState {
         SessionImpl session;
         List<Object[]> paramsList;
 
@@ -104,7 +105,7 @@ public class DirectSqlBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class DirectSqlState {
+    public static class DirectSqlInsertState {
         SessionImpl session;
         List<Object[]> rows;
         String[] columns = {"name", "age", "email"};
@@ -134,7 +135,7 @@ public class DirectSqlBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class UpdatePreparedStatementState {
+    public static class PreparedStatementUpdateState {
         SessionImpl session;
         List<Object[]> paramsList;
 
@@ -173,7 +174,7 @@ public class DirectSqlBenchmark {
     }
 
     @State(Scope.Thread)
-    public static class UpdateDirectSqlState {
+    public static class DirectSqlUpdateState {
         SessionImpl session;
         List<Object[]> rows;
 
@@ -212,7 +213,7 @@ public class DirectSqlBenchmark {
     }
 
     @Benchmark
-    public int[] batchInsert_PreparedStatement(PreparedStatementState state) {
+    public int[] batchInsert_PreparedStatement(PreparedStatementInsertState state) {
         return state.session.batchUpdate(
             "INSERT INTO users (name, age, email) VALUES (?, ?, ?)",
             state.paramsList
@@ -220,12 +221,13 @@ public class DirectSqlBenchmark {
     }
 
     @Benchmark
-    public int batchInsert_DirectSql(DirectSqlState state) {
-        return state.session.batchInsertDirect("users", state.columns, state.rows);
+    public int batchInsert_DirectSql(DirectSqlInsertState state) {
+        String sql = DirectSqlBuilder.buildInsert("users", state.columns, state.rows);
+        return state.session.execute(sql);
     }
 
     @Benchmark
-    public int[] batchUpdate_PreparedStatement(UpdatePreparedStatementState state) {
+    public int[] batchUpdate_PreparedStatement(PreparedStatementUpdateState state) {
         return state.session.batchUpdate(
             "UPDATE users SET age = ? WHERE id = ?",
             state.paramsList
@@ -233,7 +235,8 @@ public class DirectSqlBenchmark {
     }
 
     @Benchmark
-    public int batchUpdate_DirectSql(UpdateDirectSqlState state) {
-        return state.session.batchUpdateDirect("users", "age", "id", state.rows);
+    public int batchUpdate_DirectSql(DirectSqlUpdateState state) {
+        String sql = DirectSqlBuilder.buildUpdate("users", "age", "id", state.rows);
+        return state.session.execute(sql);
     }
 }

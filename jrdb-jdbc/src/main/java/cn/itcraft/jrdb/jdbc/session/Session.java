@@ -259,52 +259,6 @@ public interface Session extends AutoCloseable {
      */
     int[] executeBatch(List<String> sqls);
 
-    /**
-     * 批量INSERT（直接拼接SQL）。
-     *
-     * <p>自动拼接多行VALUES，生成单条INSERT语句执行。</p>
-     * <pre>
-     * INSERT INTO table (col1, col2) VALUES (val1, val2), (val3, val4), ...
-     * </pre>
-     *
-     * @param table   表名
-     * @param columns 列名数组
-     * @param rows    数据行列表
-     * @return 影响行数
-     */
-    int batchInsertDirect(String table, String[] columns, List<Object[]> rows);
-
-    /**
-     * 批量UPDATE（直接拼接SQL）。
-     *
-     * <p>使用CASE WHEN语法拼接批量更新语句。</p>
-     * <pre>
-     * UPDATE table SET col = CASE id WHEN 1 THEN val1 WHEN 2 THEN val2 END WHERE id IN (1, 2)
-     * </pre>
-     *
-     * @param table       表名
-     * @param setColumn   要更新的列名
-     * @param whereColumn 条件列名（通常为主键）
-     * @param rows        数据行列表，每行为 [whereValue, setValue]
-     * @return 影响行数
-     */
-    int batchUpdateDirect(String table, String setColumn, String whereColumn, List<Object[]> rows);
-
-    /**
-     * 批量DELETE（直接拼接SQL）。
-     *
-     * <p>使用IN子句拼接批量删除语句。</p>
-     * <pre>
-     * DELETE FROM table WHERE col IN (val1, val2, val3)
-     * </pre>
-     *
-     * @param table  表名
-     * @param column 条件列名
-     * @param values 值列表
-     * @return 影响行数
-     */
-    int batchDeleteDirect(String table, String column, List<?> values);
-
     // ==================== Lifecycle ====================
 
     /**
