@@ -162,45 +162,45 @@ public class QueryResultImpl implements QueryResult {
     /**
      * 根据列索引获取当前行的整型值。
      * 
-     * @param columnIndex 列索引，从 0 开始
+     * @param columnIndex 列索引，从 1 开始
      * @return 当前行指定列的整型值
      */
     @Override
     public int getInt(int columnIndex) {
-        return store.getInt(currentRow, columnIndex);
+        return store.getInt(currentRow, columnIndex - 1);
     }
 
     /**
      * 根据列索引获取当前行的字符串值。
      * 
-     * @param columnIndex 列索引，从 0 开始
+     * @param columnIndex 列索引，从 1 开始
      * @return 当前行指定列的字符串值
      */
     @Override
     public String getString(int columnIndex) {
-        return store.getString(currentRow, columnIndex);
+        return store.getString(currentRow, columnIndex - 1);
     }
 
     /**
      * 根据列索引获取当前行的长整型值。
      * 
-     * @param columnIndex 列索引，从 0 开始
+     * @param columnIndex 列索引，从 1 开始
      * @return 当前行指定列的长整型值
      */
     @Override
     public long getLong(int columnIndex) {
-        return store.getLong(currentRow, columnIndex);
+        return store.getLong(currentRow, columnIndex - 1);
     }
 
     /**
      * 根据列索引获取当前行的双精度浮点数值。
      * 
-     * @param columnIndex 列索引，从 0 开始
+     * @param columnIndex 列索引，从 1 开始
      * @return 当前行指定列的双精度浮点数值
      */
     @Override
     public double getDouble(int columnIndex) {
-        return store.getDouble(currentRow, columnIndex);
+        return store.getDouble(currentRow, columnIndex - 1);
     }
 
     /**
