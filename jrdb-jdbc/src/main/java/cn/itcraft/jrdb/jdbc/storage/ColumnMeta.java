@@ -59,4 +59,13 @@ public class ColumnMeta {
      * @return 字段大小（长度或精度）
      */
     public int getSize() { return size; }
+
+    @Override
+    public String toString() {
+        return "ColumnMeta{" +
+                "name='" + name + '\'' +
+                ", sqlType=" + sqlType +
+                ", size=" + size +
+                '}';
+    }
 }

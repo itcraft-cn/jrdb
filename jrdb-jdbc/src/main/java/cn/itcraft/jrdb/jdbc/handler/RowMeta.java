@@ -4,6 +4,7 @@ import cn.itcraft.jrdb.jdbc.storage.ColumnMeta;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -247,5 +248,14 @@ public class RowMeta {
             default:
                 return extractString(rawRow, columnIndex);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "RowMeta{" +
+                "columns=" + columns +
+                ", rowSize=" + rowSize +
+                ", columnOffsets=" + Arrays.toString(columnOffsets) +
+                '}';
     }
 }
