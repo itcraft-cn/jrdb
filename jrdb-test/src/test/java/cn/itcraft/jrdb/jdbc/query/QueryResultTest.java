@@ -80,7 +80,7 @@ class QueryResultTest {
         QueryResult result = new QueryResultImpl(store, 3, block, pool);
         result.reset();
         assertTrue(result.next());
-        assertEquals(100, result.getInt(0));
+        assertEquals(100, result.getInt(1));
         result.close();
     }
 
@@ -89,7 +89,7 @@ class QueryResultTest {
         QueryResult result = new QueryResultImpl(store, 3, block, pool);
         result.reset();
         assertTrue(result.next());
-        assertEquals("Alice", result.getString(1));
+        assertEquals("Alice", result.getString(2));
         result.close();
     }
 
@@ -131,8 +131,8 @@ class QueryResultTest {
     @Test
     void shouldGetColumnName() {
         QueryResult result = new QueryResultImpl(store, 3, block, pool);
-        assertEquals("id", result.getColumnName(0));
-        assertEquals("name", result.getColumnName(1));
+        assertEquals("id", result.getColumnName(1));
+        assertEquals("name", result.getColumnName(2));
         result.close();
     }
 }

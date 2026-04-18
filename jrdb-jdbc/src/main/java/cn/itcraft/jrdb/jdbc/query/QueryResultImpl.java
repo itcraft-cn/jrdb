@@ -59,7 +59,7 @@ public class QueryResultImpl implements QueryResult {
         int columnCount = store.getColumnCount();
         for (int i = 0; i < columnCount; i++) {
             String name = store.getColumnMeta(i).getName();
-            columnNameIndex.put(name.toUpperCase(), i);
+            columnNameIndex.put(name.toUpperCase(), i + 1);
         }
         this.currentRow = -1;
         this.closed = false;
@@ -88,12 +88,12 @@ public class QueryResultImpl implements QueryResult {
     /**
      * 根据列索引获取列名。
      * 
-     * @param columnIndex 列索引，从 0 开始
+     * @param columnIndex 列索引，从 1 开始
      * @return 列名
      */
     @Override
     public String getColumnName(int columnIndex) {
-        return store.getColumnMeta(columnIndex).getName();
+        return store.getColumnMeta(columnIndex - 1).getName();
     }
 
     /**
