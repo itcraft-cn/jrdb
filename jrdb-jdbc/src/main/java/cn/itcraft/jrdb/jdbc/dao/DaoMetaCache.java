@@ -63,7 +63,10 @@ public class DaoMetaCache {
         if (autoCrud != null) {
             Class<?> entityClass = autoCrud.entity();
             String primaryKey = autoCrud.primaryKey();
-            String tableName = inferTableName(entityClass);
+            String tableName = autoCrud.tableName();
+            if (tableName == null || tableName.isEmpty()) {
+                tableName = inferTableName(entityClass);
+            }
             AutoCrudMeta autoCrudMeta = new AutoCrudMeta(entityClass, primaryKey, tableName);
             daoMeta.setAutoCrudMeta(autoCrudMeta);
             

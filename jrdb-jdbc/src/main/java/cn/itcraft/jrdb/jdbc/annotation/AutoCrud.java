@@ -9,5 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AutoCrud {
     Class<?> entity();
+    String tableName() default "";
     String primaryKey() default "id";
 }
