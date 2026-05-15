@@ -64,7 +64,11 @@ public class DaoMetaCache {
             Class<?> entityClass = autoCrud.entity();
             String primaryKey = autoCrud.primaryKey();
             String tableName = inferTableName(entityClass);
-            daoMeta.setAutoCrudMeta(new AutoCrudMeta(entityClass, primaryKey, tableName));
+            AutoCrudMeta autoCrudMeta = new AutoCrudMeta(entityClass, primaryKey, tableName);
+            daoMeta.setAutoCrudMeta(autoCrudMeta);
+            
+            AutoCrudMethodGenerator generator = new AutoCrudMethodGenerator(mapperRegistry);
+            generator.generateAutoCrudMethods(daoMeta, autoCrudMeta);
         }
     }
 

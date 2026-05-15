@@ -8,12 +8,6 @@ import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Unit tests for EntityMapper interface contract.
- *
- * @author jrdb
- * @since 1.0.0
- */
 class EntityMapperTest {
 
     @Test
@@ -81,6 +75,11 @@ class EntityMapperTest {
         @Override
         public Object[] mapToRow(TestEntity entity) {
             return new Object[]{entity.getId(), entity.getName()};
+        }
+
+        @Override
+        public String[] getFieldNames() {
+            return new String[]{"id", "name"};
         }
     }
 }

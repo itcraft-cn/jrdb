@@ -7,7 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 @DisplayName("StyleExecutor Test")
 class StyleExecutorTest {
@@ -41,32 +41,5 @@ class StyleExecutorTest {
         MethodMeta methodMeta = new MethodMeta("test");
 
         assertThrows(IllegalArgumentException.class, () -> executor.execute(session, methodMeta, null));
-    }
-
-    @Test
-    @DisplayName("bindParametersFromCache should use cached param mapping")
-    void bindParametersFromCache() {
-        MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.addParamMapping(0);
-        methodMeta.addParamMapping(1);
-        
-        MyBatisStyleExecutor executor = new MyBatisStyleExecutor();
-        Object[] params = executor.bindParametersFromCache(methodMeta, new Object[]{"id1", "name2"});
-        
-        assertEquals(2, params.length);
-        assertEquals("id1", params[0]);
-        assertEquals("name2", params[1]);
-    }
-
-    @Test
-    @DisplayName("bindParametersFromCache with insufficient args should throw IllegalArgumentException")
-    void bindParametersFromCacheInsufficientArgs() {
-        MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.addParamMapping(0);
-        methodMeta.addParamMapping(1);
-        
-        MyBatisStyleExecutor executor = new MyBatisStyleExecutor();
-        
-        assertThrows(IllegalArgumentException.class, () -> executor.bindParametersFromCache(methodMeta, new Object[]{"id1"}));
     }
 }

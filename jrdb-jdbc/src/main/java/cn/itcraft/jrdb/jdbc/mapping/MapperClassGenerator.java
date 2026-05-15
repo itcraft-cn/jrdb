@@ -79,6 +79,7 @@ public class MapperClassGenerator {
         generateConstructor(cw, className);
         generateMapFromResultSet(cw, className, config, entityClassName);
         generateMapToRow(cw, className, config, entityClassName);
+        generateGetFieldNames(cw, className, config);
 
         cw.visitEnd();
         return cw.toByteArray();
@@ -400,5 +401,27 @@ public class MapperClassGenerator {
             return Double.class;
         }
         return primitiveType;
+    }
+
+    private void generateGetFieldNames(ClassWriter cw, String className, MappingConfig config) {
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "getFieldNames",
+            "()[Ljava/lang/String;", null, null);
+
+        mv.visitCode();
+
+        List<MappingField> fields = config.getFields();
+        mv.visitIntInsn(Opcodes.BIPUSH, fields.size());
+        mv.visitTypeInsn(Opcodes.ANEWARRAY, "java/lang/String");
+
+        for (int i = 0; i < fields.size(); i++) {
+            mv.visitInsn(Opcodes.DUP);
+            mv.visitIntInsn(Opcodes.BIPUSH, i);
+            mv.visitLdcInsn(fields.get(i).getColumnName());
+            mv.visitInsn(Opcodes.AASTORE);
+        }
+
+        mv.visitInsn(Opcodes.ARETURN);
+        mv.visitMaxs(4, 1);
+        mv.visitEnd();
     }
 }

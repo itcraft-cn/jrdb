@@ -1,10 +1,12 @@
 package cn.itcraft.jrdb.jdbc.dao;
 
 import cn.itcraft.jrdb.jdbc.annotation.SqlParamBindStyle;
+import cn.itcraft.jrdb.jdbc.executor.AutoCrudExecutor;
 import cn.itcraft.jrdb.jdbc.executor.HibernateStyleExecutor;
 import cn.itcraft.jrdb.jdbc.executor.JdbcStyleExecutor;
 import cn.itcraft.jrdb.jdbc.executor.MyBatisStyleExecutor;
 import cn.itcraft.jrdb.jdbc.executor.StyleExecutor;
+import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
 import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
 import cn.itcraft.jrdb.jdbc.session.Session;
 
@@ -18,8 +20,10 @@ public class DaoRegistry {
     private final DaoProxyGenerator proxyGenerator;
     private final Map<Class<?>, Object> daoCache = new ConcurrentHashMap<>();
     private final Map<SqlParamBindStyle, StyleExecutor> executorMap;
+    private final MapperRegistry mapperRegistry;
 
     public DaoRegistry(MapperRegistry mapperRegistry, SqlParamBindStyle defaultStyle) {
+        this.mapperRegistry = mapperRegistry;
         this.daoMetaCache = new DaoMetaCache(mapperRegistry, defaultStyle);
         this.proxyGenerator = new DaoProxyGenerator();
         this.executorMap = new ConcurrentHashMap<>();
@@ -37,9 +41,15 @@ public class DaoRegistry {
         Objects.requireNonNull(session, "session cannot be null");
 
         DaoMeta daoMeta = daoMetaCache.getDaoMeta(daoInterface);
-        StyleExecutor executor = getExecutor(daoMeta);
-
-        return proxyGenerator.generateProxy(daoInterface, daoMeta, executor, session);
+        
+        if (daoMeta.hasAutoCrud()) {
+            EntityMapper mapper = mapperRegistry.getMapper(daoMeta.getAutoCrudMeta().getEntityClass());
+            StyleExecutor executor = new AutoCrudExecutor(mapper);
+            return proxyGenerator.generateProxy(daoInterface, daoMeta, executor, session);
+        } else {
+            StyleExecutor executor = getExecutor(daoMeta);
+            return proxyGenerator.generateProxy(daoInterface, daoMeta, executor, session);
+        }
     }
 
     private StyleExecutor getExecutor(DaoMeta daoMeta) {

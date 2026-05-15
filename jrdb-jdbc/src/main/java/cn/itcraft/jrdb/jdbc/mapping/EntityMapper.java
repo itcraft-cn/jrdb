@@ -41,4 +41,6 @@ public interface EntityMapper<T> {
      * @return array of values for database columns
      */
     Object[] mapToRow(T entity);
+    
+    String[] getFieldNames();
 }
