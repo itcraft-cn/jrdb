@@ -136,9 +136,9 @@ public interface UserDao extends AutoCrudDao<User, Long> {
 }
 ```
 
-#### Performance (JMH Benchmark)
+#### Performance (JMH Benchmark, 2 threads)
 
-**Style Comparison (2 threads, cached SQL + parameter mapping):**
+**Style Comparison (cached SQL + parameter mapping):**
 
 | Method | JdbcStyle (ops/s) | MyBatisStyle (ops/s) | HibernateStyle (ops/s) |
 |--------|-------------------|----------------------|------------------------|
@@ -151,17 +151,21 @@ Why? SQL conversion and parameter mapping are **cached at parse time**, so runti
 
 **Annotation vs ASM vs AutoCrud:**
 
-| Method | jrdb ASM (ops/s) | MyBatis Style (ops/s) | AutoCrud (ops/s) | ASM Speedup |
-|--------|------------------|----------------------|------------------|-------------|
-| **selectById** | **162,257** | 24,309 | 19,951 | **6.7x vs MyBatis, 6.9x vs AutoCrud** |
-| **update** | **148,420** | - | 19,906 | **7.5x vs AutoCrud** |
-| **delete** | **284,378** | - | 41,109 | **6.9x vs AutoCrud** |
+| Method | ASM Direct (ops/s) | MyBatisStyle DAO (ops/s) | AutoCrud DAO (ops/s) |
+|--------|--------------------|--------------------------|----------------------|
+| **selectById** | **2,098,531** | **2,025,851** | **2,053,898** |
+| **update** | **356,879** | - | **328,125** (~8% slower) |
+| **delete** | **1,783,170** | - | **1,710,191** (~4% slower) |
 
 **Key Findings:**
-- **ASM proxy** (hand-written SQL): Highest performance, minimal overhead
-- **MyBatis Style** (named parameters): ~6.7x slower than ASM due to parameter parsing
-- **AutoCrud** (auto-generated SQL): ~7x slower due to runtime SQL generation
+- **selectById**: All approaches have identical performance (~2M ops/s)
+- **update/delete**: AutoCrud is ~4-8% slower due to entity parameter extraction
 - **Style choice**: No performance impact - choose based on readability preference
+
+**Recommendation:**
+- Use **any Style** (JdbcStyle/MyBatisStyle/HibernateStyle) - performance is identical
+- Use **ASM Direct** (`session.queryForObject`) for maximum control
+- Use **AutoCrud** for convenience with minor performance trade-off
 
 **Recommendation:**
 - Use **ASM + hand-written SQL** for critical performance paths

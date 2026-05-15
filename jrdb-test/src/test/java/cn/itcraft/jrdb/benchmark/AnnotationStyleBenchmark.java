@@ -101,12 +101,12 @@ public class AnnotationStyleBenchmark {
     public static class JrdbAsmState {
         Session session;
 
-        @Setup(Level.Invocation)
+        @Setup(Level.Iteration)
         public void setup(SharedState shared) {
             session = shared.sessionFactory.openSession();
         }
 
-        @TearDown(Level.Invocation)
+        @TearDown(Level.Iteration)
         public void tearDown() {
             if (session != null) session.close();
         }
@@ -117,13 +117,13 @@ public class AnnotationStyleBenchmark {
         Session session;
         MyBatisStyleDao dao;
 
-        @Setup(Level.Invocation)
+        @Setup(Level.Iteration)
         public void setup(SharedState shared) {
             session = shared.sessionFactory.openSession();
             dao = shared.daoRegistry.getDao(MyBatisStyleDao.class, session);
         }
 
-        @TearDown(Level.Invocation)
+        @TearDown(Level.Iteration)
         public void tearDown() {
             if (session != null) session.close();
         }
@@ -134,13 +134,13 @@ public class AnnotationStyleBenchmark {
         Session session;
         AutoCrudDao dao;
 
-        @Setup(Level.Invocation)
+        @Setup(Level.Iteration)
         public void setup(SharedState shared) {
             session = shared.sessionFactory.openSession();
             dao = shared.daoRegistry.getDao(AutoCrudDao.class, session);
         }
 
-        @TearDown(Level.Invocation)
+        @TearDown(Level.Iteration)
         public void tearDown() {
             if (session != null) session.close();
         }
