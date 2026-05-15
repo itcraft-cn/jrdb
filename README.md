@@ -336,15 +336,25 @@ jrdb:
 
 ## Spring Boot Integration
 
-### jrdb-jdbc Spring Boot
+### jrdb-spring-boot-starter
+
+The starter aggregates all jrdb modules and provides unified auto-configuration:
 
 ```xml
 <dependency>
     <groupId>cn.itcraft.jrdb</groupId>
     <artifactId>jrdb-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.2.0</version>
 </dependency>
 ```
+
+**Auto-configured beans:**
+- `SessionFactory` - Core session factory
+- `JrdbTemplate` - Convenience template (auto-manages Session per operation)
+- `JrdbTransactionTemplate` - Functional transaction template
+- `JrdbSpringTransactionTemplate` - Spring transaction integration (requires `PlatformTransactionManager`)
+- `MemoryPool` - Off-heap memory pool
+- `MapperRegistry` - ASM mapper registry
 
 ```yaml
 spring:
@@ -355,10 +365,14 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 jrdb:
+  enabled: true
   jdbc:
-    enabled: true
-    l1-cache-enabled: true
-    l2-cache-enabled: false
+    cache:
+      level: 1
+      statement-cache-size: 100
+      result-cache-size: 1000
+    transaction:
+      default-isolation-level: 2  # TRANSACTION_READ_COMMITTED
 ```
 
 ```java
@@ -366,14 +380,44 @@ jrdb:
 public class UserService {
 
     @Autowired
-    private SessionFactory sessionFactory;
+    private JrdbTemplate jrdbTemplate;
+
+    @Autowired
+    private JrdbTransactionTemplate transactionTemplate;
 
     public User getUser(Long id) {
-        try (Session session = sessionFactory.openSession()) {
-            return session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, id);
-        }
+        return jrdbTemplate.queryForObject("SELECT * FROM users WHERE id = ?", User.class, id);
+    }
+
+    public void transfer(Long from, Long to, BigDecimal amount) {
+        transactionTemplate.executeWithoutResult(session -> {
+            session.update("UPDATE accounts SET balance = balance - ? WHERE id = ?", amount, from);
+            session.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", amount, to);
+        });
     }
 }
+```
+
+### jrdb-jdbc-spring (Standalone)
+
+For non-Spring Boot projects, use `jrdb-jdbc-spring` directly:
+
+```xml
+<dependency>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-jdbc-spring</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
+```java
+SessionFactory sessionFactory = new SessionFactory(config, dataSource);
+JrdbTransactionTemplate template = new JrdbTransactionTemplate(sessionFactory);
+
+template.executeWithoutResult(session -> {
+    session.update("UPDATE accounts SET balance = balance - ? WHERE id = ?", 100, 1L);
+    session.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", 100, 2L);
+});
 ```
 
 ### jrdb-r2dbc Spring Boot
