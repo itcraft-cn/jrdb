@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - JdbcStyleIntegrationTest集成测试（5个测试）
 - StyleComparisonBenchmark性能测试
 - AnnotationStyleBenchmark性能测试
+- Session事务API - beginTransaction/commit/rollback/isInTransaction/setTransactionIsolation
+- jrdb-jdbc-spring模块 - JrdbTransactionTemplate + JrdbSpringTransactionTemplate
+- JrdbAutoConfiguration - Spring Boot自动配置
+- JrdbProperties - 配置属性
+- SessionTransactionTest - 12个测试场景
 
 ### Changed
 - DaoMetaCache参数映射改为按参数名而非顺序
@@ -24,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - insert返回值统一为int（受影响行数）
 - pom.xml添加-parameters编译选项保留参数名
 - AnnotationStyleBenchmark Session生命周期改为Level.Iteration（修正性能数据）
+- SessionImpl.close方法自动rollback未提交事务
+- 删除旧transaction包（Transaction/TransactionManager/TransactionCallback）
 
 ### Fixed
 - AutoCrud SQL缓存修复
@@ -40,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - README添加注解SQL模式性能对比数据
 - README添加Style性能对比表格
 - README_cn同步更新注解SQL模式文档
+- docs/comparison-vs-frameworks.md（框架对比分析）
+- docs/transaction-api-design.md（事务API改进设计）
 
 ## [1.1.0] - 2026-04-18
 

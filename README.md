@@ -236,6 +236,104 @@ session.close();
 pool.dispose();
 ```
 
+## Transaction Management
+
+### Session Transaction API (jrdb-jdbc)
+
+jrdb provides manual transaction control through Session API:
+
+```java
+try (Session session = sessionFactory.openSession()) {
+    session.beginTransaction();
+    try {
+        // Execute operations within transaction
+        session.update("UPDATE accounts SET balance = balance - ? WHERE id = ?", 100, 1L);
+        session.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", 100, 2L);
+        session.commit();
+    } catch (Exception e) {
+        session.rollback();
+        throw e;
+    }
+}
+```
+
+**Key Features:**
+- `beginTransaction()` - Start a transaction
+- `commit()` - Commit the transaction
+- `rollback()` - Rollback the transaction
+- `isInTransaction()` - Check if a transaction is active
+- `setTransactionIsolation(level)` - Set transaction isolation level
+- Auto-rollback on `close()` if transaction is not committed
+
+### Function Transaction API (jrdb-jdbc-spring)
+
+For Spring projects, jrdb provides functional transaction templates:
+
+```xml
+<dependency>
+    <groupId>cn.itcraft.jrdb</groupId>
+    <artifactId>jrdb-jdbc-spring</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
+#### JrdbTransactionTemplate (Standalone)
+
+Functional transaction API without Spring TransactionManager:
+
+```java
+@Autowired
+private JrdbTransactionTemplate transactionTemplate;
+
+// Execute with return value
+User user = transactionTemplate.execute(session -> {
+    User u = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+    session.update("UPDATE users SET name = ? WHERE id = ?", u.getName() + "_updated", 1L);
+    return u;
+});
+
+// Execute without return value
+transactionTemplate.executeWithoutResult(session -> {
+    session.update("UPDATE accounts SET balance = balance - ? WHERE id = ?", 100, 1L);
+    session.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", 100, 2L);
+});
+```
+
+#### JrdbSpringTransactionTemplate (Spring Integration)
+
+Integrate with Spring's `@Transactional`:
+
+```java
+@Autowired
+private JrdbSpringTransactionTemplate transactionTemplate;
+
+// Works with Spring @Transactional
+@Transactional
+public void transfer(Long fromId, Long toId, BigDecimal amount) {
+    transactionTemplate.execute(session -> {
+        session.update("UPDATE accounts SET balance = balance - ? WHERE id = ?", amount, fromId);
+        session.update("UPDATE accounts SET balance = balance + ? WHERE id = ?", amount, toId);
+        return null;
+    });
+}
+```
+
+#### Spring Boot Auto-Configuration
+
+jrdb-jdbc-spring provides automatic configuration:
+
+```yaml
+jrdb:
+  jdbc:
+    transaction:
+      default-isolation-level: 2  # TRANSACTION_READ_COMMITTED
+      spring-transaction-enabled: true
+```
+
+**Auto-configured beans:**
+- `JrdbTransactionTemplate` - Requires only `SessionFactory`
+- `JrdbSpringTransactionTemplate` - Requires `SessionFactory` + `PlatformTransactionManager`
+
 ## Spring Boot Integration
 
 ### jrdb-jdbc Spring Boot

@@ -14,11 +14,12 @@ jrdb/
 │   ├── mapping/            # ASM 实体映射
 │   ├── memory/             # 堆外内存管理
 │   ├── query/              # 查询结果
-│   ├── session/            # 会话管理
-│   ├── sql/                # SQL 构建
+│   ├── session/            # 会话管理（含事务API）
+│   ├── sql/                 # SQL 构建
 │   ├── storage/            # 存储
-│   ├── transaction/        # 事务
 │   └── type/               # 类型处理
+├── jrdb-jdbc-spring/       # Spring 事务集成模块
+│   └── spring/             # JrdbTransactionTemplate + Spring Boot 自动配置
 ├── jrdb-r2dbc/             # 响应式 R2DBC 实现
 │   ├── config/             # 配置类
 │   ├── executor/           # 查询执行器
@@ -137,6 +138,12 @@ java -cp "target/jrdb-test-*.jar:target/dependency/*" \
 2. **Streaming API** (主推) - `queryWithHandler`，零对象创建，ETL 场景
 3. **Raw API** (底层能力) - `query` 返回 QueryResult，精细控制
 4. **DirectSql API** (批量优化) - `execute`/`executeBatch`，批量操作性能 +50%
+5. **Transaction API** (事务控制) - `beginTransaction`/`commit`/`rollback`，手动事务管理
+
+### jrdb-jdbc-spring (Spring 集成)
+
+1. **JrdbTransactionTemplate** (函数式 API) - `execute`/`executeWithoutResult`，自动事务边界管理
+2. **JrdbSpringTransactionTemplate** (Spring 事务) - 与 `@Transactional` 集成
 
 ### jrdb-r2dbc (响应式)
 
@@ -219,12 +226,21 @@ java -cp "target/jrdb-test-*.jar:target/dependency/*" \
 
 | 类 | 职责 |
 |---|------|
-| `Session` | 核心会话接口，提供查询/更新 API |
+| `Session` | 核心会话接口，提供查询/更新/事务 API |
 | `SessionFactory` | 创建 Session，管理 MapperRegistry |
 | `MemoryPool` | 堆外内存池管理 |
 | `MapperRegistry` | ASM 映射器注册表 |
 | `EntityMapper<T>` | 实体映射器接口 |
 | `DirectSqlBuilder` | SQL拼接工具类（安全转义参数） |
+
+### jrdb-jdbc-spring
+
+| 类 | 职责 |
+|---|------|
+| `JrdbTransactionTemplate` | 函数式事务模板，自动管理事务边界 |
+| `JrdbSpringTransactionTemplate` | Spring事务集成，与@Transactional配合 |
+| `JrdbAutoConfiguration` | Spring Boot自动配置 |
+| `JrdbProperties` | jrdb配置属性 |
 
 ### jrdb-r2dbc
 
