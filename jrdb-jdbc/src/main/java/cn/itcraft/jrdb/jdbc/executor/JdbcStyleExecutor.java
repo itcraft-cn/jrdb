@@ -4,6 +4,7 @@ import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
 import cn.itcraft.jrdb.jdbc.query.QueryResult;
 import cn.itcraft.jrdb.jdbc.session.Session;
+import java.util.List;
 import java.util.Objects;
 
 public class JdbcStyleExecutor implements StyleExecutor {
@@ -13,10 +14,12 @@ public class JdbcStyleExecutor implements StyleExecutor {
         Objects.requireNonNull(session, "session cannot be null");
         Objects.requireNonNull(methodMeta, "methodMeta cannot be null");
 
-        String sql = methodMeta.getSql();
+        String sql = methodMeta.getCachedSql();
         if (sql == null) {
-            throw new IllegalArgumentException("SQL is null for method: " + methodMeta.getMethodName());
+            throw new IllegalArgumentException("Cached SQL is null for method: " + methodMeta.getMethodName());
         }
+
+        Object[] params = bindParametersFromCache(methodMeta, args);
 
         SqlOperationType operationType = methodMeta.getOperationType();
         if (operationType == null) {
@@ -25,16 +28,32 @@ public class JdbcStyleExecutor implements StyleExecutor {
 
         switch (operationType) {
             case SELECT:
-                return executeSelect(session, sql, args, methodMeta.getReturnType());
+                return executeSelect(session, sql, params, methodMeta.getReturnType());
             case INSERT:
-                return executeInsert(session, sql, args);
+                return executeInsert(session, sql, params);
             case UPDATE:
-                return executeUpdate(session, sql, args);
+                return executeUpdate(session, sql, params);
             case DELETE:
-                return executeDelete(session, sql, args);
+                return executeDelete(session, sql, params);
             default:
                 throw new IllegalArgumentException("Unknown operation type: " + operationType);
         }
+    }
+
+    private Object[] bindParametersFromCache(MethodMeta methodMeta, Object[] args) {
+        List<Integer> paramMapping = methodMeta.getParamMapping();
+        Object[] params = new Object[paramMapping.size()];
+        
+        for (int i = 0; i < paramMapping.size(); i++) {
+            int argsIndex = paramMapping.get(i);
+            if (args != null && argsIndex < args.length) {
+                params[i] = args[argsIndex];
+            } else {
+                throw new IllegalArgumentException("Parameter index out of bounds: " + argsIndex);
+            }
+        }
+        
+        return params;
     }
 
     private Object executeSelect(Session session, String sql, Object[] args, Class<?> returnType) {

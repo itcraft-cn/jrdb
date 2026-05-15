@@ -1,32 +1,25 @@
 package cn.itcraft.jrdb.jdbc.executor;
 
 import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
-import cn.itcraft.jrdb.jdbc.dao.ParamMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
 import cn.itcraft.jrdb.jdbc.query.QueryResult;
 import cn.itcraft.jrdb.jdbc.session.Session;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MyBatisStyleExecutor implements StyleExecutor {
-
-    private static final Pattern PARAM_PATTERN = Pattern.compile("#\\{(\\w+)}");
 
     @Override
     public Object execute(Session session, MethodMeta methodMeta, Object[] args) {
         Objects.requireNonNull(session, "session cannot be null");
         Objects.requireNonNull(methodMeta, "methodMeta cannot be null");
 
-        String sql = methodMeta.getSql();
+        String sql = methodMeta.getCachedSql();
         if (sql == null) {
-            throw new IllegalArgumentException("SQL is null for method: " + methodMeta.getMethodName());
+            throw new IllegalArgumentException("Cached SQL is null for method: " + methodMeta.getMethodName());
         }
 
-        String jdbcSql = convertToJdbcSql(sql);
-        Object[] params = bindParameters(methodMeta, args);
+        Object[] params = bindParametersFromCache(methodMeta, args);
 
         SqlOperationType operationType = methodMeta.getOperationType();
         if (operationType == null) {
@@ -35,47 +28,32 @@ public class MyBatisStyleExecutor implements StyleExecutor {
 
         switch (operationType) {
             case SELECT:
-                return executeSelect(session, jdbcSql, params, methodMeta.getReturnType());
+                return executeSelect(session, sql, params, methodMeta.getReturnType());
             case INSERT:
-                return executeInsert(session, jdbcSql, params);
+                return executeInsert(session, sql, params);
             case UPDATE:
-                return executeUpdate(session, jdbcSql, params);
+                return executeUpdate(session, sql, params);
             case DELETE:
-                return executeDelete(session, jdbcSql, params);
+                return executeDelete(session, sql, params);
             default:
                 throw new IllegalArgumentException("Unknown operation type: " + operationType);
         }
     }
 
-    public String convertToJdbcSql(String myBatisSql) {
-        return myBatisSql.replaceAll("#\\{(\\w+)}", "?");
-    }
-
-    private Object[] bindParameters(MethodMeta methodMeta, Object[] args) {
-        List<Object> params = new ArrayList<>();
-        String sql = methodMeta.getSql();
+    public Object[] bindParametersFromCache(MethodMeta methodMeta, Object[] args) {
+        List<Integer> paramMapping = methodMeta.getParamMapping();
+        Object[] params = new Object[paramMapping.size()];
         
-        Matcher matcher = PARAM_PATTERN.matcher(sql);
-        int paramIndex = 0;
-        while (matcher.find()) {
-            if (args != null && paramIndex < args.length) {
-                params.add(args[paramIndex]);
-                paramIndex++;
+        for (int i = 0; i < paramMapping.size(); i++) {
+            int argsIndex = paramMapping.get(i);
+            if (args != null && argsIndex < args.length) {
+                params[i] = args[argsIndex];
             } else {
-                throw new IllegalArgumentException("Parameter index out of bounds: " + paramIndex);
+                throw new IllegalArgumentException("Parameter index out of bounds: " + argsIndex);
             }
         }
         
-        return params.toArray();
-    }
-
-    private int findArgsIndex(List<ParamMeta> paramMetas, String paramName) {
-        for (ParamMeta paramMeta : paramMetas) {
-            if (paramMeta.getName().equals(paramName)) {
-                return paramMeta.getIndex();
-            }
-        }
-        return -1;
+        return params;
     }
 
     private Object executeSelect(Session session, String sql, Object[] params, Class<?> returnType) {

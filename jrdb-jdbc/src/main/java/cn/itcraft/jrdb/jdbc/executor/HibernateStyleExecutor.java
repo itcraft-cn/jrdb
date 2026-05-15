@@ -4,6 +4,7 @@ import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
 import cn.itcraft.jrdb.jdbc.query.QueryResult;
 import cn.itcraft.jrdb.jdbc.session.Session;
+import java.util.List;
 import java.util.Objects;
 
 public class HibernateStyleExecutor implements StyleExecutor {
@@ -13,12 +14,12 @@ public class HibernateStyleExecutor implements StyleExecutor {
         Objects.requireNonNull(session, "session cannot be null");
         Objects.requireNonNull(methodMeta, "methodMeta cannot be null");
 
-        String hql = methodMeta.getSql();
-        if (hql == null) {
-            throw new IllegalArgumentException("HQL is null for method: " + methodMeta.getMethodName());
+        String sql = methodMeta.getCachedSql();
+        if (sql == null) {
+            throw new IllegalArgumentException("Cached SQL is null for method: " + methodMeta.getMethodName());
         }
 
-        String sql = convertHqlToSql(hql);
+        Object[] params = bindParametersFromCache(methodMeta, args);
 
         SqlOperationType operationType = methodMeta.getOperationType();
         if (operationType == null) {
@@ -27,44 +28,32 @@ public class HibernateStyleExecutor implements StyleExecutor {
 
         switch (operationType) {
             case SELECT:
-                return executeSelect(session, sql, args, methodMeta.getReturnType());
+                return executeSelect(session, sql, params, methodMeta.getReturnType());
             case INSERT:
-                return executeInsert(session, sql, args);
+                return executeInsert(session, sql, params);
             case UPDATE:
-                return executeUpdate(session, sql, args);
+                return executeUpdate(session, sql, params);
             case DELETE:
-                return executeDelete(session, sql, args);
+                return executeDelete(session, sql, params);
             default:
                 throw new IllegalArgumentException("Unknown operation type: " + operationType);
         }
     }
 
-    public String convertHqlToSql(String hql) {
-        if (hql.toLowerCase().startsWith("from ")) {
-            String entityPart = hql.substring(5).trim();
-            int whereIndex = entityPart.toLowerCase().indexOf(" where ");
-            if (whereIndex > 0) {
-                String entityName = entityPart.substring(0, whereIndex).trim();
-                String whereClause = entityPart.substring(whereIndex + 7).trim();
-                return "SELECT * FROM " + inferTableName(entityName) + " WHERE " + whereClause;
+    private Object[] bindParametersFromCache(MethodMeta methodMeta, Object[] args) {
+        List<Integer> paramMapping = methodMeta.getParamMapping();
+        Object[] params = new Object[paramMapping.size()];
+        
+        for (int i = 0; i < paramMapping.size(); i++) {
+            int argsIndex = paramMapping.get(i);
+            if (args != null && argsIndex < args.length) {
+                params[i] = args[argsIndex];
             } else {
-                String entityName = entityPart;
-                return "SELECT * FROM " + inferTableName(entityName);
+                throw new IllegalArgumentException("Parameter index out of bounds: " + argsIndex);
             }
         }
-        return hql;
-    }
-
-    private String inferTableName(String entityName) {
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < entityName.length(); i++) {
-            char c = entityName.charAt(i);
-            if (Character.isUpperCase(c) && i > 0) {
-                result.append('_');
-            }
-            result.append(Character.toLowerCase(c));
-        }
-        return result.toString();
+        
+        return params;
     }
 
     private Object executeSelect(Session session, String sql, Object[] args, Class<?> returnType) {

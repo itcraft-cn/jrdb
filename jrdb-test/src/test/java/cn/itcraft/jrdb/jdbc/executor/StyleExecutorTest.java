@@ -1,17 +1,13 @@
 package cn.itcraft.jrdb.jdbc.executor;
 
 import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
-import cn.itcraft.jrdb.jdbc.dao.ParamMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
 import cn.itcraft.jrdb.jdbc.session.Session;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 @DisplayName("StyleExecutor Test")
 class StyleExecutorTest {
@@ -21,8 +17,9 @@ class StyleExecutorTest {
     void jdbcStyleExecutorNullSession() {
         JdbcStyleExecutor executor = new JdbcStyleExecutor();
         MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.setSql("SELECT 1");
+        methodMeta.setCachedSql("SELECT 1");
         methodMeta.setOperationType(SqlOperationType.SELECT);
+        methodMeta.setReturnType(Long.class);
 
         assertThrows(NullPointerException.class, () -> executor.execute(null, methodMeta, null));
     }
@@ -37,8 +34,8 @@ class StyleExecutorTest {
     }
 
     @Test
-    @DisplayName("JdbcStyleExecutor execute with null sql should throw IllegalArgumentException")
-    void jdbcStyleExecutorNullSql() {
+    @DisplayName("JdbcStyleExecutor execute with null cachedSql should throw IllegalArgumentException")
+    void jdbcStyleExecutorNullCachedSql() {
         JdbcStyleExecutor executor = new JdbcStyleExecutor();
         Session session = mock(Session.class);
         MethodMeta methodMeta = new MethodMeta("test");
@@ -47,35 +44,29 @@ class StyleExecutorTest {
     }
 
     @Test
-    @DisplayName("MyBatisStyleExecutor convertToJdbcSql should replace #{param} with ?")
-    void myBatisStyleExecutorConvertSql() {
+    @DisplayName("bindParametersFromCache should use cached param mapping")
+    void bindParametersFromCache() {
+        MethodMeta methodMeta = new MethodMeta("test");
+        methodMeta.addParamMapping(0);
+        methodMeta.addParamMapping(1);
+        
+        MyBatisStyleExecutor executor = new MyBatisStyleExecutor();
+        Object[] params = executor.bindParametersFromCache(methodMeta, new Object[]{"id1", "name2"});
+        
+        assertEquals(2, params.length);
+        assertEquals("id1", params[0]);
+        assertEquals("name2", params[1]);
+    }
+
+    @Test
+    @DisplayName("bindParametersFromCache with insufficient args should throw IllegalArgumentException")
+    void bindParametersFromCacheInsufficientArgs() {
+        MethodMeta methodMeta = new MethodMeta("test");
+        methodMeta.addParamMapping(0);
+        methodMeta.addParamMapping(1);
+        
         MyBatisStyleExecutor executor = new MyBatisStyleExecutor();
         
-        String myBatisSql = "SELECT * FROM users WHERE id = #{id} AND name = #{name}";
-        String jdbcSql = executor.convertToJdbcSql(myBatisSql);
-        
-        assertEquals("SELECT * FROM users WHERE id = ? AND name = ?", jdbcSql);
-    }
-
-    @Test
-    @DisplayName("HibernateStyleExecutor convertHqlToSql should convert from Entity to SELECT * FROM table")
-    void hibernateStyleExecutorConvertHql() {
-        HibernateStyleExecutor executor = new HibernateStyleExecutor();
-
-        String hql = "from User where id = ?";
-        String sql = executor.convertHqlToSql(hql);
-        
-        assertEquals("SELECT * FROM user WHERE id = ?", sql);
-    }
-
-    @Test
-    @DisplayName("HibernateStyleExecutor inferTableName should convert CamelCase to snake_case")
-    void hibernateStyleExecutorInferTableName() {
-        HibernateStyleExecutor executor = new HibernateStyleExecutor();
-
-        String hql = "from UserAccount where id = ?";
-        String sql = executor.convertHqlToSql(hql);
-        
-        assertEquals("SELECT * FROM user_account WHERE id = ?", sql);
+        assertThrows(IllegalArgumentException.class, () -> executor.bindParametersFromCache(methodMeta, new Object[]{"id1"}));
     }
 }

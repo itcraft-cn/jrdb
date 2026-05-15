@@ -13,10 +13,13 @@ public class MethodMeta {
     private SqlOperationType operationType;
     private Class<?> returnType;
     private final List<ParamMeta> paramMetas;
+    private String cachedSql;
+    private List<Integer> paramMapping;
 
     public MethodMeta(String methodName) {
         this.methodName = Objects.requireNonNull(methodName, "methodName cannot be null");
         this.paramMetas = new ArrayList<>();
+        this.paramMapping = new ArrayList<>();
     }
 
     public String getMethodName() {
@@ -53,6 +56,26 @@ public class MethodMeta {
 
     public void setReturnType(Class<?> returnType) {
         this.returnType = returnType;
+    }
+
+    public String getCachedSql() {
+        return cachedSql;
+    }
+
+    public void setCachedSql(String cachedSql) {
+        this.cachedSql = cachedSql;
+    }
+
+    public List<Integer> getParamMapping() {
+        return Collections.unmodifiableList(paramMapping);
+    }
+
+    public void addParamMapping(int index) {
+        paramMapping.add(index);
+    }
+
+    public void clearParamMapping() {
+        paramMapping.clear();
     }
 
     public List<ParamMeta> getParamMetas() {

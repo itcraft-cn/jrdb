@@ -17,12 +17,15 @@ import java.lang.reflect.Parameter;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DaoMetaCache {
 
     private final Map<Class<?>, DaoMeta> cache = new ConcurrentHashMap<>();
     private final MapperRegistry mapperRegistry;
     private final SqlParamBindStyle defaultStyle;
+    private static final Pattern PARAM_PATTERN = Pattern.compile("#\\{(\\w+)}");
 
     public DaoMetaCache(MapperRegistry mapperRegistry, SqlParamBindStyle defaultStyle) {
         this.mapperRegistry = Objects.requireNonNull(mapperRegistry, "mapperRegistry cannot be null");
@@ -79,6 +82,7 @@ public class DaoMetaCache {
         parseSqlAnnotation(method, methodMeta);
         parseParams(method, methodMeta);
         parseReturnType(method, methodMeta);
+        cacheSqlConversion(methodMeta);
 
         return methodMeta;
     }
@@ -144,8 +148,89 @@ public class DaoMetaCache {
         methodMeta.setReturnType(method.getReturnType());
     }
 
+    private void cacheSqlConversion(MethodMeta methodMeta) {
+        String sql = methodMeta.getSql();
+        if (sql == null) {
+            return;
+        }
+
+        SqlParamBindStyle style = methodMeta.getMethodStyle();
+        
+        switch (style) {
+            case MYBATIS:
+                cacheMyBatisConversion(methodMeta, sql);
+                break;
+            case HIBERNATE:
+                cacheHibernateConversion(methodMeta, sql);
+                break;
+            case JDBC:
+                methodMeta.setCachedSql(sql);
+                cacheJdbcParamMapping(methodMeta);
+                break;
+        }
+    }
+
+    private void cacheMyBatisConversion(MethodMeta methodMeta, String sql) {
+        String cachedSql = sql.replaceAll("#\\{(\\w+)}", "?");
+        methodMeta.setCachedSql(cachedSql);
+        
+        methodMeta.clearParamMapping();
+        Matcher matcher = PARAM_PATTERN.matcher(sql);
+        int paramIndex = 0;
+        while (matcher.find()) {
+            methodMeta.addParamMapping(paramIndex);
+            paramIndex++;
+        }
+    }
+
+    private void cacheHibernateConversion(MethodMeta methodMeta, String sql) {
+        if (sql.toLowerCase().startsWith("from ")) {
+            String entityPart = sql.substring(5).trim();
+            int whereIndex = entityPart.toLowerCase().indexOf(" where ");
+            if (whereIndex > 0) {
+                String entityName = entityPart.substring(0, whereIndex).trim();
+                String whereClause = entityPart.substring(whereIndex + 7).trim();
+                String cachedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName) + " WHERE " + whereClause;
+                methodMeta.setCachedSql(cachedSql);
+            } else {
+                String entityName = entityPart;
+                String cachedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName);
+                methodMeta.setCachedSql(cachedSql);
+            }
+        } else {
+            methodMeta.setCachedSql(sql);
+        }
+        
+        cacheJdbcParamMapping(methodMeta);
+    }
+
+    private void cacheJdbcParamMapping(MethodMeta methodMeta) {
+        methodMeta.clearParamMapping();
+        String sql = methodMeta.getCachedSql();
+        if (sql != null) {
+            int paramCount = countParameters(sql);
+            for (int i = 0; i < paramCount; i++) {
+                methodMeta.addParamMapping(i);
+            }
+        }
+    }
+
+    private int countParameters(String sql) {
+        int count = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            if (sql.charAt(i) == '?') {
+                count++;
+            }
+        }
+        return count;
+    }
+
     private String inferTableName(Class<?> entityClass) {
         String simpleName = entityClass.getSimpleName();
+        return inferTableNameFromSimpleName(simpleName);
+    }
+
+    private String inferTableNameFromSimpleName(String simpleName) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < simpleName.length(); i++) {
             char c = simpleName.charAt(i);
