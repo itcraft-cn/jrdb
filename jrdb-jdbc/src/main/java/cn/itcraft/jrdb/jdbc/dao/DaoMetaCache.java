@@ -14,6 +14,7 @@ import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +26,8 @@ public class DaoMetaCache {
     private final Map<Class<?>, DaoMeta> cache = new ConcurrentHashMap<>();
     private final MapperRegistry mapperRegistry;
     private final SqlParamBindStyle defaultStyle;
-    private static final Pattern PARAM_PATTERN = Pattern.compile("#\\{(\\w+)}");
+    private static final Pattern MYBATIS_PARAM_PATTERN = Pattern.compile("#\\{(\\w+)}");
+    private static final Pattern HIBERNATE_PARAM_PATTERN = Pattern.compile(":(\\w+)");
 
     public DaoMetaCache(MapperRegistry mapperRegistry, SqlParamBindStyle defaultStyle) {
         this.mapperRegistry = Objects.requireNonNull(mapperRegistry, "mapperRegistry cannot be null");
@@ -185,33 +187,49 @@ public class DaoMetaCache {
         methodMeta.setCachedSql(cachedSql);
         
         methodMeta.clearParamMapping();
-        Matcher matcher = PARAM_PATTERN.matcher(sql);
-        int paramIndex = 0;
+        Matcher matcher = MYBATIS_PARAM_PATTERN.matcher(sql);
         while (matcher.find()) {
+            String paramName = matcher.group(1);
+            int paramIndex = findParamIndexByName(methodMeta.getParamMetas(), paramName);
             methodMeta.addParamMapping(paramIndex);
-            paramIndex++;
         }
     }
 
     private void cacheHibernateConversion(MethodMeta methodMeta, String sql) {
+        String originalSql = sql;
         if (sql.toLowerCase().startsWith("from ")) {
             String entityPart = sql.substring(5).trim();
             int whereIndex = entityPart.toLowerCase().indexOf(" where ");
             if (whereIndex > 0) {
                 String entityName = entityPart.substring(0, whereIndex).trim();
                 String whereClause = entityPart.substring(whereIndex + 7).trim();
-                String cachedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName) + " WHERE " + whereClause;
-                methodMeta.setCachedSql(cachedSql);
+                String convertedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName) + " WHERE " + whereClause;
+                sql = convertedSql;
             } else {
                 String entityName = entityPart;
-                String cachedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName);
-                methodMeta.setCachedSql(cachedSql);
+                sql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName);
             }
-        } else {
-            methodMeta.setCachedSql(sql);
         }
         
-        cacheJdbcParamMapping(methodMeta);
+        String cachedSql = sql.replaceAll(":(\\w+)", "?");
+        methodMeta.setCachedSql(cachedSql);
+        
+        methodMeta.clearParamMapping();
+        Matcher matcher = HIBERNATE_PARAM_PATTERN.matcher(originalSql);
+        while (matcher.find()) {
+            String paramName = matcher.group(1);
+            int paramIndex = findParamIndexByName(methodMeta.getParamMetas(), paramName);
+            methodMeta.addParamMapping(paramIndex);
+        }
+    }
+
+    private int findParamIndexByName(List<ParamMeta> paramMetas, String paramName) {
+        for (ParamMeta paramMeta : paramMetas) {
+            if (paramMeta.getName().equals(paramName)) {
+                return paramMeta.getIndex();
+            }
+        }
+        throw new IllegalArgumentException("Parameter not found: " + paramName);
     }
 
     private void cacheJdbcParamMapping(MethodMeta methodMeta) {
