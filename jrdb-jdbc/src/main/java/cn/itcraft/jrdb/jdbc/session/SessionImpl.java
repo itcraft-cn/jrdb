@@ -168,6 +168,11 @@ public class SessionImpl implements Session {
     private Connection connection;
 
     /**
+     * 事务状态标志，true表示当前在事务中。
+     */
+    private boolean inTransaction = false;
+
+    /**
      * 会话关闭标志，true表示会话已关闭。
      */
     private volatile boolean closed;
@@ -1403,6 +1408,15 @@ public class SessionImpl implements Session {
         if (closed) {
             return;
         }
+        
+        if (inTransaction) {
+            try {
+                rollback();
+            } catch (Exception e) {
+                LOGGER.warn("Failed to rollback uncommitted transaction on close: {}", e.getMessage());
+            }
+        }
+        
         clearCache();
         if (connection != null) {
             try {
@@ -1412,6 +1426,81 @@ public class SessionImpl implements Session {
             }
         }
         closed = true;
+    }
+
+    // ==================== Transaction Implementation ====================
+
+    @Override
+    public void beginTransaction() {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (inTransaction) {
+            throw new IllegalStateException("Already in transaction");
+        }
+        try {
+            Connection conn = getConnection();
+            if (conn.getAutoCommit()) {
+                conn.setAutoCommit(false);
+            }
+            inTransaction = true;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to begin transaction", e);
+        }
+    }
+
+    @Override
+    public void commit() {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (!inTransaction) {
+            throw new IllegalStateException("Not in transaction");
+        }
+        try {
+            getConnection().commit();
+            inTransaction = false;
+            getConnection().setAutoCommit(true);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to commit transaction", e);
+        }
+    }
+
+    @Override
+    public void rollback() {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (!inTransaction) {
+            throw new IllegalStateException("Not in transaction");
+        }
+        try {
+            getConnection().rollback();
+            inTransaction = false;
+            getConnection().setAutoCommit(true);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to rollback transaction", e);
+        }
+    }
+
+    @Override
+    public boolean isInTransaction() {
+        return inTransaction;
+    }
+
+    @Override
+    public void setTransactionIsolation(int level) {
+        if (closed) {
+            throw new IllegalStateException("Session is closed");
+        }
+        if (inTransaction) {
+            throw new IllegalStateException("Cannot set isolation level after beginTransaction");
+        }
+        try {
+            getConnection().setTransactionIsolation(level);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to set transaction isolation level", e);
+        }
     }
 
     @Override

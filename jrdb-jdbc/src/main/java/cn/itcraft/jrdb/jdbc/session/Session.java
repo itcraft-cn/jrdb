@@ -259,6 +259,64 @@ public interface Session extends AutoCloseable {
      */
     int[] executeBatch(List<String> sqls);
 
+    // ==================== Transaction ====================
+
+    /**
+     * 开始事务。
+     *
+     * <p>调用此方法后，Session将使用单一Connection，
+     * 所有操作在同一事务中执行，直到commit或rollback。
+     * 如果已在事务中，抛出IllegalStateException。
+     *
+     * @throws IllegalStateException 如果已在事务中
+     */
+    void beginTransaction();
+
+    /**
+     * 提交事务。
+     *
+     * <p>提交当前事务，释放Connection的transaction状态。
+     * 如果未在事务中，抛出IllegalStateException。
+     *
+     * @throws IllegalStateException 如果未在事务中
+     */
+    void commit();
+
+    /**
+     * 回滚事务。
+     *
+     * <p>回滚当前事务，撤销所有未提交的操作。
+     * 如果未在事务中，抛出IllegalStateException。
+     *
+     * @throws IllegalStateException 如果未在事务中
+     */
+    void rollback();
+
+    /**
+     * 检查是否在事务中。
+     *
+     * @return true表示当前在事务中
+     */
+    boolean isInTransaction();
+
+    /**
+     * 设置事务隔离级别。
+     *
+     * <p>仅在beginTransaction之前调用有效。
+     * 使用JDBC标准的Connection隔离级别常量：
+     * <ul>
+     *   <li>Connection.TRANSACTION_NONE</li>
+     *   <li>Connection.TRANSACTION_READ_UNCOMMITTED</li>
+     *   <li>Connection.TRANSACTION_READ_COMMITTED</li>
+     *   <li>Connection.TRANSACTION_REPEATABLE_READ</li>
+     *   <li>Connection.TRANSACTION_SERIALIZABLE</li>
+     * </ul>
+     *
+     * @param level JDBC隔离级别常量
+     * @throws IllegalStateException 如果已在事务中
+     */
+    void setTransactionIsolation(int level);
+
     // ==================== Lifecycle ====================
 
     /**
