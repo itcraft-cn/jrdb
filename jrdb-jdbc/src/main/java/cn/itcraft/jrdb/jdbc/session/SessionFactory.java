@@ -81,6 +81,40 @@ public class SessionFactory {
     }
 
     /**
+     * 使用所有必要组件构造会话工厂。
+     *
+     * <p>此构造函数允许注入自定义的 MemoryPool 和 MapperRegistry，
+     * 适用于 Spring 等容器管理场景。
+     *
+     * @param memoryPool      内存池，不能为null
+     * @param config          jrdb 配置，不能为null
+     * @param dataSource      数据源，不能为null
+     * @param mapperRegistry  映射器注册表，不能为null
+     * @throws NullPointerException 如果任何参数为 null
+     */
+    public SessionFactory(MemoryPool memoryPool, JrdbConfig config, 
+                          DataSource dataSource, MapperRegistry mapperRegistry) {
+        if (memoryPool == null) {
+            throw new NullPointerException("memoryPool cannot be null");
+        }
+        if (config == null) {
+            throw new NullPointerException("config cannot be null");
+        }
+        if (dataSource == null) {
+            throw new NullPointerException("dataSource cannot be null");
+        }
+        if (mapperRegistry == null) {
+            throw new NullPointerException("mapperRegistry cannot be null");
+        }
+        this.memoryPool = memoryPool;
+        this.config = config;
+        this.dataSource = dataSource;
+        this.mapperRegistry = mapperRegistry;
+        this.daoRegistry = new DaoRegistry(mapperRegistry, config.getDefaultStyle());
+        this.closed = false;
+    }
+
+    /**
      * 打开一个新的数据库会话。
      *
      * <p>每次调用都会创建一个新的 {@link Session} 实例。

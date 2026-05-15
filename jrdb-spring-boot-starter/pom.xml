@@ -55,6 +55,12 @@
 
         <dependency>
             <groupId>cn.itcraft</groupId>
+            <artifactId>jrdb-jdbc-spring</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.itcraft</groupId>
             <artifactId>jrdb-r2dbc</artifactId>
             <version>${project.version}</version>
             <optional>true</optional>
@@ -82,7 +88,5 @@
             <artifactId>spring-jdbc</artifactId>
             <optional>true</optional>
         </dependency>
-
-
     </dependencies>
 </project>
