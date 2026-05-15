@@ -94,6 +94,66 @@ session.execute(sql);
 
 **Use Cases: Data import, batch processing, and other high-performance scenarios.**
 
+### Annotation SQL Mode Performance
+
+jrdb supports annotation-based SQL with three styles: MyBatis Style (`#{param}`), Hibernate Style (`:param`), and JDBC Style (`?`). The ASM bytecode generated proxy achieves **6-7x** faster than traditional annotation approaches.
+
+#### Annotation Styles
+
+| Style | SQL Template | Use Case |
+|-------|-------------|----------|
+| **JdbcStyle** (default) | `SELECT * FROM users WHERE id = ?` | Best performance, simple parameters |
+| **MyBatisStyle** | `SELECT * FROM users WHERE id = #{id}` | Named parameters, readability |
+| **HibernateStyle** | `SELECT * FROM users WHERE id = :id` | Named parameters, JPA convention |
+
+```java
+@Dao
+@MyBatisStyle  // Apply to all methods in this interface
+public interface UserDao {
+    @Select("SELECT * FROM users WHERE id = #{id}")
+    User findById(Long id);
+    
+    @Update("UPDATE users SET name = #{name} WHERE id = #{id}")
+    int update(User user);
+    
+    @Insert("INSERT INTO users (name, age) VALUES (#{name}, #{age})")
+    long insert(User user);
+    
+    @Delete("DELETE FROM users WHERE id = #{id}")
+    int delete(Long id);
+}
+```
+
+#### AutoCrud - Zero SQL CRUD
+
+The `@AutoCrud` annotation automatically generates CRUD methods without writing any SQL:
+
+```java
+@Dao
+@AutoCrud(tableName = "users")  // Optional: defaults to entity class name
+public interface UserDao extends AutoCrudDao<User, Long> {
+    // Auto-generated methods: insert, update, delete, selectById
+}
+```
+
+#### Performance (JMH Benchmark)
+
+| Method | jrdb ASM (ops/s) | MyBatis Style (ops/s) | AutoCrud (ops/s) | ASM Speedup |
+|--------|------------------|----------------------|------------------|-------------|
+| **selectById** | **162,257** | 24,309 | 19,951 | **6.7x vs MyBatis, 6.9x vs AutoCrud** |
+| **update** | **148,420** | - | 19,906 | **7.5x vs AutoCrud** |
+| **delete** | **284,378** | - | 41,109 | **6.9x vs AutoCrud** |
+
+**Key Findings:**
+- **ASM proxy** (hand-written SQL): Highest performance, minimal overhead
+- **MyBatis Style** (named parameters): ~6.7x slower than ASM due to parameter parsing
+- **AutoCrud** (auto-generated SQL): ~7x slower due to runtime SQL generation
+
+**Recommendation:**
+- Use **ASM + hand-written SQL** for critical performance paths
+- Use **MyBatis Style** for readability and maintainability
+- Use **AutoCrud** for rapid prototyping and simple CRUD operations
+
 ## Quick Start
 
 ### jrdb-jdbc
