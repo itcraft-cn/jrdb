@@ -167,11 +167,6 @@ Why? SQL conversion and parameter mapping are **cached at parse time**, so runti
 - Use **ASM Direct** (`session.queryForObject`) for maximum control
 - Use **AutoCrud** for convenience with minor performance trade-off
 
-**Recommendation:**
-- Use **ASM + hand-written SQL** for critical performance paths
-- Use **MyBatis Style** for readability and maintainability
-- Use **AutoCrud** for rapid prototyping and simple CRUD operations
-
 ## Quick Start
 
 ### jrdb-jdbc

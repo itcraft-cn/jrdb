@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-15
+
+### Added
+- 注解SQL混合模式支持 - 三种Style注解（JdbcStyle/MyBatisStyle/HibernateStyle）
+- ASM字节码生成代理（DaoProxyTemplate）替代JDK Proxy
+- AutoCrud注解 - 自动生成insert/update/delete/selectById方法
+- AutoCrud支持tableName属性指定表名
+- AbstractStyleExecutor基类抽取公共代码
+- HibernateStyleIntegrationTest集成测试（5个测试）
+- JdbcStyleIntegrationTest集成测试（5个测试）
+- StyleComparisonBenchmark性能测试
+- AnnotationStyleBenchmark性能测试
+
+### Changed
+- DaoMetaCache参数映射改为按参数名而非顺序
+- HibernateStyle的:param转换逻辑修复
+- insert返回值统一为int（受影响行数）
+- pom.xml添加-parameters编译选项保留参数名
+- AnnotationStyleBenchmark Session生命周期改为Level.Iteration（修正性能数据）
+
+### Fixed
+- AutoCrud SQL缓存修复
+- AutoCrud字段顺序修复
+- AutoCrud返回类型修复
+- Style参数名映射按参数名而非顺序
+
+### Performance
+- 三种Style性能测试：selectById ~2.2M ops/s，性能相同
+- AutoCrud vs ASM：selectById差距~0%，update差距~8%，delete差距~4%
+- SQL转换和参数映射在parse时一次性缓存，运行时无额外开销
+
+### Documentation
+- README添加注解SQL模式性能对比数据
+- README添加Style性能对比表格
+- README_cn同步更新注解SQL模式文档
+
 ## [1.1.0] - 2026-04-18
 
 ### Added

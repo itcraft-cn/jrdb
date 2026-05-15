@@ -94,6 +94,79 @@ session.execute(sql);
 
 **适用场景：数据导入、批量处理等高性能场景。**
 
+### 注解 SQL 模式性能
+
+jrdb 支持注解方式的 SQL 定义，提供三种参数绑定风格：MyBatis 风格（`#{param}`）、Hibernate 风格（`:param`）和 JDBC 风格（`?`）。
+
+#### 注解风格
+
+| 风格 | SQL 模板 | 适用场景 |
+|------|---------|---------|
+| **JdbcStyle**（默认） | `SELECT * FROM users WHERE id = ?` | 最佳性能，简单参数 |
+| **MyBatisStyle** | `SELECT * FROM users WHERE id = #{id}` | 命名参数，可读性好 |
+| **HibernateStyle** | `SELECT * FROM users WHERE id = :id` | 命名参数，JPA 规范 |
+
+```java
+@Dao
+@MyBatisStyle  // 应用到接口所有方法
+public interface UserDao {
+    @Select("SELECT * FROM users WHERE id = #{id}")
+    User findById(Long id);
+    
+    @Update("UPDATE users SET name = #{name} WHERE id = #{id}")
+    int update(User user);
+    
+    @Insert("INSERT INTO users (name, age) VALUES (#{name}, #{age})")
+    long insert(User user);
+    
+    @Delete("DELETE FROM users WHERE id = #{id}")
+    int delete(Long id);
+}
+```
+
+#### AutoCrud - 零 SQL CRUD
+
+`@AutoCrud` 注解自动生成 CRUD 方法，无需编写 SQL：
+
+```java
+@Dao
+@AutoCrud(tableName = "users")  // 可选：默认为实体类名
+public interface UserDao extends AutoCrudDao<User, Long> {
+    // 自动生成方法：insert, update, delete, selectById
+}
+```
+
+#### 性能基准（JMH，2 线程）
+
+**三种风格对比（缓存 SQL + 参数映射）：**
+
+| 方法 | JdbcStyle (ops/s) | MyBatisStyle (ops/s) | HibernateStyle (ops/s) |
+|------|-------------------|----------------------|------------------------|
+| **selectById** | **2,226,924** | **2,241,259** | **2,235,430** |
+| **update** | **476,505** | **431,919** | **434,404** |
+
+**关键发现：三种风格性能相同！**
+
+原因：SQL 转换和参数映射在解析时一次性缓存，运行时使用相同缓存值，无额外开销。
+
+**注解 vs ASM 直接调用 vs AutoCrud：**
+
+| 方法 | ASM 直接调用 (ops/s) | MyBatisStyle DAO (ops/s) | AutoCrud DAO (ops/s) |
+|------|---------------------|--------------------------|----------------------|
+| **selectById** | **2,098,531** | **2,025,851** | **2,053,898** |
+| **update** | **356,879** | - | **328,125** (~8% 较慢) |
+| **delete** | **1,783,170** | - | **1,710,191** (~4% 较慢) |
+
+**关键发现：**
+- **selectById**：所有方式性能相同（~2M ops/s）
+- **update/delete**：AutoCrud 比直接调用慢 ~4-8%（实体参数提取开销）
+- **风格选择**：无性能影响，根据可读性偏好选择
+
+**推荐使用：**
+- 使用**任意风格**（JdbcStyle/MyBatisStyle/HibernateStyle）- 性能相同
+- 使用 **ASM 直接调用**（`session.queryForObject`）获得最大控制
+- 使用 **AutoCrud** 获得便利性，轻微性能损失
+
 ## 快速开始
 
 ### jrdb-jdbc
