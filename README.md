@@ -138,6 +138,19 @@ public interface UserDao extends AutoCrudDao<User, Long> {
 
 #### Performance (JMH Benchmark)
 
+**Style Comparison (2 threads, cached SQL + parameter mapping):**
+
+| Method | JdbcStyle (ops/s) | MyBatisStyle (ops/s) | HibernateStyle (ops/s) |
+|--------|-------------------|----------------------|------------------------|
+| **selectById** | **2,226,924** | **2,241,259** | **2,235,430** |
+| **update** | **476,505** | **431,919** | **434,404** |
+
+**Key Finding: All three styles have identical performance!**
+
+Why? SQL conversion and parameter mapping are **cached at parse time**, so runtime execution uses the same cached values with no overhead difference.
+
+**Annotation vs ASM vs AutoCrud:**
+
 | Method | jrdb ASM (ops/s) | MyBatis Style (ops/s) | AutoCrud (ops/s) | ASM Speedup |
 |--------|------------------|----------------------|------------------|-------------|
 | **selectById** | **162,257** | 24,309 | 19,951 | **6.7x vs MyBatis, 6.9x vs AutoCrud** |
@@ -148,6 +161,7 @@ public interface UserDao extends AutoCrudDao<User, Long> {
 - **ASM proxy** (hand-written SQL): Highest performance, minimal overhead
 - **MyBatis Style** (named parameters): ~6.7x slower than ASM due to parameter parsing
 - **AutoCrud** (auto-generated SQL): ~7x slower due to runtime SQL generation
+- **Style choice**: No performance impact - choose based on readability preference
 
 **Recommendation:**
 - Use **ASM + hand-written SQL** for critical performance paths
