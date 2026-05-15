@@ -2,6 +2,7 @@ package cn.itcraft.jrdb.jdbc.executor;
 
 import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
+import cn.itcraft.jrdb.jdbc.query.QueryResult;
 import cn.itcraft.jrdb.jdbc.session.Session;
 import java.util.Objects;
 
@@ -26,7 +27,7 @@ public class HibernateStyleExecutor implements StyleExecutor {
 
         switch (operationType) {
             case SELECT:
-                return executeSelect(session, sql, args);
+                return executeSelect(session, sql, args, methodMeta.getReturnType());
             case INSERT:
                 return executeInsert(session, sql, args);
             case UPDATE:
@@ -38,7 +39,7 @@ public class HibernateStyleExecutor implements StyleExecutor {
         }
     }
 
-    private String convertHqlToSql(String hql) {
+    public String convertHqlToSql(String hql) {
         if (hql.toLowerCase().startsWith("from ")) {
             String entityPart = hql.substring(5).trim();
             int whereIndex = entityPart.toLowerCase().indexOf(" where ");
@@ -66,13 +67,17 @@ public class HibernateStyleExecutor implements StyleExecutor {
         return result.toString();
     }
 
-    private Object executeSelect(Session session, String sql, Object[] args) {
-        return session.query(sql, rs -> {
-            if (rs.next()) {
-                return rs.getLong(1);
+    private Object executeSelect(Session session, String sql, Object[] args, Class<?> returnType) {
+        if (returnType == int.class || returnType == Integer.class || returnType == long.class || returnType == Long.class) {
+            try (QueryResult rs = session.query(sql, args)) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+                return null;
             }
-            return null;
-        });
+        } else {
+            return session.queryForObject(sql, returnType, args);
+        }
     }
 
     private Object executeInsert(Session session, String sql, Object[] args) {

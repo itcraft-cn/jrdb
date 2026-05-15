@@ -78,6 +78,7 @@ public class DaoMetaCache {
         parseMethodStyle(method, methodMeta, daoMeta);
         parseSqlAnnotation(method, methodMeta);
         parseParams(method, methodMeta);
+        parseReturnType(method, methodMeta);
 
         return methodMeta;
     }
@@ -137,6 +138,10 @@ public class DaoMetaCache {
             Class<?> type = parameters[i].getType();
             methodMeta.addParamMeta(new ParamMeta(i, name, type));
         }
+    }
+
+    private void parseReturnType(Method method, MethodMeta methodMeta) {
+        methodMeta.setReturnType(method.getReturnType());
     }
 
     private String inferTableName(Class<?> entityClass) {

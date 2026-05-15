@@ -3,6 +3,7 @@ package cn.itcraft.jrdb.jdbc.executor;
 import cn.itcraft.jrdb.jdbc.dao.MethodMeta;
 import cn.itcraft.jrdb.jdbc.dao.ParamMeta;
 import cn.itcraft.jrdb.jdbc.dao.SqlOperationType;
+import cn.itcraft.jrdb.jdbc.query.QueryResult;
 import cn.itcraft.jrdb.jdbc.session.Session;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ public class MyBatisStyleExecutor implements StyleExecutor {
 
         switch (operationType) {
             case SELECT:
-                return executeSelect(session, jdbcSql, params);
+                return executeSelect(session, jdbcSql, params, methodMeta.getReturnType());
             case INSERT:
                 return executeInsert(session, jdbcSql, params);
             case UPDATE:
@@ -46,44 +47,48 @@ public class MyBatisStyleExecutor implements StyleExecutor {
         }
     }
 
-    private String convertToJdbcSql(String myBatisSql) {
+    public String convertToJdbcSql(String myBatisSql) {
         return myBatisSql.replaceAll("#\\{(\\w+)}", "?");
     }
 
     private Object[] bindParameters(MethodMeta methodMeta, Object[] args) {
         List<Object> params = new ArrayList<>();
-        List<ParamMeta> paramMetas = methodMeta.getParamMetas();
-
-        for (ParamMeta paramMeta : paramMetas) {
-            String name = paramMeta.getName();
-            int index = findParamIndex(methodMeta.getSql(), name);
-            if (index >= 0 && args != null && index < args.length) {
-                params.add(args[index]);
+        String sql = methodMeta.getSql();
+        
+        Matcher matcher = PARAM_PATTERN.matcher(sql);
+        int paramIndex = 0;
+        while (matcher.find()) {
+            if (args != null && paramIndex < args.length) {
+                params.add(args[paramIndex]);
+                paramIndex++;
+            } else {
+                throw new IllegalArgumentException("Parameter index out of bounds: " + paramIndex);
             }
         }
-
+        
         return params.toArray();
     }
 
-    private int findParamIndex(String sql, String paramName) {
-        Matcher matcher = PARAM_PATTERN.matcher(sql);
-        int count = 0;
-        while (matcher.find()) {
-            if (matcher.group(1).equals(paramName)) {
-                return count;
+    private int findArgsIndex(List<ParamMeta> paramMetas, String paramName) {
+        for (ParamMeta paramMeta : paramMetas) {
+            if (paramMeta.getName().equals(paramName)) {
+                return paramMeta.getIndex();
             }
-            count++;
         }
         return -1;
     }
 
-    private Object executeSelect(Session session, String sql, Object[] params) {
-        return session.query(sql, rs -> {
-            if (rs.next()) {
-                return rs.getLong(1);
+    private Object executeSelect(Session session, String sql, Object[] params, Class<?> returnType) {
+        if (returnType == int.class || returnType == Integer.class || returnType == long.class || returnType == Long.class) {
+            try (QueryResult rs = session.query(sql, params)) {
+                if (rs.next()) {
+                    return rs.getLong(1);
+                }
+                return null;
             }
-            return null;
-        });
+        } else {
+            return session.queryForObject(sql, returnType, params);
+        }
     }
 
     private Object executeInsert(Session session, String sql, Object[] params) {

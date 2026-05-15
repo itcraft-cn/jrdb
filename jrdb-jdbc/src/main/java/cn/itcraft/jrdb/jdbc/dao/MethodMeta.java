@@ -11,6 +11,7 @@ public class MethodMeta {
     private SqlParamBindStyle methodStyle;
     private String sql;
     private SqlOperationType operationType;
+    private Class<?> returnType;
     private final List<ParamMeta> paramMetas;
 
     public MethodMeta(String methodName) {
@@ -44,6 +45,14 @@ public class MethodMeta {
 
     public void setOperationType(SqlOperationType operationType) {
         this.operationType = operationType;
+    }
+
+    public Class<?> getReturnType() {
+        return returnType;
+    }
+
+    public void setReturnType(Class<?> returnType) {
+        this.returnType = returnType;
     }
 
     public List<ParamMeta> getParamMetas() {

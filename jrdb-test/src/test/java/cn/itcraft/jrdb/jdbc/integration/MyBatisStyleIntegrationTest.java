@@ -63,7 +63,7 @@ class MyBatisStyleIntegrationTest {
         UserDao userDao = daoRegistry.getDao(UserDao.class, session);
 
         try {
-            User user = userDao.findById(1L);
+            UserEntity user = userDao.findById(1L);
             assertNotNull(user);
             assertEquals(1L, user.getId());
             assertEquals("Alice", user.getName());
@@ -81,7 +81,7 @@ class MyBatisStyleIntegrationTest {
         UserDao userDao = daoRegistry.getDao(UserDao.class, session);
 
         try {
-            User user = userDao.findByName("Bob");
+            UserEntity user = userDao.findByName("Bob");
             assertNotNull(user);
             assertEquals(2L, user.getId());
             assertEquals("Bob", user.getName());
@@ -93,10 +93,10 @@ class MyBatisStyleIntegrationTest {
     @MyBatisStyle
     interface UserDao {
         @Select("SELECT * FROM users WHERE id = #{id}")
-        User findById(Long id);
+        UserEntity findById(Long id);
 
         @Select("SELECT * FROM users WHERE name = #{name}")
-        User findByName(String name);
+        UserEntity findByName(String name);
     }
 
     static class User {

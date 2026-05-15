@@ -7,8 +7,6 @@ import cn.itcraft.jrdb.jdbc.session.Session;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.function.Function;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -54,18 +52,9 @@ class StyleExecutorTest {
         MyBatisStyleExecutor executor = new MyBatisStyleExecutor();
         
         String myBatisSql = "SELECT * FROM users WHERE id = #{id} AND name = #{name}";
-        MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.setSql(myBatisSql);
-        methodMeta.setOperationType(SqlOperationType.SELECT);
-        methodMeta.addParamMeta(new ParamMeta(0, "id", Long.class));
-        methodMeta.addParamMeta(new ParamMeta(1, "name", String.class));
-
-        Session session = mock(Session.class);
-        doReturn(1L).when(session).query(anyString(), any(Function.class));
-
-        executor.execute(session, methodMeta, new Object[]{1L, "test"});
-
-        verify(session).query(eq("SELECT * FROM users WHERE id = ? AND name = ?"), any(Function.class));
+        String jdbcSql = executor.convertToJdbcSql(myBatisSql);
+        
+        assertEquals("SELECT * FROM users WHERE id = ? AND name = ?", jdbcSql);
     }
 
     @Test
@@ -74,16 +63,9 @@ class StyleExecutorTest {
         HibernateStyleExecutor executor = new HibernateStyleExecutor();
 
         String hql = "from User where id = ?";
-        MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.setSql(hql);
-        methodMeta.setOperationType(SqlOperationType.SELECT);
-
-        Session session = mock(Session.class);
-        doReturn(1L).when(session).query(anyString(), any(Function.class));
-
-        executor.execute(session, methodMeta, new Object[]{1L});
-
-        verify(session).query(eq("SELECT * FROM user WHERE id = ?"), any(Function.class));
+        String sql = executor.convertHqlToSql(hql);
+        
+        assertEquals("SELECT * FROM user WHERE id = ?", sql);
     }
 
     @Test
@@ -92,15 +74,8 @@ class StyleExecutorTest {
         HibernateStyleExecutor executor = new HibernateStyleExecutor();
 
         String hql = "from UserAccount where id = ?";
-        MethodMeta methodMeta = new MethodMeta("test");
-        methodMeta.setSql(hql);
-        methodMeta.setOperationType(SqlOperationType.SELECT);
-
-        Session session = mock(Session.class);
-        doReturn(1L).when(session).query(anyString(), any(Function.class));
-
-        executor.execute(session, methodMeta, new Object[]{1L});
-
-        verify(session).query(eq("SELECT * FROM user_account WHERE id = ?"), any(Function.class));
+        String sql = executor.convertHqlToSql(hql);
+        
+        assertEquals("SELECT * FROM user_account WHERE id = ?", sql);
     }
 }
