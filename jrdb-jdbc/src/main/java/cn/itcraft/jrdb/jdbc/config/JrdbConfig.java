@@ -1,5 +1,6 @@
 package cn.itcraft.jrdb.jdbc.config;
 
+import cn.itcraft.jrdb.jdbc.annotation.SqlParamBindStyle;
 import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
 
 /**
@@ -55,6 +56,8 @@ public class JrdbConfig {
      */
     private final boolean enableSqlCascade;
 
+    private final SqlParamBindStyle defaultStyle;
+
     /**
      * 私有构造方法，通过Builder构建配置实例。
      *
@@ -68,6 +71,7 @@ public class JrdbConfig {
         this.resultCacheSize = builder.resultCacheSize;
         this.resultCacheExpireSeconds = builder.resultCacheExpireSeconds;
         this.enableSqlCascade = builder.enableSqlCascade;
+        this.defaultStyle = builder.defaultStyle;
         validate();
     }
     
@@ -144,6 +148,8 @@ public class JrdbConfig {
      * @return 如果启用返回true，否则返回false
      */
     public boolean isEnableSqlCascade() { return enableSqlCascade; }
+
+    public SqlParamBindStyle getDefaultStyle() { return defaultStyle; }
     
     /**
      * 判断是否启用一级缓存。
@@ -223,6 +229,8 @@ public class JrdbConfig {
          * 是否启用SQL拼接批量操作，默认为false。
          */
         private boolean enableSqlCascade = false;
+
+        private SqlParamBindStyle defaultStyle = SqlParamBindStyle.JDBC;
         
         /**
          * 设置内存池配置。
@@ -298,6 +306,11 @@ public class JrdbConfig {
          */
         public Builder enableSqlCascade(boolean enableSqlCascade) {
             this.enableSqlCascade = enableSqlCascade;
+            return this;
+        }
+
+        public Builder defaultStyle(SqlParamBindStyle defaultStyle) {
+            this.defaultStyle = defaultStyle;
             return this;
         }
         

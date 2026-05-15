@@ -1,6 +1,7 @@
 package cn.itcraft.jrdb.jdbc.session;
 
 import cn.itcraft.jrdb.jdbc.config.JrdbConfig;
+import cn.itcraft.jrdb.jdbc.dao.DaoRegistry;
 import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
 import cn.itcraft.jrdb.jdbc.memory.MemoryPool;
 import cn.itcraft.jrdb.jdbc.memory.MemoryPoolConfig;
@@ -44,6 +45,7 @@ public class SessionFactory {
     private final MemoryPool memoryPool;
     private final DataSource dataSource;
     private final MapperRegistry mapperRegistry;
+    private final DaoRegistry daoRegistry;
     private volatile boolean closed;
 
     /**
@@ -74,6 +76,7 @@ public class SessionFactory {
         MemoryPoolConfig poolConfig = config.getMemoryPoolConfig();
         this.memoryPool = new MemoryPool(poolConfig);
         this.mapperRegistry = new MapperRegistry(new TypeHandlerRegistry());
+        this.daoRegistry = new DaoRegistry(mapperRegistry, config.getDefaultStyle());
         this.closed = false;
     }
 
@@ -105,6 +108,10 @@ public class SessionFactory {
      */
     public MapperRegistry getMapperRegistry() {
         return mapperRegistry;
+    }
+
+    public DaoRegistry getDaoRegistry() {
+        return daoRegistry;
     }
 
     /**
