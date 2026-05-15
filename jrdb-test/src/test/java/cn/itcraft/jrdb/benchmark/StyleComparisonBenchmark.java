@@ -1,8 +1,6 @@
 package cn.itcraft.jrdb.benchmark;
 
-import cn.itcraft.jrdb.jdbc.annotation.Delete;
 import cn.itcraft.jrdb.jdbc.annotation.HibernateStyle;
-import cn.itcraft.jrdb.jdbc.annotation.Insert;
 import cn.itcraft.jrdb.jdbc.annotation.JdbcStyle;
 import cn.itcraft.jrdb.jdbc.annotation.MyBatisStyle;
 import cn.itcraft.jrdb.jdbc.annotation.Select;
@@ -21,6 +19,9 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Fork;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -28,148 +29,106 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
-@State(Scope.Benchmark)
+@Warmup(iterations = 3, time = 100, timeUnit = TimeUnit.MILLISECONDS)
+@Measurement(iterations = 3, time = 200, timeUnit = TimeUnit.MILLISECONDS)
+@Fork(1)
 public class StyleComparisonBenchmark {
 
-    private SessionFactory sessionFactory;
-    private JdbcDataSource dataSource;
-    private Session session;
-    private DaoRegistry daoRegistry;
+    @State(Scope.Benchmark)
+    public static class SharedState {
+        JdbcDataSource dataSource;
+        SessionFactory sessionFactory;
 
-    private JdbcStyleDao jdbcStyleDao;
-    private MyBatisStyleDao myBatisStyleDao;
-    private HibernateStyleDao hibernateStyleDao;
+        @Setup(Level.Trial)
+        public void setup() throws Exception {
+            dataSource = new JdbcDataSource();
+            dataSource.setURL("jdbc:h2:mem:style_benchmark;DB_CLOSE_DELAY=-1");
+            dataSource.setUser("sa");
+            dataSource.setPassword("");
 
-    @Setup(Level.Trial)
-    public void setupTrial() throws Exception {
-        dataSource = new JdbcDataSource();
-        dataSource.setURL("jdbc:h2:mem:benchmark_style;DB_CLOSE_DELAY=-1");
-        dataSource.setUser("sa");
-        dataSource.setPassword("");
+            Connection conn = dataSource.getConnection();
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE TABLE IF NOT EXISTS benchmark_users (id BIGINT PRIMARY KEY, name VARCHAR(100), age INT)");
+            stmt.execute("INSERT INTO benchmark_users VALUES (1, 'Alice', 25)");
+            stmt.close();
+            conn.close();
 
-        Connection conn = dataSource.getConnection();
-        Statement stmt = conn.createStatement();
-        stmt.execute("CREATE TABLE IF NOT EXISTS benchmark_users (id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(100), age INT)");
-        stmt.close();
-        conn.close();
+            JrdbConfig config = JrdbConfig.builder().build();
+            sessionFactory = new SessionFactory(config, dataSource);
+        }
 
-        JrdbConfig config = JrdbConfig.builder().build();
-        sessionFactory = new SessionFactory(config, dataSource);
-    }
+        @TearDown(Level.Trial)
+        public void tearDown() throws Exception {
+            if (sessionFactory != null) {
+                sessionFactory.close();
+            }
 
-    @Setup(Level.Iteration)
-    public void setupIteration() throws Exception {
-        session = sessionFactory.openSession();
-        daoRegistry = sessionFactory.getDaoRegistry();
-
-        jdbcStyleDao = daoRegistry.getDao(JdbcStyleDao.class, session);
-        myBatisStyleDao = daoRegistry.getDao(MyBatisStyleDao.class, session);
-        hibernateStyleDao = daoRegistry.getDao(HibernateStyleDao.class, session);
-
-        Connection conn = dataSource.getConnection();
-        Statement stmt = conn.createStatement();
-        stmt.execute("DELETE FROM benchmark_users");
-        stmt.execute("INSERT INTO benchmark_users VALUES (1, 'Alice', 25)");
-        stmt.execute("INSERT INTO benchmark_users VALUES (2, 'Bob', 30)");
-        stmt.close();
-        conn.close();
-    }
-
-    @TearDown(Level.Iteration)
-    public void tearDownIteration() throws Exception {
-        if (session != null) {
-            session.close();
+            Connection conn = dataSource.getConnection();
+            Statement stmt = conn.createStatement();
+            stmt.execute("DROP TABLE IF EXISTS benchmark_users");
+            stmt.close();
+            conn.close();
         }
     }
 
-    @TearDown(Level.Trial)
-    public void tearDownTrial() throws Exception {
-        if (sessionFactory != null) {
-            sessionFactory.close();
+    @State(Scope.Thread)
+    public static class ThreadState {
+        Session session;
+        JdbcStyleDao jdbcStyleDao;
+        MyBatisStyleDao myBatisStyleDao;
+        HibernateStyleDao hibernateStyleDao;
+        int counter = 0;
+
+        @Setup(Level.Iteration)
+        public void setup(SharedState shared) throws Exception {
+            session = shared.sessionFactory.openSession();
+            DaoRegistry daoRegistry = shared.sessionFactory.getDaoRegistry();
+            jdbcStyleDao = daoRegistry.getDao(JdbcStyleDao.class, session);
+            myBatisStyleDao = daoRegistry.getDao(MyBatisStyleDao.class, session);
+            hibernateStyleDao = daoRegistry.getDao(HibernateStyleDao.class, session);
         }
 
-        Connection conn = dataSource.getConnection();
-        Statement stmt = conn.createStatement();
-        stmt.execute("DROP TABLE IF EXISTS benchmark_users");
-        stmt.close();
-        conn.close();
-    }
-
-    @Benchmark
-    public Object jdbcStyle_selectById() {
-        return jdbcStyleDao.findById(1L);
-    }
-
-    @Benchmark
-    public Object myBatisStyle_selectById() {
-        return myBatisStyleDao.findById(1L);
-    }
-
-    @Benchmark
-    public Object hibernateStyle_selectById() {
-        return hibernateStyleDao.findById(1L);
-    }
-
-    @Benchmark
-    public int jdbcStyle_update() {
-        return jdbcStyleDao.updateAge(28, 1L);
-    }
-
-    @Benchmark
-    public int myBatisStyle_update() {
-        return myBatisStyleDao.updateAge(28, 1L);
-    }
-
-    @Benchmark
-    public int hibernateStyle_update() {
-        return hibernateStyleDao.updateAge(28, 1L);
-    }
-
-    @Benchmark
-    public int jdbcStyle_delete() {
-        int result = jdbcStyleDao.delete(2L);
-        if (result > 0) {
-            try {
-                Connection conn = dataSource.getConnection();
-                Statement stmt = conn.createStatement();
-                stmt.execute("INSERT INTO benchmark_users VALUES (2, 'Bob', 30)");
-                stmt.close();
-                conn.close();
-            } catch (Exception ignored) {
+        @TearDown(Level.Iteration)
+        public void tearDown() throws Exception {
+            if (session != null) {
+                session.close();
             }
         }
+    }
+
+    @Benchmark
+    public Object jdbcStyle_selectById(ThreadState state) {
+        return state.jdbcStyleDao.findById(1L);
+    }
+
+    @Benchmark
+    public Object myBatisStyle_selectById(ThreadState state) {
+        return state.myBatisStyleDao.findById(1L);
+    }
+
+    @Benchmark
+    public Object hibernateStyle_selectById(ThreadState state) {
+        return state.hibernateStyleDao.findById(1L);
+    }
+
+    @Benchmark
+    public int jdbcStyle_update(ThreadState state) {
+        int age = 25 + (state.counter++ % 10);
+        int result = state.jdbcStyleDao.updateAge(age, 1L);
         return result;
     }
 
     @Benchmark
-    public int myBatisStyle_delete() {
-        int result = myBatisStyleDao.delete(2L);
-        if (result > 0) {
-            try {
-                Connection conn = dataSource.getConnection();
-                Statement stmt = conn.createStatement();
-                stmt.execute("INSERT INTO benchmark_users VALUES (2, 'Bob', 30)");
-                stmt.close();
-                conn.close();
-            } catch (Exception ignored) {
-            }
-        }
+    public int myBatisStyle_update(ThreadState state) {
+        int age = 25 + (state.counter++ % 10);
+        int result = state.myBatisStyleDao.updateAge(age, 1L);
         return result;
     }
 
     @Benchmark
-    public int hibernateStyle_delete() {
-        int result = hibernateStyleDao.delete(2L);
-        if (result > 0) {
-            try {
-                Connection conn = dataSource.getConnection();
-                Statement stmt = conn.createStatement();
-                stmt.execute("INSERT INTO benchmark_users VALUES (2, 'Bob', 30)");
-                stmt.close();
-                conn.close();
-            } catch (Exception ignored) {
-            }
-        }
+    public int hibernateStyle_update(ThreadState state) {
+        int age = 25 + (state.counter++ % 10);
+        int result = state.hibernateStyleDao.updateAge(age, 1L);
         return result;
     }
 
@@ -180,9 +139,6 @@ public class StyleComparisonBenchmark {
 
         @Update("UPDATE benchmark_users SET age = ? WHERE id = ?")
         int updateAge(Integer age, Long id);
-
-        @Delete("DELETE FROM benchmark_users WHERE id = ?")
-        int delete(Long id);
     }
 
     @MyBatisStyle
@@ -192,9 +148,6 @@ public class StyleComparisonBenchmark {
 
         @Update("UPDATE benchmark_users SET age = #{age} WHERE id = #{id}")
         int updateAge(Integer age, Long id);
-
-        @Delete("DELETE FROM benchmark_users WHERE id = #{id}")
-        int delete(Long id);
     }
 
     @HibernateStyle
@@ -204,12 +157,9 @@ public class StyleComparisonBenchmark {
 
         @Update("UPDATE benchmark_users SET age = :age WHERE id = :id")
         int updateAge(Integer age, Long id);
-
-        @Delete("DELETE FROM benchmark_users WHERE id = :id")
-        int delete(Long id);
     }
 
-    static class BenchmarkUser {
+    public static class BenchmarkUser {
         private Long id;
         private String name;
         private Integer age;
