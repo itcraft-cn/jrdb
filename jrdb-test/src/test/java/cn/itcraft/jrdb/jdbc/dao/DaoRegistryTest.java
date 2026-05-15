@@ -63,11 +63,11 @@ class DaoRegistryTest {
         assertEquals(0, registry.getDaoMetaCache().size());
     }
 
-    interface TestDao {
+    public interface TestDao {
         TestEntity findById(Long id);
     }
 
-    static class TestEntity {
+    public static class TestEntity {
         private Long id;
         private String name;
     }

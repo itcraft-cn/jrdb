@@ -70,14 +70,17 @@ public class JdbcStyleExecutor implements StyleExecutor {
     }
 
     private Object executeInsert(Session session, String sql, Object[] args) {
-        return session.insert(sql, args);
+        boolean result = session.insert(sql, args);
+        return result ? 1 : 0;
     }
 
     private Object executeUpdate(Session session, String sql, Object[] args) {
-        return session.update(sql, args);
+        int result = session.update(sql, args);
+        return result;
     }
 
     private Object executeDelete(Session session, String sql, Object[] args) {
-        return session.delete(sql, args);
+        int result = session.delete(sql, args);
+        return result;
     }
 }

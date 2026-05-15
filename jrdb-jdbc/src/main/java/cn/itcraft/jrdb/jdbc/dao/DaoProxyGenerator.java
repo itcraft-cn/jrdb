@@ -94,6 +94,7 @@ public class DaoProxyGenerator {
             unboxPrimitive(mv, returnType);
         } else {
             mv.visitTypeInsn(CHECKCAST, Type.getInternalName(returnType));
+            mv.visitInsn(ARETURN);
         }
         
         mv.visitMaxs(paramTypes.length + 3, paramTypes.length + 1);

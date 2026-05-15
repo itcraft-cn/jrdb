@@ -144,6 +144,8 @@ public class MapperRegistry {
         MappingConfig config = new MappingConfig(entityClass, tableName, typeHandlerRegistry);
 
         Field[] fields = entityClass.getDeclaredFields();
+        java.util.Arrays.sort(fields, (a, b) -> a.getName().compareTo(b.getName()));
+        
         for (Field field : fields) {
             String fieldName = field.getName();
             Class<?> fieldType = field.getType();

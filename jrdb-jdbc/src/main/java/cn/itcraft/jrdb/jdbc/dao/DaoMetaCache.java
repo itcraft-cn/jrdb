@@ -74,6 +74,9 @@ public class DaoMetaCache {
 
     private void parseMethodMetas(Class<?> daoInterface, DaoMeta daoMeta) {
         for (Method method : daoInterface.getDeclaredMethods()) {
+            if (daoMeta.getMethodMeta(method) != null) {
+                continue;
+            }
             MethodMeta methodMeta = parseMethodMeta(method, daoMeta);
             daoMeta.addMethodMeta(method, methodMeta);
         }

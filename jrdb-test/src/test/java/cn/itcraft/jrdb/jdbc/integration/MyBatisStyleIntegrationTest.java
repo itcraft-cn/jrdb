@@ -91,7 +91,7 @@ class MyBatisStyleIntegrationTest {
     }
 
     @MyBatisStyle
-    interface UserDao {
+    public interface UserDao {
         @Select("SELECT * FROM users WHERE id = #{id}")
         UserEntity findById(Long id);
 

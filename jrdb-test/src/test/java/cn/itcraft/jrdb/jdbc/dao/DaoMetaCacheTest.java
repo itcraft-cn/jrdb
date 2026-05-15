@@ -121,9 +121,13 @@ class DaoMetaCacheTest {
 
     @AutoCrud(entity = TestEntity.class, primaryKey = "id")
     interface AutoCrudDao {
+        int insert(TestEntity entity);
+        int update(TestEntity entity);
+        int delete(Long id);
+        TestEntity selectById(Long id);
     }
 
-    static class TestEntity {
+    public static class TestEntity {
         private Long id;
         private String name;
     }
