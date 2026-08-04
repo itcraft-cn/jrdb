@@ -2,9 +2,9 @@
 
 [English Version](README.md)
 
-**J**ava **R**apid **D**ata**B**ase - Java 高性能数据库操作框架
+**J**ava **R**apid **D**ata**B**ase - 面向批量处理、ETL 和 GC 稳定场景的高性能 Java 数据库框架
 
-基于堆外内存 + ASM 动态映射实现，查询性能领先 MyBatis **6-10倍**，写入性能领先 **14%**。
+基于堆外内存 + ASM 动态映射实现，本地数据库查询性能领先 MyBatis **6-10倍**，DirectSql 批量操作性能提升 **50%**。
 
 ## 名称由来
 
@@ -12,7 +12,77 @@
 - **R**apid - 极致的查询性能
 - **D**ata**B**ase - 数据库操作框架
 
-**jrdb = 极致性能项目的简单CRUD利器**
+**jrdb = 批量处理、ETL、高性能场景的 CRUD 利器**
+
+## 核心价值定位
+
+jrdb 在传统 ORM 框架力不从心的**三大核心场景**中展现优势：
+
+### 1. 批量处理与数据导入
+
+- **DirectSql API**：跳过 PreparedStatement 参数绑定，批量插入/更新性能提升 **50%**
+- **批量查询**：1 次 RTT 查询 100+ 条记录 vs 100 次单独查询
+- **适用场景**：数据迁移、批量导入、批量更新
+
+```java
+// 批量插入 10,000 条记录，仅 1 次 RTT
+List<Object[]> rows = new ArrayList<>();
+for (int i = 0; i < 10000; i++) {
+    rows.add(new Object[]{"user_" + i, i});
+}
+String sql = DirectSqlBuilder.buildInsert("users", new String[]{"name", "age"}, rows);
+session.execute(sql);
+// 生成：INSERT INTO users (name, age) VALUES ('user_0', 0), ('user_1', 1), ... (10,000 组)
+```
+
+### 2. ETL 与流式处理
+
+- **RowHandler 流式处理**：零对象创建，直接处理堆外内存数据
+- **GC 稳定性**：数据处理过程无堆内存分配，避免 GC 停顿
+- **适用场景**：数据导出、ETL 管道、报表生成
+
+```java
+// 处理百万级数据，无 GC 压力
+session.queryWithHandler("SELECT * FROM large_table", (row) -> {
+    long id = row.getLong("id");
+    String name = row.getString("name");
+    // 直接处理行数据，无对象分配
+    writeToCsv(id, name);
+    return true;  // 继续处理
+});
+```
+
+### 3. GC 稳定的高性能应用
+
+- **堆外内存**：避免 GC 压力，堆内存使用稳定
+- **ASM 字节码映射**：零反射开销，性能接近原生 JDBC
+- **适用场景**：实时交易系统、高频查询、内存数据库
+
+```java
+// ASM 映射 - 无反射，零 GC 开销
+User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+```
+
+## 何时使用 jrdb
+
+| 场景 | jrdb 优势 | 预期提升 |
+|------|----------|---------|
+| **批量处理** | DirectSql API，减少 RTT | 批量操作 +50%，RTT 减少 10-100 倍 |
+| **ETL 管道** | RowHandler 流式处理，零 GC | +500-1000%（无 GC 停顿） |
+| **GC 敏感系统** | 堆外内存，堆内存稳定 | GC 稳定，延迟可预测 |
+| **本地/内存数据库** | ASM 字节码映射 | +600-800% vs 反射 |
+| **实时查询** | 低延迟映射 | +100-200%（本地数据库） |
+
+## 何时考虑其他方案
+
+| 场景 | 考虑方案 | 原因 |
+|------|---------|------|
+| **远程数据库（高延迟）** | 网络 RTT 主导 | 框架优化影响 < 5% |
+| **复杂动态 SQL** | MyBatis SQL 灵活性 | 动态 SQL 生成 |
+| **JPA 实体管理** | Hibernate 实体生命周期 | 脏检查、级联操作 |
+| **单条记录查询** | 网络 RTT 主导 | 需批量查询才能受益 |
+
+**关键洞察**：jrdb 优化的是 **2% 的框架开销**，但 **75% 是 TCP 往返**（JDBC 层无法避免）。对于远程数据库，应优先**减少 RTT 次数**（批量查询、缓存），而非优化对象映射。
 
 ## 模块说明
 

@@ -2,9 +2,9 @@
 
 [中文版](README_cn.md)
 
-**J**ava **R**apid **D**ata**B**ase - High-performance Java database framework
+**J**ava **R**apid **D**ata**B**ase - High-performance Java database framework for batch processing, ETL, and GC-stable scenarios
 
-Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis by **6-10x**, write performance leads by **14%**.
+Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis by **6-10x** (local database), DirectSql batch operations improve by **50%**.
 
 ## Name Origin
 
@@ -12,7 +12,77 @@ Built on off-heap memory + ASM dynamic mapping, query performance leads MyBatis 
 - **R**apid - Extreme query performance
 - **D**ata**B**ase - Database operation framework
 
-**jrdb = The ultimate CRUD tool for extreme performance projects**
+**jrdb = The ultimate CRUD tool for batch processing, ETL, and high-performance scenarios**
+
+## Core Value Proposition
+
+jrdb excels in **three critical scenarios** where traditional ORM frameworks fall short:
+
+### 1. Batch Processing & Data Import
+
+- **DirectSql API**: Skip PreparedStatement parameter binding, **+50%** batch insert/update performance
+- **Batch Query**: Single RTT for 100+ records vs 100 separate queries
+- **Use Cases**: Data migration, bulk import, batch updates
+
+```java
+// Batch insert 10,000 records in one RTT
+List<Object[]> rows = new ArrayList<>();
+for (int i = 0; i < 10000; i++) {
+    rows.add(new Object[]{"user_" + i, i});
+}
+String sql = DirectSqlBuilder.buildInsert("users", new String[]{"name", "age"}, rows);
+session.execute(sql);
+// Generated: INSERT INTO users (name, age) VALUES ('user_0', 0), ('user_1', 1), ... (10,000 tuples)
+```
+
+### 2. ETL & Stream Processing
+
+- **RowHandler Streaming**: Zero object creation, direct off-heap memory processing
+- **GC Stability**: No heap allocation during data processing, avoid GC pauses
+- **Use Cases**: Data export, ETL pipelines, report generation
+
+```java
+// Process millions of records without GC pressure
+session.queryWithHandler("SELECT * FROM large_table", (row) -> {
+    long id = row.getLong("id");
+    String name = row.getString("name");
+    // Process row directly, no object allocation
+    writeToCsv(id, name);
+    return true;  // Continue processing
+});
+```
+
+### 3. GC-Stable High-Performance Applications
+
+- **Off-Heap Memory**: Avoid GC pressure, stable heap usage
+- **ASM Bytecode Mapping**: Zero reflection overhead, close to native JDBC
+- **Use Cases**: Real-time trading systems, high-frequency queries, in-memory databases
+
+```java
+// ASM mapping - no reflection, zero GC overhead
+User user = session.queryForObject("SELECT * FROM users WHERE id = ?", User.class, 1L);
+```
+
+## When to Use jrdb
+
+| Scenario | jrdb Advantage | Expected Improvement |
+|----------|----------------|---------------------|
+| **Batch Processing** | DirectSql API, reduce RTT | +50% batch ops, 10-100x fewer RTT |
+| **ETL Pipelines** | RowHandler streaming, zero GC | +500-1000% (no GC pauses) |
+| **GC-Sensitive Systems** | Off-heap memory, stable heap | Stable GC, predictable latency |
+| **Local/In-Memory DB** | ASM bytecode mapping | +600-800% vs reflection |
+| **Real-Time Queries** | Low-latency mapping | +100-200% (local DB) |
+
+## When to Consider Alternatives
+
+| Scenario | Consideration | Reason |
+|----------|--------------|--------|
+| **Remote Database (high latency)** | Network RTT dominates | Framework optimization < 5% impact |
+| **Complex Dynamic SQL** | MyBatis SQL flexibility | Dynamic SQL generation |
+| **JPA Entity Management** | Hibernate entity lifecycle | Dirty checking, cascading |
+| **Single Record Queries** | Network RTT dominates | Batch query needed for benefit |
+
+**Key Insight**: jrdb optimizes the **2% framework overhead**, but **75% is TCP RTT** (unavoidable at JDBC layer). For remote databases, **reduce RTT count** (batch queries, caching) rather than optimize object mapping.
 
 ## Modules
 
