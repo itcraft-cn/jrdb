@@ -23,11 +23,14 @@ import java.util.regex.Pattern;
 
 public class DaoMetaCache {
 
+    private static final String MYBATIS_VAL_PLACEHOLDER = "#\\{(\\w+)}";
+    private static final Pattern MYBATIS_PARAM_PATTERN = Pattern.compile(MYBATIS_VAL_PLACEHOLDER);
+    private static final String HIBERNATE_VAL_PLACEHOLDER = ":(\\w+)";
+    private static final Pattern HIBERNATE_PARAM_PATTERN = Pattern.compile(HIBERNATE_VAL_PLACEHOLDER);
+
     private final Map<Class<?>, DaoMeta> cache = new ConcurrentHashMap<>();
     private final MapperRegistry mapperRegistry;
     private final SqlParamBindStyle defaultStyle;
-    private static final Pattern MYBATIS_PARAM_PATTERN = Pattern.compile("#\\{(\\w+)}");
-    private static final Pattern HIBERNATE_PARAM_PATTERN = Pattern.compile(":(\\w+)");
 
     public DaoMetaCache(MapperRegistry mapperRegistry, SqlParamBindStyle defaultStyle) {
         this.mapperRegistry = Objects.requireNonNull(mapperRegistry, "mapperRegistry cannot be null");
@@ -71,7 +74,7 @@ public class DaoMetaCache {
             }
             AutoCrudMeta autoCrudMeta = new AutoCrudMeta(entityClass, primaryKey, tableName);
             daoMeta.setAutoCrudMeta(autoCrudMeta);
-            
+
             AutoCrudMethodGenerator generator = new AutoCrudMethodGenerator(mapperRegistry);
             generator.generateAutoCrudMethods(daoMeta, autoCrudMeta);
         }
@@ -167,7 +170,7 @@ public class DaoMetaCache {
         }
 
         SqlParamBindStyle style = methodMeta.getMethodStyle();
-        
+
         switch (style) {
             case MYBATIS:
                 cacheMyBatisConversion(methodMeta, sql);
@@ -183,9 +186,9 @@ public class DaoMetaCache {
     }
 
     private void cacheMyBatisConversion(MethodMeta methodMeta, String sql) {
-        String cachedSql = sql.replaceAll("#\\{(\\w+)}", "?");
+        String cachedSql = MYBATIS_PARAM_PATTERN.matcher(sql).replaceAll("?");
         methodMeta.setCachedSql(cachedSql);
-        
+
         methodMeta.clearParamMapping();
         Matcher matcher = MYBATIS_PARAM_PATTERN.matcher(sql);
         while (matcher.find()) {
@@ -203,17 +206,15 @@ public class DaoMetaCache {
             if (whereIndex > 0) {
                 String entityName = entityPart.substring(0, whereIndex).trim();
                 String whereClause = entityPart.substring(whereIndex + 7).trim();
-                String convertedSql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName) + " WHERE " + whereClause;
-                sql = convertedSql;
+                sql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName) + " WHERE " + whereClause;
             } else {
-                String entityName = entityPart;
-                sql = "SELECT * FROM " + inferTableNameFromSimpleName(entityName);
+                sql = "SELECT * FROM " + inferTableNameFromSimpleName(entityPart);
             }
         }
-        
-        String cachedSql = sql.replaceAll(":(\\w+)", "?");
+
+        String cachedSql = HIBERNATE_PARAM_PATTERN.matcher(sql).replaceAll("?");
         methodMeta.setCachedSql(cachedSql);
-        
+
         methodMeta.clearParamMapping();
         Matcher matcher = HIBERNATE_PARAM_PATTERN.matcher(originalSql);
         while (matcher.find()) {
