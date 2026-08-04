@@ -94,19 +94,25 @@ public final class DirectSqlBuilder {
     public static String buildInsert(String table, String[] columns, List<Object[]> rows) {
         StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY * rows.size());
         sb.append("INSERT INTO ").append(table).append(" (");
-        
+
         for (int i = 0; i < columns.length; i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(columns[i]);
         }
         sb.append(") VALUES ");
 
         for (int i = 0; i < rows.size(); i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             Object[] row = rows.get(i);
             sb.append('(');
             for (int j = 0; j < row.length; j++) {
-                if (j > 0) sb.append(", ");
+                if (j > 0) {
+                    sb.append(", ");
+                }
                 sb.append(escape(row[j]));
             }
             sb.append(')');
@@ -127,18 +133,20 @@ public final class DirectSqlBuilder {
     public static String buildUpdate(String table, String setColumn, String whereColumn, List<Object[]> rows) {
         StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY * rows.size());
         sb.append("UPDATE ").append(table).append(" SET ").append(setColumn).append(" = CASE ").append(whereColumn);
-        
+
         for (Object[] row : rows) {
             sb.append(" WHEN ").append(escape(row[0])).append(" THEN ").append(escape(row[1]));
         }
-        
+
         sb.append(" END WHERE ").append(whereColumn).append(" IN (");
         for (int i = 0; i < rows.size(); i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(escape(rows.get(i)[0]));
         }
         sb.append(')');
-        
+
         return sb.toString();
     }
 
@@ -153,13 +161,15 @@ public final class DirectSqlBuilder {
     public static String buildDelete(String table, String column, List<?> values) {
         StringBuilder sb = new StringBuilder(128 + values.size() * 16);
         sb.append("DELETE FROM ").append(table).append(" WHERE ").append(column).append(" IN (");
-        
+
         for (int i = 0; i < values.size(); i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(escape(values.get(i)));
         }
         sb.append(')');
-        
+
         return sb.toString();
     }
 
@@ -175,12 +185,16 @@ public final class DirectSqlBuilder {
         StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY);
         sb.append("INSERT INTO ").append(table).append(" (");
         for (int i = 0; i < columns.length; i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(columns[i]);
         }
         sb.append(") VALUES (");
         for (int i = 0; i < values.length; i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(escape(values[i]));
         }
         sb.append(')');
@@ -197,12 +211,14 @@ public final class DirectSqlBuilder {
      * @param whereValue  条件值
      * @return 完整UPDATE语句
      */
-    public static String buildUpdateOne(String table, String[] setColumns, Object[] setValues, 
+    public static String buildUpdateOne(String table, String[] setColumns, Object[] setValues,
                                         String whereColumn, Object whereValue) {
         StringBuilder sb = new StringBuilder(DEFAULT_CAPACITY);
         sb.append("UPDATE ").append(table).append(" SET ");
         for (int i = 0; i < setColumns.length; i++) {
-            if (i > 0) sb.append(", ");
+            if (i > 0) {
+                sb.append(", ");
+            }
             sb.append(setColumns[i]).append(" = ").append(escape(setValues[i]));
         }
         sb.append(" WHERE ").append(whereColumn).append(" = ").append(escape(whereValue));

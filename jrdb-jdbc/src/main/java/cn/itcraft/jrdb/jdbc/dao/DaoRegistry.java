@@ -41,7 +41,7 @@ public class DaoRegistry {
         Objects.requireNonNull(session, "session cannot be null");
 
         DaoMeta daoMeta = daoMetaCache.getDaoMeta(daoInterface);
-        
+
         if (daoMeta.hasAutoCrud()) {
             EntityMapper mapper = mapperRegistry.getMapper(daoMeta.getAutoCrudMeta().getEntityClass());
             StyleExecutor executor = new AutoCrudExecutor(mapper);

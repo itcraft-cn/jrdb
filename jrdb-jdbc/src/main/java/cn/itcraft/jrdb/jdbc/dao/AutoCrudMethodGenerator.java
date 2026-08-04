@@ -2,6 +2,7 @@ package cn.itcraft.jrdb.jdbc.dao;
 
 import cn.itcraft.jrdb.jdbc.mapping.EntityMapper;
 import cn.itcraft.jrdb.jdbc.mapping.MapperRegistry;
+
 import java.lang.reflect.Method;
 import java.util.Objects;
 
@@ -34,12 +35,16 @@ public class AutoCrudMethodGenerator {
 
             StringBuilder sql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
             for (int i = 0; i < fieldNames.length; i++) {
-                if (i > 0) sql.append(", ");
+                if (i > 0) {
+                    sql.append(", ");
+                }
                 sql.append(fieldNames[i]);
             }
             sql.append(") VALUES (");
             for (int i = 0; i < fieldNames.length; i++) {
-                if (i > 0) sql.append(", ");
+                if (i > 0) {
+                    sql.append(", ");
+                }
                 sql.append("?");
             }
             sql.append(")");
@@ -58,7 +63,8 @@ public class AutoCrudMethodGenerator {
         }
     }
 
-    private void generateUpdateMethod(DaoMeta daoMeta, String tableName, String[] fieldNames, String primaryKey, Class<?> entityClass) {
+    private void generateUpdateMethod(DaoMeta daoMeta, String tableName, String[] fieldNames, String primaryKey,
+                                      Class<?> entityClass) {
         try {
             Method method = daoMeta.getDaoInterface().getDeclaredMethod("update", entityClass);
             MethodMeta meta = new MethodMeta("update");
@@ -70,7 +76,9 @@ public class AutoCrudMethodGenerator {
                 if (fieldNames[i].equalsIgnoreCase(primaryKey)) {
                     pkIndex = i;
                 } else {
-                    if (!first) sql.append(", ");
+                    if (!first) {
+                        sql.append(", ");
+                    }
                     sql.append(fieldNames[i]).append("=?");
                     first = false;
                 }

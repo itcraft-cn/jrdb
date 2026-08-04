@@ -36,14 +36,14 @@ public class QueryResultCache {
     /**
      * 构造查询结果缓存实例
      *
-     * @param maxSize 缓存最大容量，当缓存条目数超过此值时，采用 LRU 算法淘汰旧条目
+     * @param maxSize       缓存最大容量，当缓存条目数超过此值时，采用 LRU 算法淘汰旧条目
      * @param expireSeconds 写入后过期时间（秒），缓存条目在写入后经过此时间将自动失效
      */
     public QueryResultCache(int maxSize, int expireSeconds) {
         this.cache = CacheBuilder.newBuilder()
-            .maximumSize(maxSize)
-            .expireAfterWrite(expireSeconds, TimeUnit.SECONDS)
-            .build();
+                                 .maximumSize(maxSize)
+                                 .expireAfterWrite(expireSeconds, TimeUnit.SECONDS)
+                                 .build();
     }
 
     /**
@@ -52,7 +52,7 @@ public class QueryResultCache {
      * <p>根据 SQL 语句和参数生成缓存键，尝试从缓存中获取对应的查询结果。
      * 如果缓存中不存在，返回 {@code null}。</p>
      *
-     * @param sql SQL 查询语句
+     * @param sql    SQL 查询语句
      * @param params 查询参数数组，可为 null 或空数组
      * @return 缓存的查询结果，如果不存在则返回 {@code null}
      */
@@ -67,7 +67,7 @@ public class QueryResultCache {
      * <p>根据 SQL 语句和参数生成缓存键，将查询结果存入缓存。
      * 如果缓存键已存在，将覆盖原有值。</p>
      *
-     * @param sql SQL 查询语句
+     * @param sql    SQL 查询语句
      * @param params 查询参数数组，可为 null 或空数组
      * @param result 要缓存的查询结果
      */
@@ -81,7 +81,7 @@ public class QueryResultCache {
      *
      * <p>根据 SQL 语句和参数生成缓存键，从缓存中移除对应的查询结果。</p>
      *
-     * @param sql SQL 查询语句
+     * @param sql    SQL 查询语句
      * @param params 查询参数数组，可为 null 或空数组
      */
     public void invalidate(String sql, Object[] params) {
@@ -116,7 +116,7 @@ public class QueryResultCache {
      *   <li>有参数时，使用 "SQL:参数哈希值" 格式作为键</li>
      * </ul>
      *
-     * @param sql SQL 查询语句
+     * @param sql    SQL 查询语句
      * @param params 查询参数数组，可为 null 或空数组
      * @return 生成的缓存键
      */
