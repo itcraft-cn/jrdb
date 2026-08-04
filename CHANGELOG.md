@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-04
+
+### Added
+- 性能差异分析报告（`docs/performance-analysis-real-vs-claimed.md`）
+- 性能综合分析报告（`docs/performance-comprehensive-report.md`）
+- 架构优势与现实困境分析（`docs/architecture-advantage-limitation-analysis.md`）
+- GaussDB 公平测试代码（`DemoCodeJava8/src/test/java/demo/jrdb/GaussDbFrameworkBenchmark.java`）
+
+### Changed
+- **README 重构**：明确 jrdb 的三大核心价值定位
+  - 批量处理与数据导入：DirectSql API +50%，减少 RTT 10-100 倍
+  - ETL 与流式处理：RowHandler 零对象创建，+500-1000%（无 GC 停顿）
+  - GC 稳定的高性能应用：堆外内存管理，延迟可预测
+- **性能声明澄清**：明确区分对象映射性能（本地 H2 数据库）vs 端到端性能（远程数据库）
+- **适用场景说明**：补充"何时使用 jrdb"和"何时考虑其他方案"对比表
+
+### Documentation
+- 补充关键洞察：jrdb 优化 2% 框架开销，但 75% 是 TCP 往返（JDBC 层无法避免）
+- 远程数据库场景应优先减少 RTT 次数（批量查询、缓存），而非追求对象映射优化
+- 明确分析范围：关注普遍情况（SQL 已合理优化），极端情况（糟糕 SQL 执行占比 99.99%）不在范围内
+
+### Performance Analysis
+- GaussDB 公平测试结果：
+  - Insert：MyBatis (2,646 ops/s) ≈ JDBC (2,577 ops/s) ≈ Jrdb (2,277 ops/s)
+  - Update：Jrdb 领先 16.4%（3,693 vs 3,172 ops/s）
+  - Batch：Jrdb 领先 465.5%（164 vs 29 batches/s），MyBatis Batch 需优化
+- 本地 H2 测试结果：
+  - ASM 字节码映射：~2.2M ops/s
+  - MyBatis 反射映射：~260K ops/s
+  - 性能差距：+846%（符合 AGENTS.md 宣称的 6-8x）
+
+### Fixed
+- 修正测试代码 bug：之前的 testMyBatis/testJrdb 方法都调用了 JDBC 原生代码
+- 修正事务策略：从"每次提交"改为"每 100 次提交一次"（公平测试）
+
+### Insights
+- 远程数据库环境下，框架性能差异被网络 RTT 淹没（70-80% 占比）
+- MyBatis Batch 性能问题：注解式 Mapper 批量插入仅 29 batches/s（需使用 ExecutorType.BATCH 优化）
+- Jrdb 的 ASM 字节码映射优势在远程数据库场景下是"明珠投暗"，应聚焦批量处理、ETL、GC 稳定场景
+
 ## [1.2.0] - 2026-05-15
 
 ### Added
