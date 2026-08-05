@@ -7,6 +7,19 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
+
+/**
+ * 行元数据，描述原始行数据的列信息和偏移量。
+ *
+ * @author Helly Guo
+ * @since 1.0.0
+ */
+
+import java.nio.charset.StandardCharsets;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * 行元信息，描述原始行数据的结构。
  *

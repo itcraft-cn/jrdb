@@ -4,43 +4,38 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Interface for mapping between entity objects and database rows.
- * <p>
- * Implementations provide bidirectional mapping between Java entity
- * objects and database result sets/rows. Implementations are typically
- * generated dynamically using ASM bytecode generation.
- * </p>
+ * 实体映射器接口，用于Java实体对象与数据库行之间的双向映射。
  *
- * @param <T> the entity type being mapped
- * @author jrdb
+ * <p>实现类提供Java实体对象与数据库结果集之间的映射逻辑，
+ * 通常通过ASM字节码动态生成实现类以获得最佳性能。
+ *
+ * @param <T> 实体类型
+ * @author Helly Guo
  * @since 1.0.0
  */
 public interface EntityMapper<T> {
 
     /**
-     * Maps a ResultSet row to an entity object.
-     * <p>
-     * Reads data from the current row of the ResultSet and creates
-     * a new entity instance with the mapped values.
-     * </p>
+     * 将ResultSet当前行映射为实体对象。
      *
-     * @param rs the ResultSet positioned at the row to map
-     * @return the mapped entity object
-     * @throws SQLException if a database access error occurs
+     * @param rs ResultSet，位于待映射的行
+     * @return 映射后的实体对象
+     * @throws SQLException 数据库访问异常
      */
     T mapFromResultSet(ResultSet rs) throws SQLException;
 
     /**
-     * Maps an entity object to an array of column values.
-     * <p>
-     * Extracts field values from the entity for writing to a database row.
-     * The returned array contains values in the order of the defined fields.
-     * </p>
+     * 将实体对象映射为数据库列值数组。
      *
-     * @param entity the entity to map
-     * @return array of values for database columns
+     * @param entity 待映射的实体
+     * @return 列值数组，按字段定义顺序
      */
     Object[] mapToRow(T entity);
-    
+
+    /**
+     * 获取映射的字段名称数组。
+     *
+     * @return 字段名称数组
+     */
     String[] getFieldNames();
 }

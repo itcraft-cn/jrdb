@@ -4,6 +4,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+
+/**
+ * SQL构建器基类，提供通用SQL构建方法。
+ *
+ * @author Helly Guo
+ * @since 1.0.0
+ */
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * SQL构建器
  *

@@ -7,8 +7,22 @@ import cn.itcraft.jrdb.jdbc.session.Session;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 抽象执行器基类，提供SQL操作的通用执行逻辑。
+ *
+ * @author Helly Guo
+ * @since 1.2.0
+ */
 public abstract class AbstractStyleExecutor implements StyleExecutor {
 
+    /**
+     * 执行SQL操作。
+     *
+     * @param session 会话对象
+     * @param methodMeta 方法元数据
+     * @param args 参数数组
+     * @return 执行结果
+     */
     @Override
     public Object execute(Session session, MethodMeta methodMeta, Object[] args) {
         Objects.requireNonNull(session, "session cannot be null");
@@ -40,6 +54,13 @@ public abstract class AbstractStyleExecutor implements StyleExecutor {
         }
     }
 
+    /**
+     * 从缓存绑定参数。
+     *
+     * @param methodMeta 方法元数据
+     * @param args 参数数组
+     * @return 绑定后的参数数组
+     */
     protected Object[] bindParametersFromCache(MethodMeta methodMeta, Object[] args) {
         List<Integer> paramMapping = methodMeta.getParamMapping();
         Object[] params = new Object[paramMapping.size()];
@@ -56,6 +77,15 @@ public abstract class AbstractStyleExecutor implements StyleExecutor {
         return params;
     }
 
+    /**
+     * 执行查询操作。
+     *
+     * @param session 会话对象
+     * @param sql SQL语句
+     * @param params 参数数组
+     * @param returnType 返回类型
+     * @return 查询结果
+     */
     protected Object executeSelect(Session session, String sql, Object[] params, Class<?> returnType) {
         if (returnType == int.class || returnType == Integer.class || returnType == long.class || returnType == Long.class) {
             try (QueryResult rs = session.query(sql, params)) {
@@ -69,15 +99,39 @@ public abstract class AbstractStyleExecutor implements StyleExecutor {
         }
     }
 
+    /**
+     * 执行插入操作。
+     *
+     * @param session 会话对象
+     * @param sql SQL语句
+     * @param params 参数数组
+     * @return 影响的行数
+     */
     protected Object executeInsert(Session session, String sql, Object[] params) {
         boolean result = session.insert(sql, params);
         return result ? 1 : 0;
     }
 
+    /**
+     * 执行更新操作。
+     *
+     * @param session 会话对象
+     * @param sql SQL语句
+     * @param params 参数数组
+     * @return 影响的行数
+     */
     protected Object executeUpdate(Session session, String sql, Object[] params) {
         return session.update(sql, params);
     }
 
+    /**
+     * 执行删除操作。
+     *
+     * @param session 会话对象
+     * @param sql SQL语句
+     * @param params 参数数组
+     * @return 影响的行数
+     */
     protected Object executeDelete(Session session, String sql, Object[] params) {
         return session.delete(sql, params);
     }

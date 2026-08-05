@@ -7,14 +7,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Registry for entity mappers with automatic configuration.
- * <p>
- * Manages EntityMapper instances for entity classes, providing automatic
- * mapper generation and caching. Supports both explicit registration via
- * MappingConfig and automatic configuration from entity class reflection.
- * </p>
+ * 实体映射器注册表，管理EntityMapper实例的自动配置与缓存。
  *
- * @author jrdb
+ * <p>支持两种注册方式：
+ * <ul>
+ *     <li>显式注册：通过MappingConfig手动配置映射规则</li>
+ *     <li>自动配置：基于实体类反射自动推断映射规则</li>
+ * </ul>
+ *
+ * @author Helly Guo
  * @since 1.0.0
  */
 public class MapperRegistry {
@@ -27,10 +28,10 @@ public class MapperRegistry {
     private final Map<Class<?>, MappingConfig> configCache = new ConcurrentHashMap<>();
 
     /**
-     * Constructs a MapperRegistry with the specified TypeHandlerRegistry.
+     * 构造MapperRegistry。
      *
-     * @param typeHandlerRegistry the registry for type handlers
-     * @throws IllegalArgumentException if typeHandlerRegistry is null
+     * @param typeHandlerRegistry 类型处理器注册表
+     * @throws IllegalArgumentException 如果typeHandlerRegistry为null
      */
     public MapperRegistry(TypeHandlerRegistry typeHandlerRegistry) {
         this.typeHandlerRegistry = java.util.Objects.requireNonNull(typeHandlerRegistry,
@@ -40,17 +41,14 @@ public class MapperRegistry {
     }
 
     /**
-     * Gets or creates a mapper for the specified entity class.
-     * <p>
-     * If a mapper is already cached, returns it directly. Otherwise,
-     * automatically configures the mapping from the entity class using
-     * reflection and generates the mapper.
-     * </p>
+     * 获取或创建实体类的映射器。
      *
-     * @param <T> the entity type
-     * @param entityClass the entity class
-     * @return the EntityMapper for the entity class
-     * @throws IllegalArgumentException if entityClass is null
+     * <p>如果映射器已缓存则直接返回，否则自动配置并生成映射器。
+     *
+     * @param <T> 实体类型
+     * @param entityClass 实体类
+     * @return EntityMapper实例
+     * @throws IllegalArgumentException 如果entityClass为null
      */
     @SuppressWarnings("unchecked")
     public <T> EntityMapper<T> getMapper(Class<T> entityClass) {
@@ -60,16 +58,14 @@ public class MapperRegistry {
     }
 
     /**
-     * Registers a mapper with explicit configuration.
-     * <p>
-     * Creates and caches a mapper based on the provided MappingConfig.
-     * This allows fine-grained control over the mapping behavior.
-     * </p>
+     * 注册带显式配置的映射器。
      *
-     * @param <T> the entity type
-     * @param config the mapping configuration
-     * @return the created EntityMapper
-     * @throws IllegalArgumentException if config is null
+     * <p>基于提供的MappingConfig创建并缓存映射器。
+     *
+     * @param <T> 实体类型
+     * @param config 映射配置
+     * @return 创建的EntityMapper
+     * @throws IllegalArgumentException 如果config为null
      */
     @SuppressWarnings("unchecked")
     public <T> EntityMapper<T> register(MappingConfig config) {
@@ -84,27 +80,27 @@ public class MapperRegistry {
     }
 
     /**
-     * Checks if a mapper is registered for the specified entity class.
+     * 检查是否已注册指定实体类的映射器。
      *
-     * @param entityClass the entity class to check
-     * @return true if a mapper is registered
+     * @param entityClass 实体类
+     * @return 是否已注册
      */
     public boolean hasMapper(Class<?> entityClass) {
         return mapperCache.containsKey(entityClass);
     }
 
     /**
-     * Gets the mapping configuration for an entity class.
+     * 获取实体类的映射配置。
      *
-     * @param entityClass the entity class
-     * @return the MappingConfig, or null if not configured
+     * @param entityClass 实体类
+     * @return MappingConfig，如未配置则返回null
      */
     public MappingConfig getConfig(Class<?> entityClass) {
         return configCache.get(entityClass);
     }
 
     /**
-     * Clears all cached mappers and configurations.
+     * 清空所有缓存的映射器和配置。
      */
     public void clear() {
         mapperCache.clear();
@@ -112,9 +108,9 @@ public class MapperRegistry {
     }
 
     /**
-     * Gets the number of cached mappers.
+     * 获取缓存的映射器数量。
      *
-     * @return the number of cached mappers
+     * @return 映射器数量
      */
     public int size() {
         return mapperCache.size();

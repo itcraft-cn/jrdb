@@ -4,6 +4,16 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
 
+
+/**
+ * SQL直接拼接工具类，用于高性能批量SQL操作。
+ *
+ * @author Helly Guo
+ * @since 1.2.0
+ */
+import java.sql.Timestamp;
+import java.util.List;
+
 /**
  * SQL直接执行工具类，用于拼接完整SQL语句和转义参数。
  *
