@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+[English](CHANGELOG_en.md)
+
+[English](CHANGELOG_en.md)
+
+## [归档] - 2026-11-16
+
+### Changed
+- 项目归档，不再维护。仓库保留在 `main` 分支，未删除。
+
 ## [1.2.0] - 2026-05-15
 
 ### Added

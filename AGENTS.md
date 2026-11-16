@@ -1,4 +1,11 @@
-# jrdb - Java Rapid DataBase
+# jrdb - Java Rapid DataBase（已归档）
+
+> 本仓库已归档，不再维护。仓库保留在 `main` 分支，未删除。
+>
+> 归档原因：ASM 映射的技术判断成立，但通用 ORM 生态位已被 MyBatis/Hibernate 占满；
+> 多数业务性能已足够，低延时场景少且可被异步/批量/Redis 缓存绕开。技术抉择没有错，只是出生太晚。
+>
+> 文档：[README](README.md) | [CHANGELOG](CHANGELOG.md) | [MANUAL](MANUAL.md)
 
 高性能 Java 数据库操作框架，基于堆外内存 + ASM 动态映射实现。
 
